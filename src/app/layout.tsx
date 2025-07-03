@@ -6,6 +6,13 @@ import { I18nProvider } from '@/hooks/use-i18n';
 export const metadata: Metadata = {
   title: 'Facebook AI',
   description: 'Trade on real markets in real-time with demo funds.',
+  manifest: '/manifest.json',
+  themeColor: '#3B82F6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Facebook AI',
+  },
 };
 
 export default function RootLayout({
