@@ -28,6 +28,9 @@ export function useTradeSimulator() {
         setTrades(parsedTrades);
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
+        if (savedState.isRunning && savedState.selectedRobot) {
+          setIsRunning(true);
+        }
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
@@ -45,12 +48,13 @@ export function useTradeSimulator() {
         trades,
         selectedRobot,
         totalPnl,
+        isRunning,
       };
       localStorage.setItem(TRADE_SIMULATOR_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl]);
+  }, [balance, trades, selectedRobot, totalPnl, isRunning]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
