@@ -32,7 +32,7 @@ export function useTradeSimulator() {
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
         setTutorialCompleted(savedState.tutorialCompleted ?? false);
-        if (savedState.isRunning && savedState.selectedRobot && (savedState.tutorialCompleted ?? false)) {
+        if (savedState.isRunning && savedState.selectedRobot) {
           setIsRunning(true);
         }
       } else {
@@ -137,14 +137,12 @@ export function useTradeSimulator() {
     }
     setSelectedRobot(robot);
     
-    if (tutorialCompleted) {
-        const robotName = getRobotName(robot);
-        toast({
-            titleKey: "robotSelected",
-            titleParams: { robotName },
-            descriptionKey: "robotSelectedDesc",
-        });
-    }
+    const robotName = getRobotName(robot);
+    toast({
+        titleKey: "robotSelected",
+        titleParams: { robotName },
+        descriptionKey: "robotSelectedDesc",
+    });
   };
 
   const handleToggleSimulator = () => {
@@ -156,14 +154,12 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
-      if (tutorialCompleted) {
-        const robotName = getRobotName(selectedRobot);
-        toast({
-            titleKey: "tradingStarted",
-            descriptionKey: "tradingStartedDesc",
-            descriptionParams: { robotName },
-        });
-      }
+      const robotName = getRobotName(selectedRobot);
+      toast({
+          titleKey: "tradingStarted",
+          descriptionKey: "tradingStartedDesc",
+          descriptionParams: { robotName },
+      });
     }
   }
 
@@ -178,6 +174,8 @@ export function useTradeSimulator() {
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
     });
+    // Force a reload to ensure tutorial pops up
+    setTimeout(() => window.location.reload(), 500);
   }
 
   return {

@@ -9,7 +9,15 @@ import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
-import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS } from 'react-joyride';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 
 export default function Home() {
   const { t } = useI18n();
@@ -27,87 +35,39 @@ export default function Home() {
     completeTutorial,
   } = useTradeSimulator();
 
-  const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
 
   useEffect(() => {
     if (!tutorialCompleted) {
-      setTimeout(() => setRun(true), 500);
+      setIsTutorialOpen(true);
     }
   }, [tutorialCompleted]);
 
-  // Effect to advance from "select robot" step
-  useEffect(() => {
-    if (selectedRobot && stepIndex === 2) {
-      setTimeout(() => setStepIndex(3), 300);
-    }
-  }, [selectedRobot, stepIndex]);
-
-  // Effect to advance from "start trading" step
-  useEffect(() => {
-    if (isRunning && stepIndex === 3) {
-      setTimeout(() => setStepIndex(4), 300);
-    }
-  }, [isRunning, stepIndex]);
-
-
-  const handleJoyrideCallback = (data: CallBackProps) => {
-    const { action, index, status, type } = data;
-
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
-      setRun(false);
-      completeTutorial();
-      return;
-    }
-
-    if ([EVENTS.STEP_AFTER].includes(type as any)) {
-        if (action === ACTIONS.NEXT) {
-            setStepIndex(index + 1);
-        } else if (action === ACTIONS.PREV) {
-            setStepIndex(index - 1);
-        }
-    }
-  };
-
-  const tutorialSteps: Step[] = [
+  const tutorialSteps = [
     {
-      target: 'body',
-      content: t('tutorialWelcomeContent'),
-      title: t('tutorialWelcomeTitle'),
-      placement: 'center',
-      disableBeacon: true,
+      title: t('tutorial.step1.title'),
+      content: t('tutorial.step1.content'),
     },
     {
-      target: '#robot-selection-card',
-      content: t('tutorialSelectRobotContent'),
-      title: t('tutorialSelectRobotTitle'),
-      placement: 'right',
-      disableBeacon: true,
+      title: t('tutorial.step2.title'),
+      content: t('tutorial.step2.content'),
     },
     {
-      target: '#robot-card-balanced',
-      content: t('tutorialClickRobotContent'),
-      title: t('tutorialClickRobotTitle'),
-      placement: 'right',
-      disableBeacon: true,
-      hideFooter: true,
+      title: t('tutorial.step3.title'),
+      content: t('tutorial.step3.content'),
     },
     {
-      target: '#start-trading-button',
-      content: t('tutorialStartTradingContent'),
-      title: t('tutorialStartTradingTitle'),
-      placement: 'right',
-      disableBeacon: true,
-      hideFooter: true,
+      title: t('tutorial.step4.title'),
+      content: t('tutorial.step4.content'),
     },
-    {
-      target: 'body',
-      content: t('tutorialFinishedContent'),
-      title: t('tutorialFinishedTitle'),
-      placement: 'center',
-      disableBeacon: true,
-    }
   ];
+
+  const handleTutorialClose = () => {
+    setIsTutorialOpen(false);
+    completeTutorial();
+    setTutorialStep(0);
+  };
 
   const handleWithdraw = () => {
     toast({
@@ -119,27 +79,41 @@ export default function Home() {
 
   return (
     <>
-      <Joyride
-        run={run}
-        stepIndex={stepIndex}
-        steps={tutorialSteps}
-        continuous={false}
-        showProgress
-        showSkipButton
-        callback={handleJoyrideCallback}
-        styles={{
-          options: {
-            arrowColor: 'hsl(var(--card))',
-            backgroundColor: 'hsl(var(--card))',
-            primaryColor: 'hsl(var(--primary))',
-            textColor: 'hsl(var(--card-foreground))',
-            zIndex: 1000,
-          },
-          buttonClose: {
-            display: 'none',
-          }
-        }}
-      />
+      <Dialog open={isTutorialOpen} onOpenChange={(open) => !open && handleTutorialClose()}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{tutorialSteps[tutorialStep].title}</DialogTitle>
+            <DialogDescription>
+              {tutorialSteps[tutorialStep].content}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="flex w-full justify-between items-center">
+              <div>
+                {tutorialStep > 0 && (
+                  <Button variant="outline" onClick={() => setTutorialStep(tutorialStep - 1)}>
+                    {t('tutorial.previous')}
+                  </Button>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {tutorialStep + 1} / {tutorialSteps.length}
+              </div>
+              <div>
+                {tutorialStep < tutorialSteps.length - 1 ? (
+                  <Button onClick={() => setTutorialStep(tutorialStep + 1)}>
+                    {t('tutorial.next')}
+                  </Button>
+                ) : (
+                  <Button onClick={handleTutorialClose}>
+                    {t('tutorial.finish')}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
