@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Robot, Trade } from '@/lib/types';
-import { INITIAL_BALANCE } from '@/lib/constants';
+import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
 
@@ -15,6 +15,9 @@ export function useTradeSimulator() {
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
   const [tutorialCompleted, setTutorialCompleted] = useState(true);
+  const [totalTradingTime, setTotalTradingTime] = useState(0); // in seconds
+  const [timeLimitReached, setTimeLimitReached] = useState(false);
+
   const { toast } = useToast();
   const { t } = useI18n();
 
@@ -32,7 +35,12 @@ export function useTradeSimulator() {
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
         setTutorialCompleted(savedState.tutorialCompleted ?? false);
-        if (savedState.isRunning && savedState.selectedRobot) {
+        setTotalTradingTime(savedState.totalTradingTime ?? 0);
+        
+        const limitReached = (savedState.totalTradingTime ?? 0) >= TRADING_TIME_LIMIT_SECONDS;
+        setTimeLimitReached(limitReached);
+
+        if (savedState.isRunning && savedState.selectedRobot && !limitReached) {
           setIsRunning(true);
         }
       } else {
@@ -57,12 +65,39 @@ export function useTradeSimulator() {
         totalPnl,
         isRunning,
         tutorialCompleted,
+        totalTradingTime,
+        timeLimitReached,
       };
       localStorage.setItem(TRADE_SIMULATOR_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted]);
+  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted, totalTradingTime, timeLimitReached]);
+
+  useEffect(() => {
+    if (!isRunning || timeLimitReached) return;
+  
+    const interval = setInterval(() => {
+      setTotalTradingTime(prevTime => {
+        const newTime = prevTime + 1;
+        if (newTime >= TRADING_TIME_LIMIT_SECONDS) {
+          clearInterval(interval);
+          setIsRunning(false);
+          setTimeLimitReached(true);
+          toast({
+            titleKey: 'timeLimitReachedTitle',
+            descriptionKey: 'timeLimitReachedDesc',
+            variant: 'destructive',
+            duration: 10000,
+          });
+          return TRADING_TIME_LIMIT_SECONDS;
+        }
+        return newTime;
+      });
+    }, 1000);
+  
+    return () => clearInterval(interval);
+  }, [isRunning, timeLimitReached, toast]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
@@ -146,6 +181,16 @@ export function useTradeSimulator() {
   };
 
   const handleToggleSimulator = () => {
+    if (timeLimitReached) {
+      toast({
+        titleKey: 'timeLimitReachedTitle',
+        descriptionKey: 'timeLimitReachedDesc',
+        variant: 'destructive',
+        duration: 10000,
+      });
+      return;
+    }
+
     if (isRunning) {
       setIsRunning(false);
        toast({
@@ -170,6 +215,8 @@ export function useTradeSimulator() {
     setSelectedRobot(null);
     setTotalPnl(0);
     setTutorialCompleted(false);
+    setTotalTradingTime(0);
+    setTimeLimitReached(false);
     toast({
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
@@ -189,5 +236,7 @@ export function useTradeSimulator() {
     resetSimulator,
     tutorialCompleted,
     completeTutorial,
+    totalTradingTime,
+    timeLimitReached,
   };
 }

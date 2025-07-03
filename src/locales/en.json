@@ -53,5 +53,9 @@
   "tutorial.step6.content": "You can now see the results in the 'Trade History'. Remember, if this were your real account, you could withdraw your profits at any time. Ready to start? Good luck!",
   "tutorial.previous": "Previous",
   "tutorial.next": "Next",
-  "tutorial.finish": "Finish"
+  "tutorial.finish": "Finish",
+  "timeLimitReachedTitle": "Demo Time Expired",
+  "timeLimitReachedDesc": "Your 24-hour trading trial has ended. Reset the session to start over.",
+  "timeLimitReached": "Time Limit Reached",
+  "remainingTime": "Time Remaining"
 }

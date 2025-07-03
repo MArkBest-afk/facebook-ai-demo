@@ -28,7 +28,9 @@ export default function Home() {
     trades, 
     isRunning, 
     selectedRobot, 
-    totalPnl, 
+    totalPnl,
+    totalTradingTime,
+    timeLimitReached,
     handleSelectRobot, 
     handleToggleSimulator,
     resetSimulator,
@@ -161,6 +163,8 @@ export default function Home() {
                 onSelect={handleSelectRobot}
                 isRunning={isRunning}
                 onToggle={handleToggleSimulator}
+                totalTradingTime={totalTradingTime}
+                timeLimitReached={timeLimitReached}
               />
             </div>
             <div className="lg:col-span-2">
