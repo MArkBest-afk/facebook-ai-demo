@@ -12,7 +12,7 @@ interface TradeHistoryProps {
 
 export function TradeHistory({ trades }: TradeHistoryProps) {
   return (
-    <Card className="shadow-lg h-full flex flex-col">
+    <Card className="shadow-lg h-full flex flex-col overflow-hidden">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <History className="w-6 h-6" />
@@ -26,13 +26,13 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Symbol</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Entry</TableHead>
-                  <TableHead className="text-right">Exit</TableHead>
-                  <TableHead className="text-right">P/L</TableHead>
+                  <TableHead className="whitespace-nowrap">Time</TableHead>
+                  <TableHead className="whitespace-nowrap">Symbol</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Quantity</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Entry</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Exit</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">P/L</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -45,20 +45,21 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
                 ) : (
                   trades.map((trade, index) => (
                     <TableRow key={trade.id} className={cn(index === 0 && trades.length > 0 && "new-trade-animation")}>
-                      <TableCell className="font-medium text-muted-foreground">{trade.timestamp.toLocaleTimeString()}</TableCell>
-                      <TableCell>{trade.symbol}</TableCell>
+                      <TableCell className="font-medium text-muted-foreground whitespace-nowrap">{trade.timestamp.toLocaleTimeString()}</TableCell>
+                      <TableCell className="whitespace-nowrap">{trade.symbol}</TableCell>
                       <TableCell
-                        className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive')}
+                        className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive', 'whitespace-nowrap')}
                       >
                         {trade.type}
                       </TableCell>
-                      <TableCell className="text-right">{trade.quantity}</TableCell>
-                      <TableCell className="text-right">${trade.entryPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${trade.exitPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">{trade.quantity}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">${trade.entryPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">${trade.exitPrice.toFixed(2)}</TableCell>
                       <TableCell
                         className={cn(
                           'text-right font-bold',
-                          trade.pnl >= 0 ? 'text-success' : 'text-destructive'
+                          trade.pnl >= 0 ? 'text-success' : 'text-destructive',
+                          'whitespace-nowrap'
                         )}
                       >
                         {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
