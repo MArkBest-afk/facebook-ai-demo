@@ -38,7 +38,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg" id="robot-selection-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Zap className="w-6 h-6" />
@@ -68,7 +68,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
             );
           })}
         </div>
-        <Button onClick={onToggle} disabled={!selectedRobot} size="lg" className="w-full">
+        <Button onClick={onToggle} disabled={!selectedRobot} size="lg" className="w-full" id="start-trading-button">
           {isRunning ? <Square className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
           {isRunning ? t('stopTrading') : t('startTrading')}
         </Button>
