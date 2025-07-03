@@ -3,7 +3,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, DollarSign, RotateCcw } from 'lucide-react';
+import { Bot, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -50,15 +50,11 @@ export default function Home() {
               <RotateCcw className="mr-2 h-4 w-4" />
               {t('resetSession')}
             </Button>
-            <Button onClick={handleWithdraw}>
-              <DollarSign className="mr-2 h-4 w-4" />
-              {t('withdrawFunds')}
-            </Button>
           </div>
         </header>
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-8">
-            <BalanceCard balance={balance} pnl={totalPnl} />
+            <BalanceCard balance={balance} pnl={totalPnl} onWithdraw={handleWithdraw} />
             <RobotSelection
               selectedRobot={selectedRobot}
               onSelect={handleSelectRobot}

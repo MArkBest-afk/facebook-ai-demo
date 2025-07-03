@@ -2,16 +2,18 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
+import { Button } from './ui/button';
 
 interface BalanceCardProps {
   balance: number;
   pnl: number;
+  onWithdraw: () => void;
 }
 
-export function BalanceCard({ balance, pnl }: BalanceCardProps) {
+export function BalanceCard({ balance, pnl, onWithdraw }: BalanceCardProps) {
   const [isUpdated, setIsUpdated] = useState(false);
   const prevBalanceRef = useRef(balance);
   const { t } = useI18n();
@@ -58,6 +60,10 @@ export function BalanceCard({ balance, pnl }: BalanceCardProps) {
               </span>
             </div>
         </div>
+        <Button onClick={onWithdraw} className="w-full">
+          <DollarSign className="mr-2 h-4 w-4" />
+          {t('withdrawFunds')}
+        </Button>
       </CardContent>
     </Card>
   );
