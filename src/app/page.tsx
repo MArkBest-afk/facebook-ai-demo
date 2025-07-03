@@ -4,7 +4,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -74,9 +74,14 @@ export default function Home() {
       content: t('tutorial.step5.content'),
     },
     {
-      icon: CheckCircle,
+      icon: Hourglass,
       title: t('tutorial.step6.title'),
       content: t('tutorial.step6.content'),
+    },
+    {
+      icon: CheckCircle,
+      title: t('tutorial.step7.title'),
+      content: t('tutorial.step7.content'),
     },
   ];
 
