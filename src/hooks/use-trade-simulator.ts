@@ -42,7 +42,7 @@ export function useTradeSimulator() {
 
       const newTrade: Trade = {
         id: new Date().toISOString() + Math.random(),
-        symbol: 'AI-COIN',
+        symbol: 'BTC-USDT',
         type: pnl > 0 ? 'BUY' : 'SELL',
         quantity,
         entryPrice,
