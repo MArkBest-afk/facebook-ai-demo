@@ -33,7 +33,11 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
   const { t } = useI18n();
 
   const getRobotName = (robot: Robot) => {
-    const key = `robot${robot.name.replace(/\s/g, '')}Name`;
+    const formattedId = robot.id
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const key = `robot${formattedId}Name`;
     return t(key);
   };
 

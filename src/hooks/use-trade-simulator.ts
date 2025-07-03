@@ -112,6 +112,15 @@ export function useTradeSimulator() {
     };
   }, [isRunning, runTradeCycle]);
 
+  const getRobotName = useCallback((robot: Robot) => {
+    const formattedId = robot.id
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const key = `robot${formattedId}Name`;
+    return t(key);
+  }, [t]);
+
   const handleSelectRobot = (robot: Robot) => {
     if (isRunning) {
       toast({
@@ -122,11 +131,12 @@ export function useTradeSimulator() {
     }
     setSelectedRobot(robot);
     
-    const robotName = t(`robot${robot.name.replace(/\s/g, '')}Name`);
+    const robotName = getRobotName(robot);
     
     toast({
-      title: t("robotSelected", {robotName: robotName}),
-      description: t("robotSelectedDesc"),
+      titleKey: "robotSelected",
+      titleParams: { robotName },
+      descriptionKey: "robotSelectedDesc",
     });
   };
 
@@ -139,10 +149,11 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
-      const robotName = t(`robot${selectedRobot.name.replace(/\s/g, '')}Name`);
+      const robotName = getRobotName(selectedRobot);
       toast({
         titleKey: "tradingStarted",
-        description: t("tradingStartedDesc", { robotName: robotName }),
+        descriptionKey: "tradingStartedDesc",
+        descriptionParams: { robotName },
       });
     }
   }
