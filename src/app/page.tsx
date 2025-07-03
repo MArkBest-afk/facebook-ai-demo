@@ -88,13 +88,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (runTour && tourStepIndex === 1 && selectedRobot) {
-      setTourStepIndex(2);
-    }
-  }, [selectedRobot, runTour]);
+    if (!runTour) return;
 
-  useEffect(() => {
-    if (runTour && tourStepIndex === 2 && isRunning) {
+    if (tourStepIndex === 1 && selectedRobot) {
+      setTourStepIndex(2);
+    } else if (tourStepIndex === 2 && isRunning) {
       setRunTour(false);
        try {
         localStorage.setItem(TUTORIAL_COMPLETED_KEY, 'true');
@@ -102,7 +100,7 @@ export default function Home() {
         console.error("Failed to save tutorial completion state", error);
       }
     }
-  }, [isRunning, runTour]);
+  }, [selectedRobot, isRunning, runTour, tourStepIndex]);
 
   const handleWithdraw = () => {
     toast({
