@@ -36,7 +36,7 @@ export function useTradeSimulator() {
 
       const entryPrice = 100 + (Math.random() - 0.5) * 10;
       const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
-      const pnlMultiplier = (Math.random() - 0.45) * 10 * selectedRobot.pnlFactor;
+      const pnlMultiplier = (Math.random() - 0.35) * 10 * selectedRobot.pnlFactor;
       const pnl = pnlMultiplier * quantity;
       const exitPrice = entryPrice + pnlMultiplier;
 
