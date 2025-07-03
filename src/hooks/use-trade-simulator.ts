@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE } from '@/lib/constants';
 import { useToast } from './use-toast';
+import { useI18n } from './use-i18n';
 
 const TRADE_SIMULATOR_STORAGE_KEY = 'tradeSimulatorState';
 
@@ -14,6 +15,7 @@ export function useTradeSimulator() {
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
   const { toast } = useToast();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     try {
@@ -97,7 +99,9 @@ export function useTradeSimulator() {
       const randomInterval = 5000 + Math.random() * 55000; // 5 seconds to 1 minute
       timeoutId = setTimeout(() => {
         runTradeCycle();
-        scheduleNextTrade();
+        if (isRunning) {
+          scheduleNextTrade();
+        }
       }, randomInterval);
     };
 
@@ -117,10 +121,12 @@ export function useTradeSimulator() {
       setIsRunning(false);
     }
     setSelectedRobot(robot);
+    
+    const robotName = t(`robot${robot.name.replace(/\s/g, '')}Name`);
+    
     toast({
-      titleKey: "robotSelected",
-      titleParams: { robotName: robot.name },
-      descriptionKey: "robotSelectedDesc",
+      title: t("robotSelected", {robotName: robotName}),
+      description: t("robotSelectedDesc"),
     });
   };
 
@@ -133,10 +139,10 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
+      const robotName = t(`robot${selectedRobot.name.replace(/\s/g, '')}Name`);
       toast({
         titleKey: "tradingStarted",
-        descriptionKey: "tradingStartedDesc",
-        descriptionParams: { robotName: selectedRobot.name },
+        description: t("tradingStartedDesc", { robotName: robotName }),
       });
     }
   }

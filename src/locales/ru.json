@@ -33,7 +33,21 @@
   "withdrawFunds": "Вывод средств",
   "withdrawTitle": "Информация о выводе",
   "withdrawDescription": "Торговля ведется по реальным рыночным данным. Для вывода средств необходимо активировать полный счет на сумму $150. Пожалуйста, свяжитесь с вашим менеджером для активации.",
+  "robotRiskAverseName": "Осторожный робот",
+  "robotBalancedName": "Сбалансированный робот",
+  "robotHighGrowthName": "Робот высокого роста",
   "robotRiskAverseDescription": "Сохранение капитала со стабильной, но меньшей доходностью.",
   "robotBalancedDescription": "Баланс между сохранением капитала и ростом.",
-  "robotHighGrowthDescription": "Максимизация доходности при значительном риске."
+  "robotHighGrowthDescription": "Максимизация доходности при значительном риске.",
+  "tutorialWelcomeTitle": "Добро пожаловать в Facebook AI!",
+  "tutorialWelcomeDescription": "Это демо-счет с реальными рыночными данными. Ваш начальный баланс — $150. Давайте научимся им пользоваться.",
+  "tutorialRobotSelectionTitle": "Выберите своего робота",
+  "tutorialRobotSelectionDescription": "У каждого робота своя стратегия. Выберите того, который соответствует вашему стилю.",
+  "tutorialStartTradingTitle": "Запустите торговлю",
+  "tutorialStartTradingDescription": "После выбора робота нажмите кнопку «Начать торговлю», чтобы он начал совершать сделки.",
+  "tutorialRealDataTitle": "Следите за результатами",
+  "tutorialRealDataDescription": "Все сделки отображаются в реальном времени. Если бы это были ваши деньги, вы бы могли их вывести. Удачи!",
+  "tutorialNext": "Далее",
+  "tutorialFinish": "Начать торговлю",
+  "tutorialStep": "Шаг {current} из {total}"
 }

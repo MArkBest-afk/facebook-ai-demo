@@ -33,7 +33,21 @@
   "withdrawFunds": "Withdraw Funds",
   "withdrawTitle": "Withdrawal Information",
   "withdrawDescription": "Trading is conducted with real-time market data. To withdraw funds, you need to activate a full account for $150. Please contact your manager to proceed.",
+  "robotRiskAverseName": "Risk Averse Robot",
+  "robotBalancedName": "Balanced Robot",
+  "robotHighGrowthName": "High Growth Robot",
   "robotRiskAverseDescription": "Capital preservation with steady, smaller returns.",
   "robotBalancedDescription": "A balance between capital preservation and growth.",
-  "robotHighGrowthDescription": "Maximize returns with significant risk."
+  "robotHighGrowthDescription": "Maximize returns with significant risk.",
+  "tutorialWelcomeTitle": "Welcome to Facebook AI!",
+  "tutorialWelcomeDescription": "This is a demo account with real market data. Your starting balance is $150. Let's learn how to use it.",
+  "tutorialRobotSelectionTitle": "Select Your Robot",
+  "tutorialRobotSelectionDescription": "Each robot has its own strategy. Choose one that matches your style.",
+  "tutorialStartTradingTitle": "Start Trading",
+  "tutorialStartTradingDescription": "After selecting a robot, press the 'Start Trading' button to let it begin making trades.",
+  "tutorialRealDataTitle": "Track the Results",
+  "tutorialRealDataDescription": "All trades are displayed in real-time. If this were your money, you could withdraw it. Good luck!",
+  "tutorialNext": "Next",
+  "tutorialFinish": "Start Trading",
+  "tutorialStep": "Step {current} of {total}"
 }

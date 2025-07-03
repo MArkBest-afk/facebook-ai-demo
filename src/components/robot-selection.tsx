@@ -31,6 +31,12 @@ function RobotDescription({ robot }: { robot: Robot }) {
 
 export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }: RobotSelectionProps) {
   const { t } = useI18n();
+
+  const getRobotName = (robot: Robot) => {
+    const key = `robot${robot.name.replace(/\s/g, '')}Name`;
+    return t(key);
+  };
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -56,7 +62,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
                 {isActive && (
                     <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />
                 )}
-                <h3 className="font-bold font-headline">{robot.name}</h3>
+                <h3 className="font-bold font-headline">{getRobotName(robot)}</h3>
                 <RobotDescription robot={robot} />
               </div>
             );
