@@ -48,7 +48,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
             <Zap className="w-6 h-6" />
             <span>Select a Robot</span>
         </CardTitle>
-        <CardDescription>Choose your AI trading partner.</CardDescription>
+        <CardDescription>Choose your AI trading partner. A minimum of $150 is required to start.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">

@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'DemoTrade AI',
-  description: 'AI-powered demo trading simulator',
+  title: 'Facebook AI',
+  description: 'Trade on real markets in real-time with demo funds.',
 };
 
 export default function RootLayout({

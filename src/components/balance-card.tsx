@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from '@/lib/utils';
@@ -30,7 +30,7 @@ export function BalanceCard({ balance, pnl }: BalanceCardProps) {
           <Wallet className="w-6 h-6" />
           <span>Account Balance</span>
         </CardTitle>
-        <CardDescription>Your current demo account value.</CardDescription>
+        <CardDescription>Your demo account balance.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div 
@@ -60,6 +60,3 @@ export function BalanceCard({ balance, pnl }: BalanceCardProps) {
     </Card>
   );
 }
-
-// Dummy ref for client component
-const { useRef } = require('react');

@@ -30,4 +30,4 @@ export const ROBOTS: Robot[] = [
   },
 ];
 
-export const INITIAL_BALANCE = 10000;
+export const INITIAL_BALANCE = 150;
