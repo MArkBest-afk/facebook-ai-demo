@@ -38,15 +38,5 @@
   "robotHighGrowthName": "High Growth Robot",
   "robotRiskAverseDescription": "Capital preservation with steady, smaller returns.",
   "robotBalancedDescription": "A balance between capital preservation and growth.",
-  "robotHighGrowthDescription": "Maximize returns with significant risk.",
-  "tour.welcome.title": "Welcome to Facebook AI!",
-  "tour.welcome.content": "This is a demo account with real market data. Your starting balance is $150. Let's learn how to use it.",
-  "tour.selectRobot.title": "Select Your Robot",
-  "tour.selectRobot.content": "Each robot has its own strategy. Click on one that matches your style to proceed.",
-  "tour.startTrading.title": "Start Trading",
-  "tour.startTrading.content": "Great! Now press the 'Start Trading' button to let the bot begin making trades.",
-  "tour.next": "Next",
-  "tour.back": "Back",
-  "tour.skip": "Skip",
-  "tour.last": "Finish"
+  "robotHighGrowthDescription": "Maximize returns with significant risk."
 }
