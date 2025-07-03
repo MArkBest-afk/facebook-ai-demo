@@ -1,12 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import en from '@/locales/en.json';
 import ru from '@/locales/ru.json';
 
 const translations = { en, ru };
 
 type Locale = keyof typeof translations;
+
+const I18N_STORAGE_KEY = 'i18nLocale';
 
 type I18nContextType = {
   locale: Locale;
@@ -18,6 +20,25 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [locale, setLocale] = useState<Locale>('ru');
+
+  useEffect(() => {
+    try {
+      const savedLocale = localStorage.getItem(I18N_STORAGE_KEY) as Locale | null;
+      if (savedLocale && translations[savedLocale]) {
+        setLocale(savedLocale);
+      }
+    } catch (error) {
+      console.error("Failed to load locale from localStorage", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(I18N_STORAGE_KEY, locale);
+    } catch (error) {
+      console.error("Failed to save locale to localStorage", error);
+    }
+  }, [locale]);
 
   const t = useCallback((key: string, params?: Record<string, string | number>) => {
     let text: string = (translations[locale] as Record<string, string>)[key] ?? key;

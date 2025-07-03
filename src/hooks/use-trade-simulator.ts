@@ -5,14 +5,52 @@ import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE } from '@/lib/constants';
 import { useToast } from './use-toast';
 
+const TRADE_SIMULATOR_STORAGE_KEY = 'tradeSimulatorState';
+
 export function useTradeSimulator() {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
-
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      const savedStateJSON = localStorage.getItem(TRADE_SIMULATOR_STORAGE_KEY);
+      if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON);
+        setBalance(savedState.balance ?? INITIAL_BALANCE);
+        const parsedTrades = (savedState.trades ?? []).map((trade: any) => ({
+          ...trade,
+          timestamp: new Date(trade.timestamp),
+        }));
+        setTrades(parsedTrades);
+        setSelectedRobot(savedState.selectedRobot ?? null);
+        setTotalPnl(savedState.totalPnl ?? 0);
+      }
+    } catch (error) {
+      console.error("Failed to load state from localStorage", error);
+      setBalance(INITIAL_BALANCE);
+      setTrades([]);
+      setSelectedRobot(null);
+      setTotalPnl(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stateToSave = {
+        balance,
+        trades,
+        selectedRobot,
+        totalPnl,
+      };
+      localStorage.setItem(TRADE_SIMULATOR_STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (error) {
+      console.error("Failed to save state to localStorage", error);
+    }
+  }, [balance, trades, selectedRobot, totalPnl]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
@@ -105,6 +143,11 @@ export function useTradeSimulator() {
     setTrades([]);
     setSelectedRobot(null);
     setTotalPnl(0);
+    try {
+      localStorage.removeItem(TRADE_SIMULATOR_STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to remove trade simulator state from localStorage", error);
+    }
     toast({
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
