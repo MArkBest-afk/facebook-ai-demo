@@ -35,7 +35,7 @@ export default function Home() {
               {t('appDescription')}
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
             <LanguageSwitcher />
             <Button variant="outline" onClick={resetSimulator}>
               <RotateCcw className="mr-2 h-4 w-4" />
