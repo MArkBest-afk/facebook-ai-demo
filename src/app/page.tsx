@@ -1,9 +1,10 @@
 'use client';
+import React from 'react';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -46,20 +47,34 @@ export default function Home() {
 
   const tutorialSteps = [
     {
+      icon: PartyPopper,
       title: t('tutorial.step1.title'),
       content: t('tutorial.step1.content'),
     },
     {
+      icon: CandlestickChart,
       title: t('tutorial.step2.title'),
       content: t('tutorial.step2.content'),
     },
     {
+      icon: BrainCircuit,
       title: t('tutorial.step3.title'),
       content: t('tutorial.step3.content'),
     },
     {
+      icon: Bot,
       title: t('tutorial.step4.title'),
       content: t('tutorial.step4.content'),
+    },
+    {
+      icon: PlayCircle,
+      title: t('tutorial.step5.title'),
+      content: t('tutorial.step5.content'),
+    },
+    {
+      icon: CheckCircle,
+      title: t('tutorial.step6.title'),
+      content: t('tutorial.step6.content'),
     },
   ];
 
@@ -80,23 +95,28 @@ export default function Home() {
   return (
     <>
       <Dialog open={isTutorialOpen} onOpenChange={(open) => !open && handleTutorialClose()}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{tutorialSteps[tutorialStep].title}</DialogTitle>
-            <DialogDescription>
-              {tutorialSteps[tutorialStep].content}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+            <div className="flex flex-col items-center text-center gap-4">
+              {tutorialSteps[tutorialStep].icon &&
+                React.createElement(tutorialSteps[tutorialStep].icon, {
+                  className: "w-12 h-12 text-primary",
+                })}
+              <DialogTitle className="text-2xl">{tutorialSteps[tutorialStep].title}</DialogTitle>
+            </div>
           </DialogHeader>
-          <DialogFooter>
-            <div className="flex w-full justify-between items-center">
+          <DialogDescription className="text-center text-base px-4">
+            {tutorialSteps[tutorialStep].content}
+          </DialogDescription>
+          <DialogFooter className="!justify-between !items-center !flex-row pt-4">
               <div>
-                {tutorialStep > 0 && (
+                {tutorialStep > 0 ? (
                   <Button variant="outline" onClick={() => setTutorialStep(tutorialStep - 1)}>
                     {t('tutorial.previous')}
                   </Button>
-                )}
+                ) : <div style={{width: '90px'}} /> /* Spacer */}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-sm font-medium text-muted-foreground">
                 {tutorialStep + 1} / {tutorialSteps.length}
               </div>
               <div>
@@ -110,7 +130,6 @@ export default function Home() {
                   </Button>
                 )}
               </div>
-            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
