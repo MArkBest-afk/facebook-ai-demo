@@ -1,13 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Play, Square, Zap } from 'lucide-react';
 import type { Robot } from '@/lib/types';
 import { ROBOTS, INITIAL_BALANCE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { recommendRobot } from '@/ai/flows/robot-recommendation';
 import { useI18n } from '@/hooks/use-i18n';
 
 
@@ -19,29 +16,15 @@ interface RobotSelectionProps {
 }
 
 function RobotDescription({ robot }: { robot: Robot }) {
-  const [description, setDescription] = useState<string | null>(null);
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
 
-  useEffect(() => {
-    const fetchDescription = async () => {
-      try {
-        const result = await recommendRobot({ 
-          riskTolerance: robot.riskTolerance, 
-          investmentGoals: robot.investmentGoals,
-          language: locale,
-        });
-        setDescription(result.robotDescription);
-      } catch (e) {
-        console.error("Failed to get robot description", e);
-        setDescription(t('robotDescriptionError'));
-      }
-    };
-    fetchDescription();
-  }, [robot, locale, t]);
+  const descriptionKeyMap: Record<Robot['id'], string> = {
+    'risk-averse': 'robotRiskAverseDescription',
+    'balanced': 'robotBalancedDescription',
+    'high-growth': 'robotHighGrowthDescription',
+  };
 
-  if (!description) {
-    return <Skeleton className="h-4 w-full" />;
-  }
+  const description = t(descriptionKeyMap[robot.id]);
 
   return <p className="text-sm text-muted-foreground">{description}</p>;
 }

@@ -32,5 +32,8 @@
   "sessionResetDesc": "Your account has been reset to the initial state.",
   "withdrawFunds": "Withdraw Funds",
   "withdrawTitle": "Withdrawal Information",
-  "withdrawDescription": "Trading is conducted with real-time market data. To withdraw funds, you need to activate a full account for $150. Please contact your manager to proceed."
+  "withdrawDescription": "Trading is conducted with real-time market data. To withdraw funds, you need to activate a full account for $150. Please contact your manager to proceed.",
+  "robotRiskAverseDescription": "Capital preservation with steady, smaller returns.",
+  "robotBalancedDescription": "A balance between capital preservation and growth.",
+  "robotHighGrowthDescription": "Maximize returns with significant risk."
 }
