@@ -5,8 +5,6 @@ import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE } from '@/lib/constants';
 import { useToast } from './use-toast';
 
-const SIMULATION_INTERVAL_MS = 2000;
-
 export function useTradeSimulator() {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -15,25 +13,11 @@ export function useTradeSimulator() {
   const [totalPnl, setTotalPnl] = useState(0);
 
   const { toast } = useToast();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const stopSimulator = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setIsRunning(false);
-  }, []);
+  const runTradeCycle = useCallback(() => {
+    if (!selectedRobot) return;
 
-  const startSimulator = useCallback(() => {
-    if (!selectedRobot || isRunning) return;
-
-    setIsRunning(true);
-    intervalRef.current = setInterval(() => {
-      if (Math.random() > selectedRobot.tradeProbability) {
-        return;
-      }
-
+    if (Math.random() <= selectedRobot.tradeProbability) {
       const entryPrice = 100 + (Math.random() - 0.5) * 10;
       const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
       const pnlMultiplier = (Math.random() - 0.35) * 10 * selectedRobot.pnlFactor;
@@ -54,13 +38,29 @@ export function useTradeSimulator() {
       setTrades(prev => [newTrade, ...prev].slice(0, 100));
       setBalance(prev => prev + pnl);
       setTotalPnl(prev => prev + pnl);
-
-    }, SIMULATION_INTERVAL_MS);
-  }, [selectedRobot, isRunning]);
+    }
+  }, [selectedRobot]);
 
   useEffect(() => {
-    return () => stopSimulator();
-  }, [stopSimulator]);
+    if (!isRunning) {
+      return;
+    }
+
+    let timeoutId: NodeJS.Timeout;
+    const scheduleNextTrade = () => {
+      const randomInterval = 5000 + Math.random() * 55000; // 5 seconds to 1 minute
+      timeoutId = setTimeout(() => {
+        runTradeCycle();
+        scheduleNextTrade();
+      }, randomInterval);
+    };
+
+    scheduleNextTrade();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [isRunning, runTradeCycle]);
 
   const handleSelectRobot = (robot: Robot) => {
     if (isRunning) {
@@ -68,7 +68,7 @@ export function useTradeSimulator() {
         title: "Simulator Paused",
         description: "Robot changed. The simulator has been paused.",
       });
-      stopSimulator();
+      setIsRunning(false);
     }
     setSelectedRobot(robot);
     toast({
@@ -79,13 +79,13 @@ export function useTradeSimulator() {
 
   const handleToggleSimulator = () => {
     if (isRunning) {
-      stopSimulator();
+      setIsRunning(false);
        toast({
         title: "Trading Stopped",
         description: "The robot has been paused.",
       });
     } else if (selectedRobot) {
-      startSimulator();
+      setIsRunning(true);
       toast({
         title: "Trading Started!",
         description: `${selectedRobot.name} is now actively trading.`,
@@ -94,7 +94,7 @@ export function useTradeSimulator() {
   }
 
   const resetSimulator = () => {
-    stopSimulator();
+    setIsRunning(false);
     setBalance(INITIAL_BALANCE);
     setTrades([]);
     setSelectedRobot(null);
