@@ -3,14 +3,15 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot } from 'lucide-react';
+import { Bot, DollarSign, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { t } = useI18n();
+  const { toast } = useToast();
   const { 
     balance, 
     trades, 
@@ -21,6 +22,14 @@ export default function Home() {
     handleToggleSimulator,
     resetSimulator
   } = useTradeSimulator();
+
+  const handleWithdraw = () => {
+    toast({
+      titleKey: 'withdrawTitle',
+      descriptionKey: 'withdrawDescription',
+      duration: 10000,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -40,6 +49,10 @@ export default function Home() {
             <Button variant="outline" onClick={resetSimulator}>
               <RotateCcw className="mr-2 h-4 w-4" />
               {t('resetSession')}
+            </Button>
+            <Button onClick={handleWithdraw}>
+              <DollarSign className="mr-2 h-4 w-4" />
+              {t('withdrawFunds')}
             </Button>
           </div>
         </header>

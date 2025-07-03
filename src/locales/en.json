@@ -29,5 +29,8 @@
   "tradingStopped": "Trading Stopped",
   "tradingStoppedDesc": "The robot has been paused.",
   "sessionReset": "Session Reset",
-  "sessionResetDesc": "Your account has been reset to the initial state."
+  "sessionResetDesc": "Your account has been reset to the initial state.",
+  "withdrawFunds": "Withdraw Funds",
+  "withdrawTitle": "Withdrawal Information",
+  "withdrawDescription": "Trading is conducted with real-time market data. To withdraw funds, you need to activate a full account for $150. Please contact your manager to proceed."
 }
