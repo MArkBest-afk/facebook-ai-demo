@@ -1,35 +1,30 @@
 {
   "name": "Facebook AI",
-  "short_name": "FB AI",
+  "short_name": "Facebook AI",
   "description": "Trade on real markets in real-time with demo funds.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#D3D3D3",
+  "theme_color": "#4169E1",
   "icons": [
     {
-      "src": "https://placehold.co/192x192.png",
+      "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://placehold.co/512x512.png",
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://placehold.co/192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "https://placehold.co/512x512.png",
+      "src": "/pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#17171a",
-  "theme_color": "#3B82F6"
+  ]
 }
