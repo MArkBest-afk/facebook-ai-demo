@@ -38,5 +38,15 @@
   "robotHighGrowthName": "High Growth Robot",
   "robotRiskAverseDescription": "Capital preservation with steady, smaller returns.",
   "robotBalancedDescription": "A balance between capital preservation and growth.",
-  "robotHighGrowthDescription": "Maximize returns with significant risk."
+  "robotHighGrowthDescription": "Maximize returns with significant risk.",
+  "tutorialWelcomeTitle": "Welcome to Facebook AI!",
+  "tutorialWelcomeContent": "This is an interactive tour to get you started. You're using a demo account, but the trading data is real. If this were a real account, your profits could be withdrawn.",
+  "tutorialSelectRobotTitle": "Choose Your Robot",
+  "tutorialSelectRobotContent": "First, select one of the AI trading robots. Each has a different strategy, from low-risk to high-growth.",
+  "tutorialClickRobotTitle": "Click a Robot",
+  "tutorialClickRobotContent": "Go ahead and click on any robot to select it. We recommend starting with the 'Balanced Robot'.",
+  "tutorialStartTradingTitle": "Start Trading",
+  "tutorialStartTradingContent": "Great! Now just press this button to start the trading simulation. The robot will start making trades automatically.",
+  "tutorialFinishedTitle": "You're all set!",
+  "tutorialFinishedContent": "The robot is now trading. You can watch the trade history fill up. You can stop the simulation at any time. Good luck!"
 }

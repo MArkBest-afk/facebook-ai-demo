@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import Joyride, { Step, CallBackProps, STATUS, ACTIONS, EVENTS } from 'react-joyride';
 
 export default function Home() {
   const { t } = useI18n();
@@ -20,8 +22,92 @@ export default function Home() {
     totalPnl, 
     handleSelectRobot, 
     handleToggleSimulator,
-    resetSimulator
+    resetSimulator,
+    tutorialCompleted,
+    completeTutorial,
   } = useTradeSimulator();
+
+  const [run, setRun] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (!tutorialCompleted) {
+      setTimeout(() => setRun(true), 500);
+    }
+  }, [tutorialCompleted]);
+
+  // Effect to advance from "select robot" step
+  useEffect(() => {
+    if (selectedRobot && stepIndex === 2) {
+      setTimeout(() => setStepIndex(3), 300);
+    }
+  }, [selectedRobot, stepIndex]);
+
+  // Effect to advance from "start trading" step
+  useEffect(() => {
+    if (isRunning && stepIndex === 3) {
+      setTimeout(() => setStepIndex(4), 300);
+    }
+  }, [isRunning, stepIndex]);
+
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { action, index, status, type } = data;
+
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+      setRun(false);
+      completeTutorial();
+      return;
+    }
+
+    if ([EVENTS.STEP_AFTER].includes(type as any)) {
+        if (action === ACTIONS.NEXT) {
+            setStepIndex(index + 1);
+        } else if (action === ACTIONS.PREV) {
+            setStepIndex(index - 1);
+        }
+    }
+  };
+
+  const tutorialSteps: Step[] = [
+    {
+      target: 'body',
+      content: t('tutorialWelcomeContent'),
+      title: t('tutorialWelcomeTitle'),
+      placement: 'center',
+      disableBeacon: true,
+    },
+    {
+      target: '#robot-selection-card',
+      content: t('tutorialSelectRobotContent'),
+      title: t('tutorialSelectRobotTitle'),
+      placement: 'right',
+      disableBeacon: true,
+    },
+    {
+      target: '#robot-card-balanced',
+      content: t('tutorialClickRobotContent'),
+      title: t('tutorialClickRobotTitle'),
+      placement: 'right',
+      disableBeacon: true,
+      hideFooter: true,
+    },
+    {
+      target: '#start-trading-button',
+      content: t('tutorialStartTradingContent'),
+      title: t('tutorialStartTradingTitle'),
+      placement: 'right',
+      disableBeacon: true,
+      hideFooter: true,
+    },
+    {
+      target: 'body',
+      content: t('tutorialFinishedContent'),
+      title: t('tutorialFinishedTitle'),
+      placement: 'center',
+      disableBeacon: true,
+    }
+  ];
 
   const handleWithdraw = () => {
     toast({
@@ -33,6 +119,27 @@ export default function Home() {
 
   return (
     <>
+      <Joyride
+        run={run}
+        stepIndex={stepIndex}
+        steps={tutorialSteps}
+        continuous={false}
+        showProgress
+        showSkipButton
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            arrowColor: 'hsl(var(--card))',
+            backgroundColor: 'hsl(var(--card))',
+            primaryColor: 'hsl(var(--primary))',
+            textColor: 'hsl(var(--card-foreground))',
+            zIndex: 1000,
+          },
+          buttonClose: {
+            display: 'none',
+          }
+        }}
+      />
       <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">

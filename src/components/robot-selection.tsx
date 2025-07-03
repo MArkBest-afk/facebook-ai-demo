@@ -15,20 +15,6 @@ interface RobotSelectionProps {
   onToggle: () => void;
 }
 
-function RobotDescription({ robot }: { robot: Robot }) {
-  const { t } = useI18n();
-
-  const descriptionKeyMap: Record<Robot['id'], string> = {
-    'risk-averse': 'robotRiskAverseDescription',
-    'balanced': 'robotBalancedDescription',
-    'high-growth': 'robotHighGrowthDescription',
-  };
-
-  const description = t(descriptionKeyMap[robot.id]);
-
-  return <p className="text-sm text-muted-foreground">{description}</p>;
-}
-
 export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }: RobotSelectionProps) {
   const { t } = useI18n();
 
@@ -40,9 +26,18 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
     const key = `robot${formattedId}Name`;
     return t(key);
   };
+  
+  const getRobotDescription = (robot: Robot) => {
+    const formattedId = robot.id
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const key = `robot${formattedId}Description`;
+    return t(key);
+  };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg" id="robot-selection-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Zap className="w-6 h-6" />
@@ -57,6 +52,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
             return (
               <div
                 key={robot.id}
+                id={`robot-card-${robot.id}`}
                 onClick={() => onSelect(robot)}
                 className={cn(
                   "border p-4 rounded-lg cursor-pointer transition-all duration-300 relative",
@@ -67,12 +63,12 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
                     <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />
                 )}
                 <h3 className="font-bold font-headline">{getRobotName(robot)}</h3>
-                <RobotDescription robot={robot} />
+                <p className="text-sm text-muted-foreground">{getRobotDescription(robot)}</p>
               </div>
             );
           })}
         </div>
-        <Button onClick={onToggle} disabled={!selectedRobot} size="lg" className="w-full">
+        <Button id="start-trading-button" onClick={onToggle} disabled={!selectedRobot} size="lg" className="w-full">
           {isRunning ? <Square className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
           {isRunning ? t('stopTrading') : t('startTrading')}
         </Button>

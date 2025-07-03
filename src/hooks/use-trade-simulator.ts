@@ -14,8 +14,9 @@ export function useTradeSimulator() {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
+  const [tutorialCompleted, setTutorialCompleted] = useState(true);
   const { toast } = useToast();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     try {
@@ -30,17 +31,21 @@ export function useTradeSimulator() {
         setTrades(parsedTrades);
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
-        if (savedState.isRunning && savedState.selectedRobot) {
+        setTutorialCompleted(savedState.tutorialCompleted ?? false);
+        if (savedState.isRunning && savedState.selectedRobot && (savedState.tutorialCompleted ?? false)) {
           setIsRunning(true);
         }
+      } else {
+        setTutorialCompleted(false);
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
-      setBalance(INITIAL_BALANCE);
-      setTrades([]);
-      setSelectedRobot(null);
-      setTotalPnl(0);
+      setTutorialCompleted(false);
     }
+  }, []);
+
+  const completeTutorial = useCallback(() => {
+    setTutorialCompleted(true);
   }, []);
 
   useEffect(() => {
@@ -51,12 +56,13 @@ export function useTradeSimulator() {
         selectedRobot,
         totalPnl,
         isRunning,
+        tutorialCompleted,
       };
       localStorage.setItem(TRADE_SIMULATOR_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, isRunning]);
+  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
@@ -131,13 +137,14 @@ export function useTradeSimulator() {
     }
     setSelectedRobot(robot);
     
-    const robotName = getRobotName(robot);
-    
-    toast({
-      titleKey: "robotSelected",
-      titleParams: { robotName },
-      descriptionKey: "robotSelectedDesc",
-    });
+    if (tutorialCompleted) {
+        const robotName = getRobotName(robot);
+        toast({
+            titleKey: "robotSelected",
+            titleParams: { robotName },
+            descriptionKey: "robotSelectedDesc",
+        });
+    }
   };
 
   const handleToggleSimulator = () => {
@@ -149,12 +156,14 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
-      const robotName = getRobotName(selectedRobot);
-      toast({
-        titleKey: "tradingStarted",
-        descriptionKey: "tradingStartedDesc",
-        descriptionParams: { robotName },
-      });
+      if (tutorialCompleted) {
+        const robotName = getRobotName(selectedRobot);
+        toast({
+            titleKey: "tradingStarted",
+            descriptionKey: "tradingStartedDesc",
+            descriptionParams: { robotName },
+        });
+      }
     }
   }
 
@@ -164,11 +173,7 @@ export function useTradeSimulator() {
     setTrades([]);
     setSelectedRobot(null);
     setTotalPnl(0);
-    try {
-      localStorage.removeItem(TRADE_SIMULATOR_STORAGE_KEY);
-    } catch (error) {
-      console.error("Failed to remove trade simulator state from localStorage", error);
-    }
+    setTutorialCompleted(false);
     toast({
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
@@ -184,5 +189,7 @@ export function useTradeSimulator() {
     handleSelectRobot,
     handleToggleSimulator,
     resetSimulator,
+    tutorialCompleted,
+    completeTutorial,
   };
 }
