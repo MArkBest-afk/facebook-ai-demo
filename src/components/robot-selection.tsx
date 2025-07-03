@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Play, Square, Zap } from 'lucide-react';
 import type { Robot } from '@/lib/types';
-import { ROBOTS } from '@/lib/constants';
+import { ROBOTS, INITIAL_BALANCE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { recommendRobot } from '@/ai/flows/robot-recommendation';
+import { useI18n } from '@/hooks/use-i18n';
 
 
 interface RobotSelectionProps {
@@ -19,19 +20,24 @@ interface RobotSelectionProps {
 
 function RobotDescription({ robot }: { robot: Robot }) {
   const [description, setDescription] = useState<string | null>(null);
+  const { locale, t } = useI18n();
 
   useEffect(() => {
     const fetchDescription = async () => {
       try {
-        const result = await recommendRobot({ riskTolerance: robot.riskTolerance, investmentGoals: robot.investmentGoals });
+        const result = await recommendRobot({ 
+          riskTolerance: robot.riskTolerance, 
+          investmentGoals: robot.investmentGoals,
+          language: locale,
+        });
         setDescription(result.robotDescription);
       } catch (e) {
         console.error("Failed to get robot description", e);
-        setDescription("A powerful trading bot.");
+        setDescription(t('robotDescriptionError'));
       }
     };
     fetchDescription();
-  }, [robot]);
+  }, [robot, locale, t]);
 
   if (!description) {
     return <Skeleton className="h-4 w-full" />;
@@ -41,14 +47,15 @@ function RobotDescription({ robot }: { robot: Robot }) {
 }
 
 export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }: RobotSelectionProps) {
+  const { t } = useI18n();
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Zap className="w-6 h-6" />
-            <span>Select a Robot</span>
+            <span>{t('selectARobot')}</span>
         </CardTitle>
-        <CardDescription>Choose your AI trading partner. A minimum of $150 is required to start.</CardDescription>
+        <CardDescription>{t('selectARobotDescription', { initialBalance: INITIAL_BALANCE })}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -74,7 +81,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle }:
         </div>
         <Button onClick={onToggle} disabled={!selectedRobot} size="lg" className="w-full">
           {isRunning ? <Square className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-          {isRunning ? 'Stop Trading' : 'Start Trading'}
+          {isRunning ? t('stopTrading') : t('startTrading')}
         </Button>
       </CardContent>
     </Card>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE } from '@/lib/constants';
 import { useToast } from './use-toast';
@@ -20,7 +20,11 @@ export function useTradeSimulator() {
     if (Math.random() <= selectedRobot.tradeProbability) {
       const entryPrice = 100 + (Math.random() - 0.5) * 10;
       const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
-      const pnlMultiplier = (Math.random() - 0.3) * 10 * selectedRobot.pnlFactor;
+      
+      const isProfitable = Math.random() < 0.7; // 70% chance of profit
+      const pnlMagnitude = (Math.random() * 5 + 1) * selectedRobot.pnlFactor;
+      const pnlMultiplier = isProfitable ? pnlMagnitude : -pnlMagnitude / 2; // Losses are smaller
+
       const pnl = pnlMultiplier * quantity;
       const exitPrice = entryPrice + pnlMultiplier;
 
@@ -65,15 +69,16 @@ export function useTradeSimulator() {
   const handleSelectRobot = (robot: Robot) => {
     if (isRunning) {
       toast({
-        title: "Simulator Paused",
-        description: "Robot changed. The simulator has been paused.",
+        titleKey: "simulatorPaused",
+        descriptionKey: "simulatorPausedDesc",
       });
       setIsRunning(false);
     }
     setSelectedRobot(robot);
     toast({
-      title: `${robot.name} Selected`,
-      description: "Ready to start trading.",
+      titleKey: "robotSelected",
+      titleParams: { robotName: robot.name },
+      descriptionKey: "robotSelectedDesc",
     });
   };
 
@@ -81,14 +86,15 @@ export function useTradeSimulator() {
     if (isRunning) {
       setIsRunning(false);
        toast({
-        title: "Trading Stopped",
-        description: "The robot has been paused.",
+        titleKey: "tradingStopped",
+        descriptionKey: "tradingStoppedDesc",
       });
     } else if (selectedRobot) {
       setIsRunning(true);
       toast({
-        title: "Trading Started!",
-        description: `${selectedRobot.name} is now actively trading.`,
+        titleKey: "tradingStarted",
+        descriptionKey: "tradingStartedDesc",
+        descriptionParams: { robotName: selectedRobot.name },
       });
     }
   }
@@ -100,8 +106,8 @@ export function useTradeSimulator() {
     setSelectedRobot(null);
     setTotalPnl(0);
     toast({
-      title: "Session Reset",
-      description: "Your account has been reset to the initial state.",
+      titleKey: "sessionReset",
+      descriptionKey: "sessionResetDesc",
     });
   }
 

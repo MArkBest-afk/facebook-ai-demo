@@ -5,39 +5,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Trade } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
+import { useI18n } from "@/hooks/use-i18n";
 
 interface TradeHistoryProps {
   trades: Trade[];
 }
 
 export function TradeHistory({ trades }: TradeHistoryProps) {
+  const { t } = useI18n();
+
   return (
     <Card className="shadow-lg h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <History className="w-6 h-6" />
-            <span>Trade History</span>
+            <span>{t('tradeHistory')}</span>
         </CardTitle>
-        <CardDescription>A log of all executed trades.</CardDescription>
+        <CardDescription>{t('tradeHistoryDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow>
-              <TableHead className="whitespace-nowrap">Time</TableHead>
-              <TableHead className="whitespace-nowrap">Symbol</TableHead>
-              <TableHead className="whitespace-nowrap">Type</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Quantity</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Entry</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Exit</TableHead>
-              <TableHead className="text-right whitespace-nowrap">P/L</TableHead>
+              <TableHead className="whitespace-nowrap">{t('tableTime')}</TableHead>
+              <TableHead className="whitespace-nowrap">{t('tableSymbol')}</TableHead>
+              <TableHead className="whitespace-nowrap">{t('tableType')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tableQuantity')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tableEntry')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tableExit')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tablePL')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {trades.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
-                  No trades yet. Start the robot to see trading activity.
+                  {t('noTrades')}
                 </TableCell>
               </TableRow>
             ) : (

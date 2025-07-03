@@ -19,6 +19,10 @@ const RecommendRobotInputSchema = z.object({
       'The users risk tolerance. Can be one of the following: low, medium, high.'
     ),
   investmentGoals: z.string().describe('The investment goals of the user.'),
+  language: z
+    .string()
+    .optional()
+    .describe('The language for the response, e.g., "en" or "ru".'),
 });
 export type RecommendRobotInput = z.infer<typeof RecommendRobotInputSchema>;
 
@@ -37,6 +41,7 @@ const prompt = ai.definePrompt({
   input: {schema: RecommendRobotInputSchema},
   output: {schema: RecommendRobotOutputSchema},
   prompt: `You are an AI trading robot recommendation expert.
+{{#if language}}You MUST respond in the following language: {{language}}.{{/if}}
 
 You will recommend one of the following robots based on the user's risk tolerance and investment goals:
 

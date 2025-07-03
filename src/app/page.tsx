@@ -6,8 +6,11 @@ import { TradeHistory } from '@/components/trade-history';
 import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RotateCcw } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function Home() {
+  const { t } = useI18n();
   const { 
     balance, 
     trades, 
@@ -26,16 +29,19 @@ export default function Home() {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-4">
               <Bot className="w-10 h-10 text-primary" />
-              <h1 className="text-3xl md:text-4xl font-headline text-primary">Facebook AI</h1>
+              <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('appName')}</h1>
             </div>
             <p className="text-muted-foreground sm:ml-[56px]">
-              Trade on real markets in real-time with demo funds.
+              {t('appDescription')}
             </p>
           </div>
-          <Button variant="outline" onClick={resetSimulator}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset Session
-          </Button>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <Button variant="outline" onClick={resetSimulator}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {t('resetSession')}
+            </Button>
+          </div>
         </header>
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 flex flex-col gap-8">
