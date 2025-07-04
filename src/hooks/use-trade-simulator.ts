@@ -8,18 +8,6 @@ import { useI18n } from './use-i18n';
 
 const TRADE_SIMULATOR_STORAGE_KEY = 'tradeSimulatorState';
 
-// Helper functions moved here to resolve module instantiation error
-type TFunction = (key: string, params?: Record<string, string | number>) => string;
-
-const getRobotName = (robot: Robot, t: TFunction): string => {
-  const formattedId = robot.id
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('');
-  const key = `robot${formattedId}Name`;
-  return t(key);
-};
-
 export function useTradeSimulator() {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -34,6 +22,15 @@ export function useTradeSimulator() {
 
   const { toast } = useToast();
   const { t } = useI18n();
+
+  const getRobotName = (robot: Robot): string => {
+    const formattedId = robot.id
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('');
+    const key = `robot${formattedId}Name`;
+    return t(key);
+  };
 
   useEffect(() => {
     try {
@@ -179,7 +176,7 @@ export function useTradeSimulator() {
     }
     setSelectedRobot(robot);
     
-    const robotName = getRobotName(robot, t);
+    const robotName = getRobotName(robot);
     toast({
         titleKey: "robotSelected",
         titleParams: { robotName },
@@ -200,7 +197,7 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
-      const robotName = getRobotName(selectedRobot, t);
+      const robotName = getRobotName(selectedRobot);
       toast({
           titleKey: "tradingStarted",
           descriptionKey: "tradingStartedDesc",
