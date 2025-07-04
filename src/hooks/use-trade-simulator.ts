@@ -70,16 +70,16 @@ export function useTradeSimulator() {
       const stateToSave = {
         balance,
         trades,
+        isRunning,
         selectedRobot,
         totalPnl,
         totalTradingTime,
-        isRunning,
       };
       localStorage.setItem(SIMULATOR_STATE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted, isRunning]);
+  }, [balance, trades, isRunning, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
@@ -109,32 +109,30 @@ export function useTradeSimulator() {
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
 
-    if (Math.random() <= selectedRobot.tradeProbability) {
-      const entryPrice = 100 + (Math.random() - 0.5) * 10;
-      const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
-      
-      const isProfitable = Math.random() < 0.7; // 70% chance of profit
-      const pnlMagnitude = (Math.random() * 5 + 1) * selectedRobot.pnlFactor;
-      const pnlMultiplier = isProfitable ? pnlMagnitude : -pnlMagnitude / 2; // Losses are smaller
+    const entryPrice = 100 + (Math.random() - 0.5) * 10;
+    const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
+    
+    const isProfitable = Math.random() < 0.7; // 70% chance of profit
+    const pnlMagnitude = (Math.random() * 5 + 1) * selectedRobot.pnlFactor;
+    const pnlMultiplier = isProfitable ? pnlMagnitude : -pnlMagnitude / 2; // Losses are smaller
 
-      const pnl = pnlMultiplier * quantity;
-      const exitPrice = entryPrice + pnlMultiplier;
+    const pnl = pnlMultiplier * quantity;
+    const exitPrice = entryPrice + pnlMultiplier;
 
-      const newTrade: Trade = {
-        id: new Date().toISOString() + Math.random(),
-        symbol: 'BTC-USDT',
-        type: pnl > 0 ? 'BUY' : 'SELL',
-        quantity,
-        entryPrice,
-        exitPrice,
-        pnl,
-        timestamp: new Date(),
-      };
-      
-      setTrades(prev => [newTrade, ...prev].slice(0, 100));
-      setBalance(prev => prev + pnl);
-      setTotalPnl(prev => prev + pnl);
-    }
+    const newTrade: Trade = {
+      id: new Date().toISOString() + Math.random(),
+      symbol: 'BTC-USDT',
+      type: pnl > 0 ? 'BUY' : 'SELL',
+      quantity,
+      entryPrice,
+      exitPrice,
+      pnl,
+      timestamp: new Date(),
+    };
+    
+    setTrades(prev => [newTrade, ...prev].slice(0, 100));
+    setBalance(prev => prev + pnl);
+    setTotalPnl(prev => prev + pnl);
   }, [selectedRobot]);
 
   useEffect(() => {

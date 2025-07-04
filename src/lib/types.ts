@@ -3,7 +3,6 @@ export interface Robot {
   name: string;
   riskTolerance: 'low' | 'medium' | 'high';
   investmentGoals: string;
-  tradeProbability: number;
   tradeSizeFactor: number;
   pnlFactor: number;
 }
