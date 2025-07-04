@@ -144,7 +144,10 @@ export function useTradeSimulator() {
 
     let timeoutId: NodeJS.Timeout;
     const scheduleNextTrade = () => {
-      const randomInterval = 5000 + Math.random() * 55000;
+      const minInterval = 5000;
+      const maxInterval = 60000;
+      const randomInterval = Math.floor(Math.random() * (maxInterval - minInterval + 1)) + minInterval;
+
       timeoutId = setTimeout(() => {
         runTradeCycle();
         if (isRunning) {
