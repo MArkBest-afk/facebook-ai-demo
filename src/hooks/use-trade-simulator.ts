@@ -17,6 +17,8 @@ export function useTradeSimulator() {
   const [tutorialCompleted, setTutorialCompleted] = useState(true);
   const [totalTradingTime, setTotalTradingTime] = useState(0); // in seconds
   const [timeLimitReached, setTimeLimitReached] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
 
   const { toast } = useToast();
   const { t } = useI18n();
@@ -40,15 +42,23 @@ export function useTradeSimulator() {
         const limitReached = (savedState.totalTradingTime ?? 0) >= TRADING_TIME_LIMIT_SECONDS;
         setTimeLimitReached(limitReached);
 
+        if (savedState.userId) {
+          setUserId(savedState.userId);
+        } else {
+          setUserId('acc-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+        }
+
         if (savedState.isRunning && savedState.selectedRobot && !limitReached) {
           setIsRunning(true);
         }
       } else {
         setTutorialCompleted(false);
+        setUserId('acc-' + Math.random().toString(36).substring(2, 8).toUpperCase());
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
       setTutorialCompleted(false);
+      setUserId('acc-' + Math.random().toString(36).substring(2, 8).toUpperCase());
     }
   }, []);
 
@@ -57,6 +67,7 @@ export function useTradeSimulator() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return; // Don't save until userId is generated
     try {
       const stateToSave = {
         balance,
@@ -67,12 +78,13 @@ export function useTradeSimulator() {
         tutorialCompleted,
         totalTradingTime,
         timeLimitReached,
+        userId,
       };
       localStorage.setItem(TRADE_SIMULATOR_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted, totalTradingTime, timeLimitReached]);
+  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted, totalTradingTime, timeLimitReached, userId]);
 
   useEffect(() => {
     if (!isRunning || timeLimitReached) return;
@@ -224,5 +236,6 @@ export function useTradeSimulator() {
     completeTutorial,
     totalTradingTime,
     timeLimitReached,
+    userId,
   };
 }
