@@ -49,6 +49,10 @@ export function useTradeSimulator() {
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
         setTotalTradingTime(savedState.totalTradingTime ?? 0);
+        // Load the running state, but only if the time limit hasn't been reached
+        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS) {
+          setIsRunning(savedState.isRunning ?? false);
+        }
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
@@ -70,12 +74,13 @@ export function useTradeSimulator() {
         selectedRobot,
         totalPnl,
         totalTradingTime,
+        isRunning,
       };
       localStorage.setItem(SIMULATOR_STATE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted, isStateLoaded]);
+  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted, isStateLoaded, isRunning]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
