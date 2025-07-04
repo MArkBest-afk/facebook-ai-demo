@@ -50,14 +50,14 @@ export function useTradeSimulator() {
         setTotalPnl(savedState.totalPnl ?? 0);
         setTotalTradingTime(savedState.totalTradingTime ?? 0);
         // Load the running state, but only if the time limit hasn't been reached
-        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS) {
+        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS && !timeLimitReached) {
           setIsRunning(savedState.isRunning ?? false);
         }
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
-  }, []);
+  }, [timeLimitReached]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -109,15 +109,26 @@ export function useTradeSimulator() {
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
 
-    const entryPrice = 100 + (Math.random() - 0.5) * 10;
-    const quantity = Math.floor((Math.random() * 5 + 1) * selectedRobot.tradeSizeFactor);
-    
-    const isProfitable = Math.random() < 0.7; // 70% chance of profit
-    const pnlMagnitude = (Math.random() * 5 + 1) * selectedRobot.pnlFactor;
-    const pnlMultiplier = isProfitable ? pnlMagnitude : -pnlMagnitude / 2; // Losses are smaller
+    // Simplified quantity to keep trades small
+    const quantity = Math.floor(Math.random() * 2) + 1; // 1 or 2
 
-    const pnl = pnlMultiplier * quantity;
-    const exitPrice = entryPrice + pnlMultiplier;
+    // 70% chance of a profitable trade for a positive trend
+    const isProfitable = Math.random() < 0.7;
+
+    let pnlPerUnit;
+    if (isProfitable) {
+      // Smaller, controlled profit based on robot's pnlFactor
+      pnlPerUnit = (0.05 + Math.random() * 0.05) * selectedRobot.pnlFactor;
+    } else {
+      // Losses are smaller than profits to ensure overall gain
+      pnlPerUnit = -(0.03 + Math.random() * 0.03) * selectedRobot.pnlFactor;
+    }
+
+    const pnl = pnlPerUnit * quantity;
+    
+    // Simulate entry and exit prices based on P/L
+    const entryPrice = 100 + (Math.random() - 0.5) * 10;
+    const exitPrice = entryPrice + pnlPerUnit;
 
     const newTrade: Trade = {
       id: new Date().toISOString() + Math.random(),
@@ -136,30 +147,33 @@ export function useTradeSimulator() {
   }, [selectedRobot]);
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || !selectedRobot) {
       return;
     }
 
     let timeoutId: NodeJS.Timeout;
     const scheduleNextTrade = () => {
-      const minInterval = 5000;
-      const maxInterval = 60000;
-      const randomInterval = Math.floor(Math.random() * (maxInterval - minInterval + 1)) + minInterval;
-
+      // Interval between 5 and 60 seconds
+      const randomInterval = Math.random() * 55000 + 5000;
+      
       timeoutId = setTimeout(() => {
         runTradeCycle();
+        // The check is inside the timeout to ensure it uses the latest isRunning state
         if (isRunning) {
           scheduleNextTrade();
         }
       }, randomInterval);
     };
-
+    
+    // Start the first trade cycle immediately, then schedule subsequent ones
+    runTradeCycle();
     scheduleNextTrade();
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [isRunning, runTradeCycle]);
+  }, [isRunning, selectedRobot, runTradeCycle]);
+
 
   const handleSelectRobot = (robot: Robot) => {
     if (isRunning) {
