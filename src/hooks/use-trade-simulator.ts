@@ -76,28 +76,26 @@ export function useTradeSimulator() {
 
   useEffect(() => {
     if (!isRunning || timeLimitReached) return;
-  
+
     const interval = setInterval(() => {
-      setTotalTradingTime(prevTime => {
-        const newTime = prevTime + 1;
-        if (newTime >= TRADING_TIME_LIMIT_SECONDS) {
-          clearInterval(interval);
-          setIsRunning(false);
-          setTimeLimitReached(true);
-          toast({
-            titleKey: 'timeLimitReachedTitle',
-            descriptionKey: 'timeLimitReachedDesc',
-            variant: 'destructive',
-            duration: 10000,
-          });
-          return TRADING_TIME_LIMIT_SECONDS;
-        }
-        return newTime;
-      });
+      setTotalTradingTime(prevTime => prevTime + 1);
     }, 1000);
-  
+
     return () => clearInterval(interval);
-  }, [isRunning, timeLimitReached, toast]);
+  }, [isRunning, timeLimitReached]);
+
+  useEffect(() => {
+    if (totalTradingTime >= TRADING_TIME_LIMIT_SECONDS && isRunning) {
+      setIsRunning(false);
+      setTimeLimitReached(true);
+      toast({
+        titleKey: 'timeLimitReachedTitle',
+        descriptionKey: 'timeLimitReachedDesc',
+        variant: 'destructive',
+        duration: 10000,
+      });
+    }
+  }, [totalTradingTime, isRunning, toast]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
