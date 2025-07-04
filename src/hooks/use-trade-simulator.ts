@@ -50,14 +50,14 @@ export function useTradeSimulator() {
         setTotalPnl(savedState.totalPnl ?? 0);
         setTotalTradingTime(savedState.totalTradingTime ?? 0);
         // Load the running state, but only if the time limit hasn't been reached
-        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS && !timeLimitReached) {
+        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS) {
           setIsRunning(savedState.isRunning ?? false);
         }
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
-  }, [timeLimitReached]);
+  }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
