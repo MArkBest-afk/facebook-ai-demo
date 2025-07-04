@@ -5,6 +5,7 @@ import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
+import { getRobotName } from '@/lib/i18n-utils';
 
 const TRADE_SIMULATOR_STORAGE_KEY = 'tradeSimulatorState';
 
@@ -157,15 +158,6 @@ export function useTradeSimulator() {
     };
   }, [isRunning, runTradeCycle]);
 
-  const getRobotName = useCallback((robot: Robot) => {
-    const formattedId = robot.id
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('');
-    const key = `robot${formattedId}Name`;
-    return t(key);
-  }, [t]);
-
   const handleSelectRobot = (robot: Robot) => {
     if (isRunning) {
       toast({
@@ -176,7 +168,7 @@ export function useTradeSimulator() {
     }
     setSelectedRobot(robot);
     
-    const robotName = getRobotName(robot);
+    const robotName = getRobotName(robot, t);
     toast({
         titleKey: "robotSelected",
         titleParams: { robotName },
@@ -197,7 +189,7 @@ export function useTradeSimulator() {
       });
     } else if (selectedRobot) {
       setIsRunning(true);
-      const robotName = getRobotName(selectedRobot);
+      const robotName = getRobotName(selectedRobot, t);
       toast({
           titleKey: "tradingStarted",
           descriptionKey: "tradingStartedDesc",

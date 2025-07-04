@@ -7,6 +7,7 @@ import { ROBOTS, INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/const
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { Progress } from "@/components/ui/progress";
+import { getRobotName, getRobotDescription } from "@/lib/i18n-utils";
 
 
 interface RobotSelectionProps {
@@ -20,24 +21,6 @@ interface RobotSelectionProps {
 
 export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, totalTradingTime, timeLimitReached }: RobotSelectionProps) {
   const { t } = useI18n();
-
-  const getRobotName = (robot: Robot) => {
-    const formattedId = robot.id
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('');
-    const key = `robot${formattedId}Name`;
-    return t(key);
-  };
-  
-  const getRobotDescription = (robot: Robot) => {
-    const formattedId = robot.id
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('');
-    const key = `robot${formattedId}Description`;
-    return t(key);
-  };
   
   const progress = (totalTradingTime / TRADING_TIME_LIMIT_SECONDS) * 100;
 
@@ -84,8 +67,8 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, t
                 {isActive && (
                     <CheckCircle className="absolute top-2 right-2 h-5 w-5 text-primary" />
                 )}
-                <h3 className="font-bold font-headline">{getRobotName(robot)}</h3>
-                <p className="text-sm text-muted-foreground">{getRobotDescription(robot)}</p>
+                <h3 className="font-bold font-headline">{getRobotName(robot, t)}</h3>
+                <p className="text-sm text-muted-foreground">{getRobotDescription(robot, t)}</p>
               </div>
             );
           })}
