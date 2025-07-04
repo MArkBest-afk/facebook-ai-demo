@@ -7,7 +7,27 @@ import { ROBOTS, INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/const
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { Progress } from "@/components/ui/progress";
-import { getRobotName, getRobotDescription } from "@/lib/i18n-utils";
+
+// Helper functions moved here to resolve module instantiation error
+type TFunction = (key: string, params?: Record<string, string | number>) => string;
+
+const getRobotName = (robot: Robot, t: TFunction): string => {
+  const formattedId = robot.id
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+  const key = `robot${formattedId}Name`;
+  return t(key);
+};
+  
+const getRobotDescription = (robot: Robot, t: TFunction): string => {
+  const formattedId = robot.id
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+  const key = `robot${formattedId}Description`;
+  return t(key);
+};
 
 
 interface RobotSelectionProps {
