@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
@@ -20,7 +20,7 @@ export function useTradeSimulator() {
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
-  const [isStateLoaded, setIsStateLoaded] = useState(false);
+  const isMounted = useRef(false);
 
   const getRobotName = useCallback((robot: Robot): string => {
     const formattedId = robot.id
@@ -56,14 +56,13 @@ export function useTradeSimulator() {
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
-    } finally {
-      setIsStateLoaded(true);
     }
   }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    if (!isStateLoaded) {
+    if (!isMounted.current) {
+      isMounted.current = true;
       return;
     }
     try {
@@ -80,7 +79,7 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted, isStateLoaded, isRunning]);
+  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted, isRunning]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
