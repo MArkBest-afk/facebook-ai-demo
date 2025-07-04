@@ -9,71 +9,51 @@ import { cn } from "@/lib/utils";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useTradeSimulator } from '@/hooks/use-trade-simulator';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-// Mock data for demonstration purposes
-const users = [
-  {
-    id: 'user-a1b2',
-    isOnline: true,
-    country: 'US',
-    ip: '73.168.21.14',
-    device: 'Desktop',
-    robot: 'Balanced Robot',
-    balance: 182.54,
-    pnl: 32.54,
-    lastSeen: 'Online',
-  },
-  {
-    id: 'user-c3d4',
-    isOnline: false,
-    country: 'RU',
-    ip: '91.201.44.87',
-    device: 'Mobile',
-    robot: 'High Growth Robot',
-    balance: 345.10,
-    pnl: 195.10,
-    lastSeen: '5m ago',
-  },
-  {
-    id: 'user-e5f6',
-    isOnline: true,
-    country: 'DE',
-    ip: '88.198.50.112',
-    device: 'Desktop',
-    robot: 'Risk Averse Robot',
-    balance: 151.02,
-    pnl: 1.02,
-    lastSeen: 'Online',
-  },
-    {
-    id: 'user-g7h8',
-    isOnline: false,
-    country: 'GB',
-    ip: '109.157.19.22',
-    device: 'Mobile',
-    robot: 'Balanced Robot',
-    balance: 165.78,
-    pnl: 15.78,
-    lastSeen: '1h ago',
-  },
-];
 
 const getCountryFlag = (countryCode: string) => {
-  // Simple emoji flags based on country code
+  // Simple emoji flags based on country code. In a real app, this might come from an API.
   const flags: { [key: string]: string } = {
     US: '🇺🇸',
     RU: '🇷🇺',
     DE: '🇩🇪',
     GB: '🇬🇧',
+    XX: '🏳️', // Placeholder
   };
   return flags[countryCode] || '🏳️';
 };
 
 
 const AdminDashboard = () => {
-  const activeUsers = users.filter(u => u.isOnline).length;
+  const { 
+    userId,
+    balance,
+    totalPnl,
+    selectedRobot,
+    isRunning,
+  } = useTradeSimulator();
+  const isMobile = useIsMobile();
+
+  // In a real application with a backend, this would fetch all users.
+  // For now, we display the current user's session data as an example.
+  const users = userId ? [{
+    id: userId,
+    isOnline: true, // The user is on the page. isRunning could also be used.
+    country: 'XX', // Placeholder, as this requires server-side logic or an API
+    ip: '127.0.0.1', // Placeholder, client can't reliably get this
+    device: isMobile ? 'Mobile' : 'Desktop',
+    robot: selectedRobot?.name || 'Not Selected',
+    balance,
+    pnl: totalPnl,
+    lastSeen: isRunning ? 'Online' : 'Idle',
+  }] : [];
+
+  const activeUsers = users.length;
   const totalUsers = users.length;
-  const totalPnl = users.reduce((acc, user) => acc + user.pnl, 0);
+  const totalPnlSum = users.reduce((acc, user) => acc + user.pnl, 0);
+  const totalBalanceSum = users.reduce((acc, user) => acc + user.balance, 0);
 
   return (
     <div className="space-y-8">
@@ -99,8 +79,8 @@ const AdminDashboard = () => {
             <CardTitle className="text-sm font-medium">Total P/L</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", totalPnl >= 0 ? 'text-success' : 'text-destructive')}>
-              {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
+            <div className={cn("text-2xl font-bold", totalPnlSum >= 0 ? 'text-success' : 'text-destructive')}>
+              {totalPnlSum >= 0 ? '+' : ''}${totalPnlSum.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -110,7 +90,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${users.reduce((acc, user) => acc + user.balance, 0).toFixed(2)}
+              ${totalBalanceSum.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -120,7 +100,7 @@ const AdminDashboard = () => {
         <CardHeader>
           <CardTitle>User Activity</CardTitle>
           <CardDescription>
-            Live overview of all user trading sessions.
+            Live overview of user trading sessions. Currently showing data for this browser session only.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -137,7 +117,7 @@ const AdminDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {users.length > 0 ? users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -169,7 +149,13 @@ const AdminDashboard = () => {
                      {user.pnl >= 0 ? '+' : ''}${user.pnl.toFixed(2)}
                    </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                 <TableRow>
+                    <TableCell colSpan={7} className="text-center h-24">
+                        No active client session found in this browser. Start a trading session on the main page.
+                    </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
