@@ -32,4 +32,4 @@ export const ROBOTS: Robot[] = [
 
 export const INITIAL_BALANCE = 150;
 
-export const TRADING_TIME_LIMIT_SECONDS = 24 * 60 * 60; // 24 hours
+export const TRADING_TIME_LIMIT_SECONDS = 60; // 1 minute
