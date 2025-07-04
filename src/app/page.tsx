@@ -185,7 +185,7 @@ export default function Home() {
               />
             </div>
             <div className="lg:col-span-2">
-              <TradeHistory trades={trades} />
+              <TradeHistory trades={trades} isRunning={isRunning} />
             </div>
           </main>
         </div>

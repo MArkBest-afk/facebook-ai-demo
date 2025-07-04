@@ -60,5 +60,6 @@
   "timeLimitReachedDesc": "Your 12-hour trading trial has ended. Please contact your specialist to activate a real account and start earning real money.",
   "timeLimitReached": "Time Limit Reached",
   "remainingTime": "Time Remaining",
+  "searchingForTrades": "Robot is active. Searching for the next trade...",
   "robotWorksWhenOpen": "Please note: The robot only trades while this page is open in your browser."
 }

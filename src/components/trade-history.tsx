@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Trade } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { History } from 'lucide-react';
+import { History, LoaderCircle } from 'lucide-react';
 import { useI18n } from "@/hooks/use-i18n";
 
 interface TradeHistoryProps {
   trades: Trade[];
+  isRunning: boolean;
 }
 
-export function TradeHistory({ trades }: TradeHistoryProps) {
+export function TradeHistory({ trades, isRunning }: TradeHistoryProps) {
   const { t } = useI18n();
 
   return (
@@ -37,36 +38,48 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trades.length === 0 ? (
+            {trades.length === 0 && !isRunning ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
                   {t('noTrades')}
                 </TableCell>
               </TableRow>
             ) : (
-              trades.map((trade, index) => (
-                <TableRow key={trade.id} className={cn(index === 0 && trades.length > 0 && "new-trade-animation")}>
-                  <TableCell className="font-medium text-muted-foreground whitespace-nowrap">{trade.timestamp.toLocaleTimeString()}</TableCell>
-                  <TableCell className="whitespace-nowrap">{trade.symbol}</TableCell>
-                  <TableCell
-                    className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive', 'whitespace-nowrap')}
-                  >
-                    {trade.type}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{trade.quantity}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">${trade.entryPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">${trade.exitPrice.toFixed(2)}</TableCell>
-                  <TableCell
-                    className={cn(
-                      'text-right font-bold',
-                      trade.pnl >= 0 ? 'text-success' : 'text-destructive',
-                      'whitespace-nowrap'
-                    )}
-                  >
-                    {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))
+              <>
+                {isRunning && (
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableCell colSpan={7} className="py-4 text-center">
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        <span>{t('searchingForTrades')}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {trades.map((trade, index) => (
+                  <TableRow key={trade.id} className={cn(index === 0 && trades.length > 0 && "new-trade-animation")}>
+                    <TableCell className="font-medium text-muted-foreground whitespace-nowrap">{trade.timestamp.toLocaleTimeString()}</TableCell>
+                    <TableCell className="whitespace-nowrap">{trade.symbol}</TableCell>
+                    <TableCell
+                      className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive', 'whitespace-nowrap')}
+                    >
+                      {trade.type}
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{trade.quantity}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">${trade.entryPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">${trade.exitPrice.toFixed(2)}</TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right font-bold',
+                        trade.pnl >= 0 ? 'text-success' : 'text-destructive',
+                        'whitespace-nowrap'
+                      )}
+                    >
+                      {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
             )}
           </TableBody>
         </Table>
