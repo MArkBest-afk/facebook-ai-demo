@@ -1,56 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Laptop, Smartphone, Lock } from "lucide-react";
+import { Laptop, Smartphone, Lock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useTradeSimulator } from '@/hooks/use-trade-simulator';
-import { useIsMobile } from '@/hooks/use-mobile';
 
+const ALL_USERS_STORAGE_KEY = 'tradeSimulatorAllUsersState';
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
 const getCountryFlag = (countryCode: string) => {
-  // Simple emoji flags based on country code. In a real app, this might come from an API.
   const flags: { [key: string]: string } = {
     US: '🇺🇸',
     RU: '🇷🇺',
     DE: '🇩🇪',
     GB: '🇬🇧',
-    XX: '🏳️', // Placeholder
+    XX: '🏳️',
   };
   return flags[countryCode] || '🏳️';
 };
 
-
 const AdminDashboard = () => {
-  const { 
-    userId,
-    balance,
-    totalPnl,
-    selectedRobot,
-    isRunning,
-  } = useTradeSimulator();
-  const isMobile = useIsMobile();
+  const [users, setUsers] = useState<any[]>([]);
+  const { toast } = useToast();
 
-  // In a real application with a backend, this would fetch all users.
-  // For now, we display the current user's session data as an example.
-  const users = userId ? [{
-    id: userId,
-    isOnline: true, // The user is on the page. isRunning could also be used.
-    country: 'XX', // Placeholder, as this requires server-side logic or an API
-    ip: '127.0.0.1', // Placeholder, client can't reliably get this
-    device: isMobile ? 'Mobile' : 'Desktop',
-    robot: selectedRobot?.name || 'Not Selected',
-    balance,
-    pnl: totalPnl,
-    lastSeen: isRunning ? 'Online' : 'Idle',
-  }] : [];
+  const loadUsers = useCallback(() => {
+    try {
+      const allUsersStateJSON = localStorage.getItem(ALL_USERS_STORAGE_KEY);
+      if (allUsersStateJSON) {
+        const allUsersState = JSON.parse(allUsersStateJSON);
+        const usersArray = Object.values(allUsersState).map((user: any) => {
+            const lastSeen = new Date(user.lastSeenTimestamp);
+            const isConsideredOnline = (new Date().getTime() - lastSeen.getTime()) < ONLINE_THRESHOLD_MS;
+            const isOnline = user.isRunning && isConsideredOnline;
+            
+            return {
+                id: user.userId,
+                isOnline,
+                country: 'XX',
+                ip: '127.0.0.1',
+                device: user.device || 'Unknown',
+                robot: user.selectedRobot?.name || 'Not Selected',
+                balance: user.balance,
+                pnl: user.totalPnl,
+                lastSeen: isOnline ? 'Online' : 'Idle',
+            };
+        });
+        setUsers(usersArray.sort((a, b) => (b.isOnline ? 1 : -1) - (a.isOnline ? 1 : -1) || b.balance - a.balance));
+      }
+    } catch (e) {
+      console.error("Failed to load user data", e);
+      setUsers([]);
+    }
+  }, []);
 
-  const activeUsers = users.length;
+  useEffect(() => {
+    loadUsers();
+    const interval = setInterval(loadUsers, 5000); // Auto-refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, [loadUsers]);
+  
+  const handleRefresh = () => {
+    loadUsers();
+    toast({
+        title: "Данные обновлены",
+        description: "Список пользователей был успешно обновлен.",
+    });
+  }
+
+  const activeUsers = users.filter(u => u.isOnline).length;
   const totalUsers = users.length;
   const totalPnlSum = users.reduce((acc, user) => acc + user.pnl, 0);
   const totalBalanceSum = users.reduce((acc, user) => acc + user.balance, 0);
@@ -97,11 +119,17 @@ const AdminDashboard = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>User Activity</CardTitle>
-          <CardDescription>
-            Live overview of user trading sessions. Currently showing data for this browser session only.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>User Activity</CardTitle>
+                <CardDescription>
+                    Live overview of all active trading sessions. Data is for demonstration.
+                </CardDescription>
+            </div>
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Обновить
+            </Button>
         </CardHeader>
         <CardContent>
           <Table>
@@ -132,7 +160,7 @@ const AdminDashboard = () => {
                   <TableCell>
                     <div className="flex items-center gap-2">
                        <span>{getCountryFlag(user.country)}</span>
-                       <span>{user.ip}</span>
+                       <span className='font-mono text-xs'>{user.ip}</span>
                     </div>
                   </TableCell>
                    <TableCell>
@@ -152,7 +180,7 @@ const AdminDashboard = () => {
               )) : (
                  <TableRow>
                     <TableCell colSpan={7} className="text-center h-24">
-                        No active client session found in this browser. Start a trading session on the main page.
+                        No active users found. Open the main page in a new tab to simulate a new user.
                     </TableCell>
                 </TableRow>
               )}
