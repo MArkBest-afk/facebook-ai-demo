@@ -4,7 +4,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -98,6 +98,18 @@ export default function Home() {
       duration: 10000,
     });
   };
+
+  if (timeLimitReached) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-4 text-center">
+        <Clock className="w-16 h-16 text-primary mb-6" />
+        <h1 className="text-3xl md:text-4xl font-headline text-primary mb-4">{t('timeLimitReachedTitle')}</h1>
+        <p className="max-w-md text-lg text-muted-foreground">
+          {t('timeLimitReachedDesc')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>

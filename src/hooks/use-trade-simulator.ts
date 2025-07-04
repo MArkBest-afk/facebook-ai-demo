@@ -88,14 +88,8 @@ export function useTradeSimulator() {
     if (totalTradingTime >= TRADING_TIME_LIMIT_SECONDS && isRunning) {
       setIsRunning(false);
       setTimeLimitReached(true);
-      toast({
-        titleKey: 'timeLimitReachedTitle',
-        descriptionKey: 'timeLimitReachedDesc',
-        variant: 'destructive',
-        duration: 10000,
-      });
     }
-  }, [totalTradingTime, isRunning, toast]);
+  }, [totalTradingTime, isRunning]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
@@ -180,12 +174,6 @@ export function useTradeSimulator() {
 
   const handleToggleSimulator = () => {
     if (timeLimitReached) {
-      toast({
-        titleKey: 'timeLimitReachedTitle',
-        descriptionKey: 'timeLimitReachedDesc',
-        variant: 'destructive',
-        duration: 10000,
-      });
       return;
     }
 
