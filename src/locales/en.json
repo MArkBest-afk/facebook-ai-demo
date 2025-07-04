@@ -50,14 +50,15 @@
   "tutorial.step5.title": "Activate the Robot",
   "tutorial.step5.content": "Once you've chosen your AI partner, press the 'Start Trading' button to let it begin working on the live market.",
   "tutorial.step6.title": "Time is Ticking",
-  "tutorial.step6.content": "Your AI robot can trade for a total of 24 hours. After this time, the demo session will end. Use this time wisely to see its full potential!",
+  "tutorial.step6.content": "Your AI robot can trade for a total of 12 hours. After this time, the demo session will end. Use this time wisely to see its full potential!",
   "tutorial.step7.title": "Watch and Withdraw",
   "tutorial.step7.content": "You can now see the results in the 'Trade History'. Remember, if this were your real account, you could withdraw your profits at any time. Ready to start? Good luck!",
   "tutorial.previous": "Previous",
   "tutorial.next": "Next",
   "tutorial.finish": "Finish",
   "timeLimitReachedTitle": "Demo Time Expired",
-  "timeLimitReachedDesc": "Your 24-hour trading trial has ended. Please contact your specialist to activate a real account and start earning real money.",
+  "timeLimitReachedDesc": "Your 12-hour trading trial has ended. Please contact your specialist to activate a real account and start earning real money.",
   "timeLimitReached": "Time Limit Reached",
-  "remainingTime": "Time Remaining"
+  "remainingTime": "Time Remaining",
+  "robotWorksWhenOpen": "Please note: The robot only trades while this page is open in your browser."
 }

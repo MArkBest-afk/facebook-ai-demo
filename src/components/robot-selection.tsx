@@ -1,7 +1,7 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Play, Square, Zap, Clock } from 'lucide-react';
+import { CheckCircle, Play, Square, Zap, Clock, Info } from 'lucide-react';
 import type { Robot } from '@/lib/types';
 import { ROBOTS, INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -90,24 +90,30 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, t
             );
           })}
         </div>
-        <Button id="start-trading-button" onClick={onToggle} disabled={!selectedRobot || timeLimitReached} size="lg" className="w-full">
-            {timeLimitReached ? (
-                <>
-                    <Clock className="mr-2 h-4 w-4" />
-                    {t('timeLimitReached')}
-                </>
-            ) : isRunning ? (
-                <>
-                    <Square className="mr-2 h-4 w-4" />
-                    {t('stopTrading')}
-                </>
-            ) : (
-                <>
-                    <Play className="mr-2 h-4 w-4" />
-                    {t('startTrading')}
-                </>
-            )}
-        </Button>
+        <div className="space-y-2">
+          <Button id="start-trading-button" onClick={onToggle} disabled={!selectedRobot || timeLimitReached} size="lg" className="w-full">
+              {timeLimitReached ? (
+                  <>
+                      <Clock className="mr-2 h-4 w-4" />
+                      {t('timeLimitReached')}
+                  </>
+              ) : isRunning ? (
+                  <>
+                      <Square className="mr-2 h-4 w-4" />
+                      {t('stopTrading')}
+                  </>
+              ) : (
+                  <>
+                      <Play className="mr-2 h-4 w-4" />
+                      {t('startTrading')}
+                  </>
+              )}
+          </Button>
+          <div className="flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
+            <Info className="h-3 w-3 shrink-0" />
+            <span>{t('robotWorksWhenOpen')}</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
