@@ -223,6 +223,7 @@ export function useTradeSimulator() {
     setTotalPnl(0);
     setTotalTradingTime(0);
     setTimeLimitReached(false);
+    setTutorialCompleted(false);
     
     try {
         localStorage.removeItem(TUTORIAL_STORAGE_KEY);
@@ -235,7 +236,6 @@ export function useTradeSimulator() {
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
     });
-    setTimeout(() => window.location.reload(), 500);
   }
 
   return {
