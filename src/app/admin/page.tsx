@@ -1,10 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Laptop, Smartphone } from "lucide-react";
+import { Laptop, Smartphone, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 // Mock data for demonstration purposes
 const users = [
@@ -65,7 +69,8 @@ const getCountryFlag = (countryCode: string) => {
   return flags[countryCode] || '🏳️';
 };
 
-export default function AdminPage() {
+
+const AdminDashboard = () => {
   const activeUsers = users.filter(u => u.isOnline).length;
   const totalUsers = users.length;
   const totalPnl = users.reduce((acc, user) => acc + user.pnl, 0);
@@ -171,4 +176,76 @@ export default function AdminPage() {
       </Card>
     </div>
   );
+}
+
+
+export default function AdminPage() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [password, setPassword] = useState('');
+    const { toast } = useToast();
+    const ADMIN_PASSWORD = 'password';
+    const AUTH_KEY = 'admin_authenticated';
+
+    useEffect(() => {
+        try {
+            const storedAuth = sessionStorage.getItem(AUTH_KEY);
+            if (storedAuth === 'true') {
+                setIsAuthenticated(true);
+            }
+        } catch (e) {
+            console.error("Could not access session storage", e);
+        }
+    }, []);
+
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password === ADMIN_PASSWORD) {
+            try {
+                sessionStorage.setItem(AUTH_KEY, 'true');
+            } catch (e) {
+                 console.error("Could not access session storage", e);
+            }
+            setIsAuthenticated(true);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Неверный пароль",
+                description: "Пожалуйста, попробуйте еще раз.",
+            });
+            setPassword('');
+        }
+    };
+
+    if (isAuthenticated) {
+        return <AdminDashboard />;
+    }
+
+    return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lock className="w-5 h-5" />
+                        Доступ для администратора
+                    </CardTitle>
+                    <CardDescription>
+                        Пожалуйста, введите пароль для входа в панель администратора.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <Input
+                            type="password"
+                            placeholder="Пароль"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <Button type="submit" className="w-full">
+                            Войти
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
