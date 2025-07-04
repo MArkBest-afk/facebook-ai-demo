@@ -1,3 +1,5 @@
+'use client';
+
 import type { Robot } from '@/lib/types';
 
 type TFunction = (key: string, params?: Record<string, string | number>) => string;
