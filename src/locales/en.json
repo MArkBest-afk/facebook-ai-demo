@@ -32,7 +32,7 @@
   "sessionResetDesc": "Your account has been reset to the initial state.",
   "withdrawFunds": "Withdraw Funds",
   "withdrawTitle": "Withdrawal Information",
-  "withdrawDescription": "Funds cannot be withdrawn as this is a demo account. Please contact your manager.",
+  "withdrawDescription": "Withdrawal is not possible as this is a demo account. Please contact your manager to fund and activate a real account.",
   "robotRiskAverseName": "Risk Averse Robot",
   "robotBalancedName": "Balanced Robot",
   "robotHighGrowthName": "High Growth Robot",
