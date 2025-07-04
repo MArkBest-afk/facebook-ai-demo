@@ -11,10 +11,9 @@ interface BalanceCardProps {
   balance: number;
   pnl: number;
   onWithdraw: () => void;
-  userId: string | null;
 }
 
-export function BalanceCard({ balance, pnl, onWithdraw, userId }: BalanceCardProps) {
+export function BalanceCard({ balance, pnl, onWithdraw }: BalanceCardProps) {
   const [isUpdated, setIsUpdated] = useState(false);
   const prevBalanceRef = useRef(balance);
   const { t } = useI18n();
@@ -38,12 +37,6 @@ export function BalanceCard({ balance, pnl, onWithdraw, userId }: BalanceCardPro
         <CardDescription>{t('accountBalanceDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {userId && (
-            <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">{t('accountNumber')}</span>
-                <span className="font-mono font-semibold tracking-wider text-sm">{userId}</span>
-            </div>
-        )}
         <div 
           className={cn(
             "text-4xl font-bold font-headline transition-transform duration-500",

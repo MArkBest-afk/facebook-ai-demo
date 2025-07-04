@@ -5,10 +5,8 @@ import type { Robot, Trade } from '@/lib/types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { useIsMobile } from './use-mobile';
 
-const ALL_USERS_STORAGE_KEY = 'tradeSimulatorAllUsersState';
-const SESSION_USER_ID_KEY = 'tradeSimulatorSessionUserId';
+const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
 
 export function useTradeSimulator() {
   const [balance, setBalance] = useState(INITIAL_BALANCE);
@@ -19,10 +17,8 @@ export function useTradeSimulator() {
   const [tutorialCompleted, setTutorialCompleted] = useState(true);
   const [totalTradingTime, setTotalTradingTime] = useState(0);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useI18n();
-  const isMobile = useIsMobile();
 
   const getRobotName = useCallback((robot: Robot): string => {
     const formattedId = robot.id
@@ -35,80 +31,26 @@ export function useTradeSimulator() {
 
   useEffect(() => {
     try {
-      let sessionUserId = sessionStorage.getItem(SESSION_USER_ID_KEY);
-      if (!sessionUserId) {
-        sessionUserId = 'acc-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        sessionStorage.setItem(SESSION_USER_ID_KEY, sessionUserId);
-      }
-      setUserId(sessionUserId);
-
-      const allUsersStateJSON = localStorage.getItem(ALL_USERS_STORAGE_KEY);
-      const allUsersState = allUsersStateJSON ? JSON.parse(allUsersStateJSON) : {};
-      const savedState = allUsersState[sessionUserId];
-
-      if (savedState) {
-        setBalance(savedState.balance ?? INITIAL_BALANCE);
-        const parsedTrades = (savedState.trades ?? []).map((trade: any) => ({
-          ...trade,
-          timestamp: new Date(trade.timestamp),
-        }));
-        setTrades(parsedTrades);
-        setSelectedRobot(savedState.selectedRobot ?? null);
-        setTotalPnl(savedState.totalPnl ?? 0);
-        setTutorialCompleted(savedState.tutorialCompleted ?? true);
-        setTotalTradingTime(savedState.totalTradingTime ?? 0);
-        
-        const limitReached = (savedState.totalTradingTime ?? 0) >= TRADING_TIME_LIMIT_SECONDS;
-        setTimeLimitReached(limitReached);
-
-        if (savedState.isRunning && savedState.selectedRobot && !limitReached) {
-          setIsRunning(true);
-        }
+      const saved = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+      if (saved === 'true') {
+        setTutorialCompleted(true);
       } else {
         setTutorialCompleted(false);
       }
     } catch (error) {
-      console.error("Failed to load state from localStorage", error);
-      setTutorialCompleted(false);
-      if (!sessionStorage.getItem(SESSION_USER_ID_KEY)) {
-        const sessionUserId = 'acc-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        sessionStorage.setItem(SESSION_USER_ID_KEY, sessionUserId);
-        setUserId(sessionUserId);
-      }
+        console.error("Could not access local storage", error);
+        setTutorialCompleted(false);
     }
   }, []);
-
+  
   const completeTutorial = useCallback(() => {
-    setTutorialCompleted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
     try {
-      const stateToSave = {
-        balance,
-        trades,
-        selectedRobot,
-        totalPnl,
-        isRunning,
-        tutorialCompleted,
-        totalTradingTime,
-        timeLimitReached,
-        userId,
-        device: isMobile ? 'Mobile' : 'Desktop',
-        lastSeenTimestamp: new Date().toISOString(),
-      };
-      
-      const allUsersStateJSON = localStorage.getItem(ALL_USERS_STORAGE_KEY);
-      const allUsersState = allUsersStateJSON ? JSON.parse(allUsersStateJSON) : {};
-      
-      allUsersState[userId] = stateToSave;
-
-      localStorage.setItem(ALL_USERS_STORAGE_KEY, JSON.stringify(allUsersState));
+      localStorage.setItem(TUTORIAL_STORAGE_KEY, 'true');
+      setTutorialCompleted(true);
     } catch (error) {
-      console.error("Failed to save state to localStorage", error);
+        console.error("Could not access local storage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, isRunning, tutorialCompleted, totalTradingTime, timeLimitReached, userId, isMobile]);
+  }, []);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -231,22 +173,15 @@ export function useTradeSimulator() {
     setTrades([]);
     setSelectedRobot(null);
     setTotalPnl(0);
-    setTutorialCompleted(false);
     setTotalTradingTime(0);
     setTimeLimitReached(false);
     
     try {
-      if (userId) {
-        const allUsersStateJSON = localStorage.getItem(ALL_USERS_STORAGE_KEY);
-        const allUsersState = allUsersStateJSON ? JSON.parse(allUsersStateJSON) : {};
-        delete allUsersState[userId];
-        localStorage.setItem(ALL_USERS_STORAGE_KEY, JSON.stringify(allUsersState));
-      }
-      sessionStorage.removeItem(SESSION_USER_ID_KEY);
+        localStorage.removeItem(TUTORIAL_STORAGE_KEY);
     } catch (error) {
-      console.error("Failed to remove user from storage on reset", error);
+        console.error("Could not access local storage", error);
     }
-
+    
     toast({
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
@@ -267,6 +202,5 @@ export function useTradeSimulator() {
     completeTutorial,
     totalTradingTime,
     timeLimitReached,
-    userId,
   };
 }
