@@ -66,6 +66,6 @@
   "resetDialogDescription": "Это действие сбросит баланс вашего счета и историю торгов. Это действие нельзя отменить.",
   "resetDialogConfirm": "Подтвердить",
   "resetDialogCancel": "Отмена",
-  "resetDialogPasswordPrompt": "Для подтверждения введите пароль `1111`.",
+  "resetDialogPasswordPrompt": "Для подтверждения введите пароль.",
   "incorrectPassword": "Неверный пароль"
 }

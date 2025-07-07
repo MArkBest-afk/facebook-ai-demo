@@ -66,6 +66,6 @@
   "resetDialogDescription": "This will reset your account balance and trade history. This action cannot be undone.",
   "resetDialogConfirm": "Confirm",
   "resetDialogCancel": "Cancel",
-  "resetDialogPasswordPrompt": "To confirm, please enter the password `1111`.",
+  "resetDialogPasswordPrompt": "To confirm, please enter the password.",
   "incorrectPassword": "Incorrect password"
 }

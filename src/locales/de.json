@@ -66,6 +66,6 @@
   "resetDialogDescription": "Dadurch werden Ihr Kontostand und Ihr Handelsverlauf zurückgesetzt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "resetDialogConfirm": "Bestätigen",
   "resetDialogCancel": "Abbrechen",
-  "resetDialogPasswordPrompt": "Zum Bestätigen geben Sie bitte das Passwort `1111` ein.",
+  "resetDialogPasswordPrompt": "Zum Bestätigen geben Sie bitte das Passwort ein.",
   "incorrectPassword": "Falsches Passwort"
 }
