@@ -127,6 +127,13 @@ export default function Home() {
           <DialogDescription className="text-center text-base px-4">
             {tutorialSteps[tutorialStep].content}
           </DialogDescription>
+          
+          {tutorialStep === 0 && (
+            <div className="flex justify-center">
+              <LanguageSwitcher />
+            </div>
+          )}
+
           <DialogFooter className="!justify-between !items-center !flex-row pt-4">
               <div>
                 {tutorialStep > 0 ? (
