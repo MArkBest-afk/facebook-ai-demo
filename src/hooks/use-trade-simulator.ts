@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Robot, Trade } from '@/lib/types';
-import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
+import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
 
@@ -15,7 +15,7 @@ export function useTradeSimulator() {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
-  const [tutorialCompleted, setTutorialCompleted] = useState(true);
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
   const [totalTradingTime, setTotalTradingTime] = useState(0);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const { toast } = useToast();
@@ -33,6 +33,7 @@ export function useTradeSimulator() {
 
   // Load state from localStorage on initial component mount
   useEffect(() => {
+    isMounted.current = true;
     try {
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       if (savedTutorial === 'true') {
@@ -57,16 +58,15 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
+    return () => { isMounted.current = false }
   }, []);
 
-  // Save state to localStorage whenever it changes
+  // Save simulation state to localStorage whenever it changes
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
       return;
     }
     try {
-      localStorage.setItem(TUTORIAL_STORAGE_KEY, String(tutorialCompleted));
       const stateToSave = {
         balance,
         trades,
@@ -79,7 +79,19 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, isRunning, selectedRobot, totalPnl, totalTradingTime, tutorialCompleted]);
+  }, [balance, trades, isRunning, selectedRobot, totalPnl, totalTradingTime]);
+  
+  // Save tutorial state separately
+  useEffect(() => {
+    if (!isMounted.current) {
+      return;
+    }
+    try {
+      localStorage.setItem(TUTORIAL_STORAGE_KEY, String(tutorialCompleted));
+    } catch (error) {
+      console.error("Failed to save tutorial state to localStorage", error);
+    }
+  }, [tutorialCompleted]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
@@ -109,30 +121,53 @@ export function useTradeSimulator() {
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
 
-    // Simplified quantity to keep trades small
-    const quantity = Math.floor(Math.random() * 2) + 1; // 1 or 2
+    // Calculate a target PNL based on time elapsed to guide the simulation
+    const fourHourMark = 4 * 3600;
+    const progress = Math.min(totalTradingTime / fourHourMark, 1);
 
-    // 70% chance of a profitable trade for a positive trend
-    const isProfitable = Math.random() < 0.7;
+    const targetPnlMap = {
+      'risk-averse': 30 + progress * 5, // 30 -> 35
+      'balanced': 36 + progress * 9,    // 36 -> 45
+      'high-growth': 46 + progress * 9, // 46 -> 55
+    };
 
-    let pnlPerUnit;
-    if (isProfitable) {
-      // Smaller, controlled profit based on robot's pnlFactor
-      pnlPerUnit = (0.05 + Math.random() * 0.05) * selectedRobot.pnlFactor;
-    } else {
-      // Losses are smaller than profits to ensure overall gain
-      pnlPerUnit = -(0.03 + Math.random() * 0.03) * selectedRobot.pnlFactor;
+    const targetPnl = targetPnlMap[selectedRobot.id];
+    const pnlDiscrepancy = targetPnl - totalPnl;
+    
+    // Adjust trade profitability based on discrepancy to steer towards the target
+    // Base probability of profit
+    let profitProbability = 0.65;
+    
+    // If we are lagging behind, increase chance of profit
+    if (pnlDiscrepancy > 5) {
+      profitProbability = 0.85;
+    } 
+    // If we are too far ahead, increase chance of small loss
+    else if (pnlDiscrepancy < -5) {
+      profitProbability = 0.45;
     }
 
-    const pnl = pnlPerUnit * quantity;
+    const isProfitable = Math.random() < profitProbability;
+    
+    let pnl;
+    if (isProfitable) {
+      // Smaller, controlled profit
+      pnl = (0.05 + Math.random() * 0.15); // Profit between $0.05 and $0.20
+    } else {
+      // Losses are smaller than profits to ensure overall gain
+      pnl = -(0.03 + Math.random() * 0.08); // Loss between $0.03 and $0.11
+    }
     
     // Simulate entry and exit prices based on P/L
+    const quantity = 1; // Keep quantity simple
     const entryPrice = 100 + (Math.random() - 0.5) * 10;
-    const exitPrice = entryPrice + pnlPerUnit;
+    const exitPrice = entryPrice + pnl;
+
+    const randomSymbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
 
     const newTrade: Trade = {
       id: new Date().toISOString() + Math.random(),
-      symbol: 'BTC-USDT',
+      symbol: randomSymbol,
       type: pnl > 0 ? 'BUY' : 'SELL',
       quantity,
       entryPrice,
@@ -144,7 +179,7 @@ export function useTradeSimulator() {
     setTrades(prev => [newTrade, ...prev].slice(0, 100));
     setBalance(prev => prev + pnl);
     setTotalPnl(prev => prev + pnl);
-  }, [selectedRobot]);
+  }, [selectedRobot, totalPnl, totalTradingTime]);
 
   useEffect(() => {
     if (!isRunning || !selectedRobot) {
@@ -165,8 +200,6 @@ export function useTradeSimulator() {
       }, randomInterval);
     };
     
-    // Start the first trade cycle immediately, then schedule subsequent ones
-    runTradeCycle();
     scheduleNextTrade();
 
     return () => {
