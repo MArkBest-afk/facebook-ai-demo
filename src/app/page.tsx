@@ -197,7 +197,7 @@ export default function Home() {
           <div>
             <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
               <AlertDialogTrigger asChild>
-                <Button>
+                <Button variant="link">
                   <Repeat className="mr-2 h-4 w-4" />
                   {t('resetSession')}
                 </Button>
