@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import en from '@/locales/en.json';
 import ru from '@/locales/ru.json';
+import de from '@/locales/de.json';
 
-const translations = { en, ru };
+const translations = { en, ru, de };
 
 type Locale = keyof typeof translations;
 
@@ -35,6 +36,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     try {
       localStorage.setItem(I18N_STORAGE_KEY, locale);
+      document.documentElement.lang = locale;
     } catch (error) {
       console.error("Failed to save locale to localStorage", error);
     }

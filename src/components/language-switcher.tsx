@@ -6,7 +6,7 @@ export function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Button 
         variant={locale === 'ru' ? 'default' : 'outline'}
         size="sm"
@@ -20,6 +20,13 @@ export function LanguageSwitcher() {
         onClick={() => setLocale('en')}
       >
         English
+      </Button>
+      <Button
+        variant={locale === 'de' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setLocale('de')}
+      >
+        Deutsch
       </Button>
     </div>
   )

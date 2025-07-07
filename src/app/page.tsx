@@ -129,7 +129,7 @@ export default function Home() {
           </DialogDescription>
           
           {tutorialStep === 0 && (
-            <div className="flex justify-center">
+            <div className="flex justify-center py-4">
               <LanguageSwitcher />
             </div>
           )}
