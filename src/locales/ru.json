@@ -67,5 +67,6 @@
   "resetDialogConfirm": "Подтвердить",
   "resetDialogCancel": "Отмена",
   "resetDialogPasswordPrompt": "Для подтверждения введите пароль.",
-  "incorrectPassword": "Неверный пароль"
+  "incorrectPassword": "Неверный пароль",
+  "finalResultTitle": "Итоговый результат"
 }

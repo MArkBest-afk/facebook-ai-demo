@@ -67,5 +67,6 @@
   "resetDialogConfirm": "Confirm",
   "resetDialogCancel": "Cancel",
   "resetDialogPasswordPrompt": "To confirm, please enter the password.",
-  "incorrectPassword": "Incorrect password"
+  "incorrectPassword": "Incorrect password",
+  "finalResultTitle": "Final Result"
 }

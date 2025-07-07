@@ -30,6 +30,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from '@/lib/utils';
 
 
 export default function Home() {
@@ -132,6 +139,21 @@ export default function Home() {
         <p className="max-w-md text-lg text-muted-foreground">
           {t('timeLimitReachedDesc')}
         </p>
+        
+        <Card className="mt-8 max-w-xs w-full text-center shadow-lg">
+          <CardHeader>
+            <CardTitle>{t('finalResultTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              'text-5xl font-bold font-headline',
+              totalPnl >= 0 ? 'text-success' : 'text-destructive'
+            )}>
+              {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="mt-8">
           <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
             <AlertDialogTrigger asChild>
