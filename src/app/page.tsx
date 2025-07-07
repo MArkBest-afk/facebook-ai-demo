@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from '@/components/ui/input';
 
 
 export default function Home() {
@@ -51,6 +52,7 @@ export default function Home() {
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [resetPassword, setResetPassword] = useState('');
 
   useEffect(() => {
     // This logic handles the initial undefined state to prevent flicker.
@@ -108,6 +110,18 @@ export default function Home() {
       descriptionKey: 'withdrawDescription',
       duration: 10000,
     });
+  };
+
+  const handleResetConfirm = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (resetPassword === '1111') {
+      resetSimulator();
+    } else {
+      e.preventDefault();
+      toast({
+        variant: 'destructive',
+        titleKey: 'incorrectPassword',
+      });
+    }
   };
 
   if (timeLimitReached) {
@@ -189,7 +203,7 @@ export default function Home() {
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
               <LanguageSwitcher />
-              <AlertDialog>
+              <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="icon" aria-label={t('resetSession')}>
                     <RotateCcw className="h-4 w-4" />
@@ -202,9 +216,20 @@ export default function Home() {
                       {t('resetDialogDescription')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {t('resetDialogPasswordPrompt')}
+                    </p>
+                    <Input
+                      type="password"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      placeholder="****"
+                    />
+                  </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t('resetDialogCancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={resetSimulator}>{t('resetDialogConfirm')}</AlertDialogAction>
+                    <AlertDialogAction onClick={handleResetConfirm}>{t('resetDialogConfirm')}</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
