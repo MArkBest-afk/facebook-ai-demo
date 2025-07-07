@@ -136,7 +136,7 @@ export function useTradeSimulator() {
     };
 
     const targetPnl = targetPnlMap[selectedRobot.id];
-    const pnlDiscrepancy = targetPnl - totalPnl;
+    const pnlDiscrepancy = totalPnl - totalPnl;
     
     // Adjust trade profitability based on discrepancy to steer towards the target
     // Base probability of profit
@@ -185,31 +185,33 @@ export function useTradeSimulator() {
     setTotalPnl(prev => prev + pnl);
   }, [selectedRobot, totalPnl, totalTradingTime]);
 
+  const savedRunTradeCycle = useRef(runTradeCycle);
+
+  useEffect(() => {
+    savedRunTradeCycle.current = runTradeCycle;
+  }, [runTradeCycle]);
+
   useEffect(() => {
     if (!isRunning || !selectedRobot) {
       return;
     }
 
     let timeoutId: NodeJS.Timeout;
-    const scheduleNextTrade = () => {
-      // Interval between 5 and 60 seconds
-      const randomInterval = Math.random() * 55000 + 5000;
+
+    const runAndSchedule = () => {
+      savedRunTradeCycle.current();
       
-      timeoutId = setTimeout(() => {
-        runTradeCycle();
-        // The check is inside the timeout to ensure it uses the latest isRunning state
-        if (isRunning) {
-          scheduleNextTrade();
-        }
-      }, randomInterval);
-    };
+      const randomInterval = Math.random() * 55000 + 5000;
+      timeoutId = setTimeout(runAndSchedule, randomInterval);
+    }
     
-    scheduleNextTrade();
+    const firstRandomInterval = Math.random() * 55000 + 5000;
+    timeoutId = setTimeout(runAndSchedule, firstRandomInterval);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [isRunning, selectedRobot, runTradeCycle]);
+  }, [isRunning, selectedRobot]);
 
 
   const handleSelectRobot = (robot: Robot) => {
