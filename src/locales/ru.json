@@ -68,5 +68,8 @@
   "resetDialogCancel": "Отмена",
   "resetDialogPasswordPrompt": "Для подтверждения введите пароль.",
   "incorrectPassword": "Неверный пароль",
-  "finalResultTitle": "Итоговый результат"
+  "finalResultTitle": "Итоговый результат",
+  "finalStatsTitle": "Итоговая статистика",
+  "totalTradesStat": "Всего сделок",
+  "winRateStat": "Процент побед"
 }
