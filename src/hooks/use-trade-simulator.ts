@@ -15,7 +15,7 @@ export function useTradeSimulator() {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [totalPnl, setTotalPnl] = useState(0);
-  const [tutorialCompleted, setTutorialCompleted] = useState(false);
+  const [tutorialCompleted, setTutorialCompleted] = useState<boolean>();
   const [totalTradingTime, setTotalTradingTime] = useState(0);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const { toast } = useToast();
@@ -83,7 +83,7 @@ export function useTradeSimulator() {
   
   // Save tutorial state separately
   useEffect(() => {
-    if (!isMounted.current) {
+    if (!isMounted.current || typeof tutorialCompleted === 'undefined') {
       return;
     }
     try {

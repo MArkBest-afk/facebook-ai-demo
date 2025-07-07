@@ -53,9 +53,9 @@ export default function Home() {
   const [tutorialStep, setTutorialStep] = useState(0);
 
   useEffect(() => {
-    if (!tutorialCompleted) {
-      setIsTutorialOpen(true);
-    }
+    // This logic handles the initial undefined state to prevent flicker.
+    // The tutorial only opens when the state is explicitly false.
+    setIsTutorialOpen(tutorialCompleted === false);
   }, [tutorialCompleted]);
 
   const tutorialSteps = [
