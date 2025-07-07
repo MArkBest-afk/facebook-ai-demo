@@ -50,6 +50,7 @@ export default function Home() {
     totalPnl,
     totalTradingTime,
     timeLimitReached,
+    timeLimit,
     handleSelectRobot, 
     handleToggleSimulator,
     resetSimulator,
@@ -122,6 +123,8 @@ export default function Home() {
   const handleResetConfirm = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (resetPassword === '1111') {
       resetSimulator();
+    } else if (resetPassword === '0001') {
+      resetSimulator('demo');
     } else {
       e.preventDefault();
       toast({
@@ -300,6 +303,7 @@ export default function Home() {
                 onToggle={handleToggleSimulator}
                 totalTradingTime={totalTradingTime}
                 timeLimitReached={timeLimitReached}
+                timeLimit={timeLimit}
               />
             </div>
             <div className="lg:col-span-2">

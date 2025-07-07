@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Play, Square, Zap, Clock, Info } from 'lucide-react';
 import type { Robot } from '@/lib/types';
-import { ROBOTS, INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
+import { ROBOTS, INITIAL_BALANCE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { Progress } from "@/components/ui/progress";
@@ -15,9 +15,10 @@ interface RobotSelectionProps {
   onToggle: () => void;
   totalTradingTime: number;
   timeLimitReached: boolean;
+  timeLimit: number;
 }
 
-export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, totalTradingTime, timeLimitReached }: RobotSelectionProps) {
+export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, totalTradingTime, timeLimitReached, timeLimit }: RobotSelectionProps) {
   const { t } = useI18n();
   
   const getRobotName = (robot: Robot): string => {
@@ -38,7 +39,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, t
     return t(key);
   };
 
-  const progress = (totalTradingTime / TRADING_TIME_LIMIT_SECONDS) * 100;
+  const progress = (totalTradingTime / timeLimit) * 100;
 
   const formatTime = (seconds: number) => {
       const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -46,7 +47,7 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, t
       const s = (seconds % 60).toString().padStart(2, '0');
       return `${h}:${m}:${s}`;
   };
-  const time = TRADING_TIME_LIMIT_SECONDS - totalTradingTime;
+  const time = timeLimit - totalTradingTime;
   const remainingTime = formatTime(time < 0 ? 0 : time);
 
   return (

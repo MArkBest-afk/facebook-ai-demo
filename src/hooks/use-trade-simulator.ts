@@ -17,6 +17,7 @@ export function useTradeSimulator() {
   const [totalPnl, setTotalPnl] = useState(0);
   const [tutorialCompleted, setTutorialCompleted] = useState<boolean>();
   const [totalTradingTime, setTotalTradingTime] = useState(0);
+  const [timeLimit, setTimeLimit] = useState(TRADING_TIME_LIMIT_SECONDS);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const { toast } = useToast();
   const { t } = useI18n();
@@ -50,8 +51,10 @@ export function useTradeSimulator() {
         setSelectedRobot(savedState.selectedRobot ?? null);
         setTotalPnl(savedState.totalPnl ?? 0);
         setTotalTradingTime(savedState.totalTradingTime ?? 0);
+        const savedTimeLimit = savedState.timeLimit ?? TRADING_TIME_LIMIT_SECONDS;
+        setTimeLimit(savedTimeLimit);
         // Load the running state, but only if the time limit hasn't been reached
-        if ((savedState.totalTradingTime ?? 0) < TRADING_TIME_LIMIT_SECONDS) {
+        if ((savedState.totalTradingTime ?? 0) < savedTimeLimit) {
           setIsRunning(savedState.isRunning ?? false);
         }
       }
@@ -74,12 +77,13 @@ export function useTradeSimulator() {
         selectedRobot,
         totalPnl,
         totalTradingTime,
+        timeLimit,
       };
       localStorage.setItem(SIMULATOR_STATE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, isRunning, selectedRobot, totalPnl, totalTradingTime]);
+  }, [balance, trades, isRunning, selectedRobot, totalPnl, totalTradingTime, timeLimit]);
   
   // Save tutorial state separately
   useEffect(() => {
@@ -108,7 +112,7 @@ export function useTradeSimulator() {
   }, [isRunning, timeLimitReached]);
 
   useEffect(() => {
-    if (totalTradingTime >= TRADING_TIME_LIMIT_SECONDS) {
+    if (totalTradingTime >= timeLimit) {
       if (isRunning) {
         setIsRunning(false);
       }
@@ -116,7 +120,7 @@ export function useTradeSimulator() {
         setTimeLimitReached(true);
       }
     }
-  }, [totalTradingTime, isRunning, timeLimitReached]);
+  }, [totalTradingTime, isRunning, timeLimitReached, timeLimit]);
 
   const runTradeCycle = useCallback(() => {
     if (!selectedRobot) return;
@@ -248,7 +252,7 @@ export function useTradeSimulator() {
     }
   }
 
-  const resetSimulator = () => {
+  const resetSimulator = (mode: 'normal' | 'demo' = 'normal') => {
     setIsRunning(false);
     setBalance(INITIAL_BALANCE);
     setTrades([]);
@@ -258,9 +262,14 @@ export function useTradeSimulator() {
     setTimeLimitReached(false);
     setTutorialCompleted(false);
     
+    if (mode === 'demo') {
+        setTimeLimit(10);
+    } else {
+        setTimeLimit(TRADING_TIME_LIMIT_SECONDS);
+    }
+    
     try {
         localStorage.removeItem(TUTORIAL_STORAGE_KEY);
-        localStorage.removeItem(SIMULATOR_STATE_KEY);
     } catch (error) {
         console.error("Could not access local storage", error);
     }
@@ -284,5 +293,6 @@ export function useTradeSimulator() {
     completeTutorial,
     totalTradingTime,
     timeLimitReached,
+    timeLimit,
   };
 }
