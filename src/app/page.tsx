@@ -132,6 +132,39 @@ export default function Home() {
         <p className="max-w-md text-lg text-muted-foreground">
           {t('timeLimitReachedDesc')}
         </p>
+        <div className="mt-8">
+          <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
+            <AlertDialogTrigger asChild>
+              <Button>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {t('resetSession')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('resetDialogTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('resetDialogDescription')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {t('resetDialogPasswordPrompt')}
+                </p>
+                <Input
+                  type="password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  placeholder="****"
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('resetDialogCancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetConfirm}>{t('resetDialogConfirm')}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     );
   }
