@@ -4,7 +4,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Target, TrendingUp, Repeat } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -135,10 +135,6 @@ export default function Home() {
   };
 
   if (timeLimitReached) {
-    const totalTradesCount = trades.length;
-    const winningTradesCount = trades.filter((trade) => trade.pnl >= 0).length;
-    const winRate = totalTradesCount > 0 ? (winningTradesCount / totalTradesCount) * 100 : 0;
-
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-4 text-center overflow-y-auto">
         <div className="w-full max-w-md mx-auto space-y-8">
@@ -161,35 +157,6 @@ export default function Home() {
                 totalPnl >= 0 ? 'text-success' : 'text-destructive'
               )}>
                 {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="w-full text-left shadow-lg bg-card/90 backdrop-blur-sm">
-             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Target className="w-6 h-6" />
-                <span>{t('finalStatsTitle')}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-base">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-secondary rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('winRateStat')}</div>
-                  <div className="font-bold text-lg">{winRate.toFixed(1)}%</div>
-                </div>
-              </div>
-               <div className="flex items-center gap-4">
-                <div className="p-3 bg-secondary rounded-lg">
-                  <CheckCircle className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-muted-foreground">{t('totalTradesStat')}</div>
-                  <div className="font-bold text-lg">{totalTradesCount}</div>
-                </div>
               </div>
             </CardContent>
           </Card>

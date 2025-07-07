@@ -68,8 +68,5 @@
   "resetDialogCancel": "Cancel",
   "resetDialogPasswordPrompt": "To confirm, please enter the password.",
   "incorrectPassword": "Incorrect password",
-  "finalResultTitle": "Final Result",
-  "finalStatsTitle": "Final Statistics",
-  "totalTradesStat": "Total Trades",
-  "winRateStat": "Win Rate"
+  "finalResultTitle": "Final Result"
 }
