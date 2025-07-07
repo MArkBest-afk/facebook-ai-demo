@@ -32,8 +32,8 @@ export function TradeHistory({ trades, isRunning }: TradeHistoryProps) {
               <TableHead className="whitespace-nowrap">{t('tableSymbol')}</TableHead>
               <TableHead className="whitespace-nowrap">{t('tableType')}</TableHead>
               <TableHead className="text-right whitespace-nowrap">{t('tableQuantity')}</TableHead>
-              <TableHead className="text-right whitespace-nowrap">{t('tableEntry')}</TableHead>
-              <TableHead className="text-right whitespace-nowrap">{t('tableExit')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tableTradeAmount')}</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t('tableReturn')}</TableHead>
               <TableHead className="text-right whitespace-nowrap">{t('tablePL')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -66,8 +66,8 @@ export function TradeHistory({ trades, isRunning }: TradeHistoryProps) {
                       {trade.type}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">{trade.quantity}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">${trade.entryPrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">${trade.exitPrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">${(trade.entryPrice * trade.quantity).toFixed(2)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">${(trade.exitPrice * trade.quantity).toFixed(2)}</TableCell>
                     <TableCell
                       className={cn(
                         'text-right font-bold',
