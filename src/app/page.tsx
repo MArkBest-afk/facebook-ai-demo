@@ -136,24 +136,24 @@ export default function Home() {
 
   if (timeLimitReached) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-4 text-center overflow-y-auto">
-        <div className="w-full max-w-md mx-auto space-y-8">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm p-4 text-center overflow-y-auto">
+        <div className="w-full max-w-md mx-auto space-y-6">
           
           <div className="space-y-4">
-            <Trophy className="w-20 h-20 text-primary mx-auto" />
-            <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('timeLimitReachedTitle')}</h1>
-            <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+            <Trophy className="w-16 h-16 text-primary mx-auto" />
+            <h1 className="text-3xl font-headline text-primary">{t('timeLimitReachedTitle')}</h1>
+            <p className="text-base text-muted-foreground max-w-lg mx-auto">
               {t('timeLimitReachedDesc')}
             </p>
           </div>
 
-          <Card className="w-full text-center shadow-2xl bg-card/90 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <CardTitle>{t('finalResultTitle')}</CardTitle>
+          <Card className="w-full text-center shadow-lg bg-card border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('finalResultTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className={cn(
-                'text-6xl font-bold font-headline',
+                'text-5xl font-bold font-headline',
                 totalPnl >= 0 ? 'text-success' : 'text-destructive'
               )}>
                 {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
