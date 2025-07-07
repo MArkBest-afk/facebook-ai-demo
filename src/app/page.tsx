@@ -124,8 +124,13 @@ export default function Home() {
 
   return (
     <>
-      <Dialog open={isTutorialOpen} onOpenChange={(open) => !open && handleTutorialClose()}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={isTutorialOpen}>
+        <DialogContent
+          className="sm:max-w-md"
+          hideCloseButton
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
            <DialogHeader>
             <div className="flex flex-col items-center text-center gap-4">
               {tutorialSteps[tutorialStep].icon &&
