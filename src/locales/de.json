@@ -61,5 +61,9 @@
   "timeLimitReached": "Zeitlimit erreicht",
   "remainingTime": "Verbleibende Zeit",
   "searchingForTrades": "Roboter ist aktiv. Suche nach dem nächsten Trade...",
-  "robotWorksWhenOpen": "Bitte beachten Sie: Der Roboter handelt nur, während diese Seite in Ihrem Browser geöffnet ist."
+  "robotWorksWhenOpen": "Bitte beachten Sie: Der Roboter handelt nur, während diese Seite in Ihrem Browser geöffnet ist.",
+  "resetDialogTitle": "Sitzung zurücksetzen?",
+  "resetDialogDescription": "Dadurch werden Ihr Kontostand und Ihr Handelsverlauf zurückgesetzt. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "resetDialogConfirm": "Bestätigen",
+  "resetDialogCancel": "Abbrechen"
 }

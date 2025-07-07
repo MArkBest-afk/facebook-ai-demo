@@ -18,6 +18,17 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 export default function Home() {
@@ -173,10 +184,25 @@ export default function Home() {
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
               <LanguageSwitcher />
-              <Button variant="outline" onClick={resetSimulator}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                {t('resetSession')}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label={t('resetSession')}>
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('resetDialogTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('resetDialogDescription')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('resetDialogCancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={resetSimulator}>{t('resetDialogConfirm')}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </header>
           <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
