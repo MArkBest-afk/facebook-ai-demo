@@ -5,7 +5,7 @@ import type { Robot, Trade } from '@/lib/types';
 import { ROBOTS, INITIAL_BALANCE, TRADING_SYMBOLS, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { sendTelegramNotification } from '@/app/actions';
+import { sendTelegramNotification, sendProgressUpdateNotification } from '@/app/actions';
 
 const STATE_STORAGE_KEY = 'tradeSimulatorState';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
@@ -47,6 +47,7 @@ export function useTradeSimulator() {
   }, [t]);
 
   const isMounted = useRef(false);
+  const tradeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const robotRef = useRef(selectedRobot);
   const balanceRef = useRef(balance);
 
@@ -91,14 +92,43 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
+    
     return () => {
-      isMounted.current = false;
+        if (!isMounted.current) return;
+        try {
+            const savedStateJSON = localStorage.getItem(STATE_STORAGE_KEY);
+            if (savedStateJSON) {
+                const savedState: SimulatorState = JSON.parse(savedStateJSON);
+
+                if (savedState.totalTradingTime > 0 || savedState.trades.length > 0) {
+                    const robot = savedState.selectedRobotId 
+                        ? ROBOTS.find(r => r.id === savedState.selectedRobotId) || null
+                        : null;
+                    
+                    const remainingSeconds = Math.max(0, savedState.timeLimit - savedState.totalTradingTime);
+                    const h = Math.floor(remainingSeconds / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((remainingSeconds % 3600) / 60).toString().padStart(2, '0');
+                    const s = Math.floor(remainingSeconds % 60).toString().padStart(2, '0');
+                    const remainingTime = `${h}:${m}:${s}`;
+
+                    sendProgressUpdateNotification({
+                        balance: savedState.balance,
+                        remainingTime: remainingTime,
+                        robotName: robot?.name ?? null, 
+                        isRunning: savedState.isRunning
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to send progress notification on unload:", error);
+        }
+        isMounted.current = false;
     };
   }, []);
 
   // Save state to local storage whenever it changes
   useEffect(() => {
-    if (!isMounted.current) return;
+    if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
     try {
       const stateToSave: SimulatorState = {
         balance,
@@ -113,7 +143,7 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, timeLimit, isRunning]);
+  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, timeLimit, isRunning, tutorialCompleted]);
   
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
@@ -135,101 +165,87 @@ export function useTradeSimulator() {
     }
   }, [totalTradingTime, timeLimit, isRunning]);
 
+  const performTrade = useCallback(() => {
+    const currentRobot = robotRef.current;
+    if (!currentRobot) return;
+
+    if (balanceRef.current < 10) {
+      return; 
+    }
+    
+    const tradeAmount = Math.random() * 5 + 5; 
+    const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
+    const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
+    const entryPrice = Math.random() * 100 + 100;
+    const quantity = tradeAmount / entryPrice;
+
+    let pnl = 0;
+    let pnlFactor = 0;
+    
+    switch (currentRobot.riskTolerance) {
+      case 'low': {
+        const positiveBias = 0.01; 
+        const baseVolatility = 0.05;
+        pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+        break;
+      }
+      case 'medium': {
+        const positiveBias = 0.012;
+        const baseVolatility = 0.08;
+        pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+        break;
+      }
+      case 'high': {
+        const positiveBias = 0.015;
+        const baseVolatility = 0.12;
+        pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+        break;
+      }
+    }
+
+    pnl = tradeAmount * pnlFactor;
+    
+    const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1);
+
+    const newTrade: Trade = {
+      id: new Date().toISOString() + Math.random(),
+      symbol,
+      type,
+      quantity: parseFloat(quantity.toFixed(4)),
+      entryPrice: parseFloat(entryPrice.toFixed(2)),
+      exitPrice: parseFloat(exitPrice.toFixed(2)),
+      pnl: parseFloat(pnl.toFixed(2)),
+      timestamp: new Date(),
+    };
+    
+    setTrades(currentTrades => [newTrade, ...currentTrades]);
+    setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
+    setBalance(currentBalance => currentBalance + newTrade.pnl);
+
+    const nextInterval = Math.random() * 55000 + 5000;
+    tradeTimerRef.current = setTimeout(performTrade, nextInterval);
+  }, []);
+
   useEffect(() => {
-    let tradeTimerId: NodeJS.Timeout | null = null;
     let clockTimerId: NodeJS.Timeout | null = null;
-
-    const performTrade = () => {
-      const currentRobot = robotRef.current;
-      if (!currentRobot) return;
-
-      const tradeAmount = Math.random() * 5 + 5; // Trade amount between $5 and $10
-      if (balanceRef.current < tradeAmount) {
-        return; // Not enough balance, skip trade
-      }
-      
-      const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
-      const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
-      const entryPrice = Math.random() * 100 + 100; // Realistic price between 100 and 200
-      const quantity = tradeAmount / entryPrice;
-
-      let pnl = 0;
-      let pnlFactor = 0;
-      
-      // These biases are calibrated to achieve the target PNL over 4 hours (14400 seconds)
-      // with trades happening on average every ~32.5 seconds.
-      // Average trades in 4 hours = 14400 / 32.5 ≈ 443 trades.
-      // Average PNL per trade needed:
-      // Low risk: $32.5 / 443 ≈ $0.073
-      // Medium risk: $40.5 / 443 ≈ $0.091
-      // High risk: $50.5 / 443 ≈ $0.114
-      // Average trade amount: $7.5.
-      // Required pnlFactor: (Average PNL per trade) / 7.5
-      // Low: 0.073 / 7.5 = 0.0097 -> bias ~0.01
-      // Med: 0.091 / 7.5 = 0.0121 -> bias ~0.012
-      // High: 0.114 / 7.5 = 0.0152 -> bias ~0.015
-      
-      switch (currentRobot.riskTolerance) {
-        case 'low': {
-          const positiveBias = 0.01; 
-          const baseVolatility = 0.05; // Smaller swings
-          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-          break;
-        }
-        case 'medium': {
-          const positiveBias = 0.012;
-          const baseVolatility = 0.08;
-          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-          break;
-        }
-        case 'high': {
-          const positiveBias = 0.015;
-          const baseVolatility = 0.12; // Wider swings
-          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-          break;
-        }
-      }
-
-      pnl = tradeAmount * pnlFactor;
-      
-      const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1);
-
-      const newTrade: Trade = {
-        id: new Date().toISOString() + Math.random(),
-        symbol,
-        type,
-        quantity: parseFloat(quantity.toFixed(4)),
-        entryPrice: parseFloat(entryPrice.toFixed(2)),
-        exitPrice: parseFloat(exitPrice.toFixed(2)),
-        pnl: parseFloat(pnl.toFixed(2)),
-        timestamp: new Date(),
-      };
-      
-      setTrades(currentTrades => [newTrade, ...currentTrades]);
-      setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
-      setBalance(currentBalance => currentBalance + newTrade.pnl);
-    };
-
-    const tradeLoop = () => {
-      performTrade();
-      const nextInterval = Math.random() * 55000 + 5000; // 5-60 seconds
-      tradeTimerId = setTimeout(tradeLoop, nextInterval);
-    };
-
+    
     if (isRunning) {
       clockTimerId = setInterval(() => {
         setTotalTradingTime(prevTime => prevTime + 1);
       }, 1000);
 
-      const firstTradeDelay = Math.random() * 4000 + 1000; // 1-5 seconds
-      tradeTimerId = setTimeout(tradeLoop, firstTradeDelay);
+      const firstTradeDelay = Math.random() * 4000 + 1000;
+      tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
     }
     
     return () => {
       if (clockTimerId) clearInterval(clockTimerId);
-      if (tradeTimerId) clearTimeout(tradeTimerId);
+      if (tradeTimerRef.current) {
+        clearTimeout(tradeTimerRef.current);
+        tradeTimerRef.current = null;
+      }
     };
-  }, [isRunning]);
+  }, [isRunning, performTrade]);
 
   const handleSelectRobot = (robot: Robot) => {
     if(isRunning) {
@@ -288,7 +304,6 @@ export function useTradeSimulator() {
       console.error("Failed to clear state from localStorage", error);
     }
 
-    // Send notification on explicit reset and set the session flag
     sendTelegramNotification();
     sessionStorage.setItem(TG_NOTIFICATION_SENT_KEY, 'true');
     
