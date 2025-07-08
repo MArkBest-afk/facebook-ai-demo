@@ -11,13 +11,14 @@ function escapeMarkdownV2(text: string): string {
 
 export async function sendTelegramNotification() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const chatIdsEnv = process.env.TELEGRAM_CHAT_ID;
 
-  if (!botToken || !chatId || chatId === 'YOUR_CHAT_ID_HERE') {
+  if (!botToken || !chatIdsEnv || chatIdsEnv.includes('YOUR_CHAT_ID_HERE')) {
     console.error('Telegram bot token or chat ID is not configured. Please check your .env file.');
     return;
   }
 
+  const chatIds = chatIdsEnv.split(',').map(id => id.trim());
   const headersList = headers();
   
   // Gather all available information
@@ -48,9 +49,9 @@ export async function sendTelegramNotification() {
   const message = messageLines.join('\n');
 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-  try {
-    const response = await fetch(url, {
+  
+  const sendPromises = chatIds.map(chatId => {
+    return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -59,13 +60,18 @@ export async function sendTelegramNotification() {
         parse_mode: 'MarkdownV2',
       }),
       cache: 'no-store',
-    });
+    })
+    .then(async (response) => {
+      if (!response.ok) {
+          const errorBody = await response.text();
+          console.error(`Telegram API Error for chat ID ${chatId}:`, response.status, response.statusText, errorBody);
+      }
+    })
+  });
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error('Telegram API Error:', response.status, response.statusText, errorBody);
-    }
+  try {
+    await Promise.all(sendPromises);
   } catch (error) {
-    console.error('Failed to send Telegram notification:', error);
+    console.error('Failed to send one or more Telegram notifications:', error);
   }
 }
