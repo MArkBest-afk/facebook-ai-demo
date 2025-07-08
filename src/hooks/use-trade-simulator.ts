@@ -132,17 +132,20 @@ export function useTradeSimulator() {
       return;
     }
 
-    if (isRunning) {
-      toast({
-        titleKey: "tradingStopped",
-        descriptionKey: "tradingStoppedDesc",
-      });
-    } else {
+    const nextIsRunning = !isRunning;
+    setIsRunning(nextIsRunning); // Optimistic update
+
+    if (nextIsRunning) {
       const robotName = getRobotName(selectedRobot);
       toast({
           titleKey: "tradingStarted",
           descriptionKey: "tradingStartedDesc",
           descriptionParams: { robotName },
+      });
+    } else {
+      toast({
+        titleKey: "tradingStopped",
+        descriptionKey: "tradingStoppedDesc",
       });
     }
     
