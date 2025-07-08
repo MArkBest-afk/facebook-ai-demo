@@ -5,9 +5,12 @@ import type { Robot, Trade } from '@/lib/types';
 import { ROBOTS, INITIAL_BALANCE, TRADING_SYMBOLS, TRADING_TIME_LIMIT_SECONDS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
+import { sendTelegramNotification } from '@/app/actions';
 
 const STATE_STORAGE_KEY = 'tradeSimulatorState';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
+const TG_NOTIFICATION_SENT_KEY = 'tg_notification_sent';
+
 
 type SimulatorState = {
   balance: number;
@@ -73,6 +76,14 @@ export function useTradeSimulator() {
         setTimeLimit(savedState.timeLimit);
         if (savedState.isRunning && savedState.totalTradingTime < savedState.timeLimit) {
           setIsRunning(true);
+        }
+      } else {
+        // New session on first visit.
+        // Check a session-only flag to prevent re-sending on reload after reset.
+        const notificationSent = sessionStorage.getItem(TG_NOTIFICATION_SENT_KEY);
+        if (!notificationSent) {
+          sendTelegramNotification();
+          sessionStorage.setItem(TG_NOTIFICATION_SENT_KEY, 'true');
         }
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
@@ -144,23 +155,36 @@ export function useTradeSimulator() {
 
       let pnl = 0;
       let pnlFactor = 0;
-
+      
+      // These biases are calibrated to achieve the target PNL over 4 hours (14400 seconds)
+      // with trades happening on average every ~32.5 seconds.
+      // Average trades in 4 hours = 14400 / 32.5 ≈ 443 trades.
+      // Average PNL per trade needed:
+      // Low risk: $32.5 / 443 ≈ $0.073
+      // Medium risk: $40.5 / 443 ≈ $0.091
+      // High risk: $50.5 / 443 ≈ $0.114
+      // Average trade amount: $7.5.
+      // Required pnlFactor: (Average PNL per trade) / 7.5
+      // Low: 0.073 / 7.5 = 0.0097 -> bias ~0.01
+      // Med: 0.091 / 7.5 = 0.0121 -> bias ~0.012
+      // High: 0.114 / 7.5 = 0.0152 -> bias ~0.015
+      
       switch (currentRobot.riskTolerance) {
         case 'low': {
-          const positiveBias = 0.1956;
-          const baseVolatility = 0.05;
+          const positiveBias = 0.01; 
+          const baseVolatility = 0.05; // Smaller swings
           pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
           break;
         }
         case 'medium': {
-          const positiveBias = 0.1524;
+          const positiveBias = 0.012;
           const baseVolatility = 0.08;
           pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
           break;
         }
         case 'high': {
-          const positiveBias = 0.1267;
-          const baseVolatility = 0.12;
+          const positiveBias = 0.015;
+          const baseVolatility = 0.12; // Wider swings
           pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
           break;
         }
@@ -168,7 +192,7 @@ export function useTradeSimulator() {
 
       pnl = tradeAmount * pnlFactor;
       
-      const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1)
+      const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1);
 
       const newTrade: Trade = {
         id: new Date().toISOString() + Math.random(),
@@ -263,6 +287,10 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to clear state from localStorage", error);
     }
+
+    // Send notification on explicit reset and set the session flag
+    sendTelegramNotification();
+    sessionStorage.setItem(TG_NOTIFICATION_SENT_KEY, 'true');
     
     toast({
       titleKey: "sessionReset",
