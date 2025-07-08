@@ -9,8 +9,6 @@ import { sendTelegramNotification } from '@/app/actions';
 
 const STATE_STORAGE_KEY = 'tradeSimulatorState';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
-const TG_NOTIFICATION_SENT_KEY = 'tg_notification_sent';
-
 
 type SimulatorState = {
   balance: number;
@@ -86,12 +84,7 @@ export function useTradeSimulator() {
         }
       } else {
         // New session on first visit.
-        // Check a session-only flag to prevent re-sending on reload after reset.
-        const notificationSent = sessionStorage.getItem(TG_NOTIFICATION_SENT_KEY);
-        if (!notificationSent) {
-          sendTelegramNotification();
-          sessionStorage.setItem(TG_NOTIFICATION_SENT_KEY, 'true');
-        }
+        sendTelegramNotification();
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       setTutorialCompleted(savedTutorial === 'true');
@@ -277,7 +270,6 @@ export function useTradeSimulator() {
     }
 
     sendTelegramNotification();
-    sessionStorage.setItem(TG_NOTIFICATION_SENT_KEY, 'true');
     
     toast({
       titleKey: "sessionReset",
