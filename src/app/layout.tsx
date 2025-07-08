@@ -2,22 +2,10 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { I18nProvider } from '@/hooks/use-i18n';
-import { ServiceWorkerRegistrar } from '@/components/service-worker-registrar';
 
 export const metadata: Metadata = {
   title: 'Facebook AI',
   description: 'Trade on real markets in real-time with demo funds.',
-  manifest: '/manifest.json',
-  themeColor: '#4169E1',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Facebook AI',
-  },
-  icons: {
-    icon: "/pwa-192x192.png",
-    apple: "/pwa-192x192.png",
-  },
 };
 
 export default function RootLayout({
@@ -35,7 +23,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <I18nProvider>
-          <ServiceWorkerRegistrar />
           {children}
           <Toaster />
         </I18nProvider>
