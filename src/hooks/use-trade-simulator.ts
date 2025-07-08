@@ -16,6 +16,7 @@ type SimulatorState = {
   totalPnl: number;
   totalTradingTime: number;
   timeLimit: number;
+  isRunning: boolean;
 };
 
 export function useTradeSimulator() {
@@ -62,6 +63,9 @@ export function useTradeSimulator() {
         setTotalPnl(savedState.totalPnl);
         setTotalTradingTime(savedState.totalTradingTime);
         setTimeLimit(savedState.timeLimit);
+        if (savedState.isRunning && savedState.totalTradingTime < savedState.timeLimit) {
+          setIsRunning(true);
+        }
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       setTutorialCompleted(savedTutorial === 'true');
@@ -84,12 +88,13 @@ export function useTradeSimulator() {
         totalPnl,
         totalTradingTime,
         timeLimit,
+        isRunning,
       };
       localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, timeLimit]);
+  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, timeLimit, isRunning]);
   
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
