@@ -2,6 +2,13 @@
 
 import { headers } from 'next/headers';
 
+// Helper to escape characters for Telegram's MarkdownV2 parser
+function escapeMarkdownV2(text: string): string {
+  // List of characters to escape: _ * [ ] ( ) ~ ` > # + - = | { } . !
+  return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+}
+
+
 export async function sendTelegramNotification() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -24,10 +31,10 @@ export async function sendTelegramNotification() {
 
   const message = `🚀 *Новая сессия*
 
-*Устройство*: \`${userAgent}\`
-*IP-адрес*: \`${ip}\`
-*Местоположение*: \`${location || 'N/A'}\`
-*Языки*: \`${languages}\``;
+*Устройство*: ${escapeMarkdownV2(userAgent)}
+*IP-адрес*: ${escapeMarkdownV2(ip)}
+*Местоположение*: ${escapeMarkdownV2(location || 'N/A')}
+*Языки*: ${escapeMarkdownV2(languages)}`;
 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
@@ -45,7 +52,7 @@ export async function sendTelegramNotification() {
 
     if (!response.ok) {
         const result = await response.json();
-        console.error('Telegram API Error:', result.description);
+        console.error('Telegram API Error:', result);
     }
   } catch (error) {
     console.error('Failed to send Telegram notification:', error);
@@ -79,10 +86,10 @@ export async function sendProgressUpdateNotification(progress: {
 
   const message = `📈 *Обновление сессии*
 
-*IP-адрес*: \`${ip}\`
-*Баланс*: \`${formattedBalance}\`
-*Осталось времени*: \`${remainingTime}\`
-*Выбранный робот*: \`${robot}\`
+*IP-адрес*: ${escapeMarkdownV2(ip)}
+*Баланс*: ${escapeMarkdownV2(formattedBalance)}
+*Осталось времени*: ${escapeMarkdownV2(remainingTime)}
+*Выбранный робот*: ${escapeMarkdownV2(robot)}
 *Статус*: ${status}`;
 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -96,12 +103,12 @@ export async function sendProgressUpdateNotification(progress: {
         text: message,
         parse_mode: 'MarkdownV2',
       }),
-      cache: 'no-store',
+      keepalive: true,
     });
 
     if (!response.ok) {
         const result = await response.json();
-        console.error('Telegram API Error (Progress Update):', result.description);
+        console.error('Telegram API Error (Progress Update):', result);
     }
   } catch (error) {
     console.error('Failed to send Telegram progress notification:', error);
