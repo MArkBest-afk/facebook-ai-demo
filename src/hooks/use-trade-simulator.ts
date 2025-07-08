@@ -110,6 +110,12 @@ export function useTradeSimulator() {
         descriptionKey: "simulatorPausedDesc",
       });
     }
+
+    // Optimistic update
+    setSelectedRobot(robot);
+    if (shouldPause) {
+      setIsRunning(false);
+    }
     
     postToSw({ type: 'SELECT_ROBOT', payload: { robot, shouldPause } });
 
