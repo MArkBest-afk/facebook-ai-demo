@@ -13,7 +13,7 @@ export async function sendTelegramNotification() {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
-  if (!botToken || !chatId) {
+  if (!botToken || !chatId || chatId === 'YOUR_CHAT_ID_HERE') {
     console.error('Telegram bot token or chat ID is not configured in the .env file.');
     return;
   }
@@ -51,8 +51,8 @@ export async function sendTelegramNotification() {
     });
 
     if (!response.ok) {
-        const result = await response.json();
-        console.error('Telegram API Error:', result);
+        const errorBody = await response.text();
+        console.error('Telegram API Error:', response.status, response.statusText, errorBody);
     }
   } catch (error) {
     console.error('Failed to send Telegram notification:', error);
