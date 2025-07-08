@@ -30,6 +30,7 @@ export async function sendTelegramNotification() {
   // Construct the message using MarkdownV2 syntax.
   // Dynamic values are escaped to prevent formatting issues.
   const messageLines = [
+    'FB1',
     '🚀 *New Session Started* 🚀',
     '',
     '*Client Details*',
