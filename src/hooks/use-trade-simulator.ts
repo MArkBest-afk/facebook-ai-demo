@@ -147,22 +147,22 @@ export function useTradeSimulator() {
           // Controlled PNL calculation based on robot's risk tolerance
           switch (selectedRobot.riskTolerance) {
             case 'low': {
-              // Avg PNL per trade: ~$0.0135. Total ~ $32.4
-              const positiveBias = 0.036;
+              // Target PNL for 4h: $30-35. Avg trade every ~32.5s.
+              const positiveBias = 0.1956;
               const baseVolatility = 0.05;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
               break;
             }
             case 'medium': {
-              // Avg PNL per trade: ~$0.0169. Total ~ $40.5
-              const positiveBias = 0.028125;
+              // Target PNL for 4h: $36-45. Avg trade every ~32.5s.
+              const positiveBias = 0.1524;
               const baseVolatility = 0.08;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
               break;
             }
             case 'high': {
-              // Avg PNL per trade: ~$0.021. Total ~ $50.4
-              const positiveBias = 0.02333;
+              // Target PNL for 4h: $46-55. Avg trade every ~32.5s.
+              const positiveBias = 0.1267;
               const baseVolatility = 0.12;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
               break;
@@ -188,7 +188,7 @@ export function useTradeSimulator() {
           setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
           return currentBalance + newTrade.pnl;
         });
-      }, Math.random() * 8000 + 2000);
+      }, Math.random() * 55000 + 5000);
       
     } else {
       stopIntervals();
