@@ -1,12 +1,19 @@
+// public/sw.js
 
-const INITIAL_BALANCE = 150;
-const TRADING_TIME_LIMIT_SECONDS = 14400;
-const TRADING_SYMBOLS = [
-  'BTC/USD', 'ETH/USD', 'AAPL', 'TSLA', 'Volkswagen', 'BMW',
-  'SpaceX', 'Samsung', 'Oil', 'Gold', 'Silver'
+const DB_NAME = 'TradeSimulatorDB';
+const DB_VERSION = 1;
+const STATE_KEY = 'tradeSimulatorState';
+
+const ROBOTS = [
+  { id: 'risk-averse', pnlFactor: 0.4 },
+  { id: 'balanced', pnlFactor: 0.7 },
+  { id: 'high-growth', pnlFactor: 1.0 }
 ];
-const SIMULATOR_STATE_KEY = 'tradeSimulatorState';
-const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
+const INITIAL_BALANCE = 150;
+const TRADING_TIME_LIMIT_SECONDS = 14400; // 4 hours
+const TRADING_SYMBOLS = [
+  'BTC/USD', 'ETH/USD', 'AAPL', 'TSLA', 'Volkswagen', 'BMW', 'SpaceX', 'Samsung', 'Oil', 'Gold', 'Silver'
+];
 
 let state = {
   balance: INITIAL_BALANCE,
@@ -14,224 +21,235 @@ let state = {
   isRunning: false,
   selectedRobot: null,
   totalPnl: 0,
+  tutorialCompleted: false,
   totalTradingTime: 0,
   timeLimit: TRADING_TIME_LIMIT_SECONDS,
   timeLimitReached: false,
 };
 
-let timerInterval = null;
-let tradeTimeout = null;
+let tradeTimeoutId = null;
+let timerIntervalId = null;
+
+// --- IndexedDB Functions ---
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = self.indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STATE_KEY)) {
+        db.createObjectStore(STATE_KEY);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
 
 function saveState() {
-  try {
-    self.localStorage.setItem(SIMULATOR_STATE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error('Service Worker: Failed to save state', e);
-  }
+  openDB().then(db => {
+    const transaction = db.transaction(STATE_KEY, 'readwrite');
+    const store = transaction.objectStore(STATE_KEY);
+    store.put(JSON.parse(JSON.stringify(state)), STATE_KEY);
+  }).catch(err => console.error('Failed to save state to IndexedDB', err));
 }
 
 function loadState() {
-  try {
-    const savedStateJSON = self.localStorage.getItem(SIMULATOR_STATE_KEY);
-    if (savedStateJSON) {
-      const savedState = JSON.parse(savedStateJSON);
-      
-      if (savedState.totalTradingTime >= savedState.timeLimit) {
-        savedState.isRunning = false;
-        savedState.timeLimitReached = true;
-      }
-      
-      state = { ...state, ...savedState };
+  return new Promise((resolve, reject) => {
+    openDB().then(db => {
+      const transaction = db.transaction(STATE_KEY, 'readonly');
+      const store = transaction.objectStore(STATE_KEY);
+      const request = store.get(STATE_KEY);
+
+      request.onsuccess = () => {
+        if (request.result) {
+          Object.assign(state, request.result);
+          state.trades = state.trades.map(t => ({...t, timestamp: new Date(t.timestamp)}));
+        }
+        resolve();
+      };
+      request.onerror = () => {
+        console.error('Failed to load state from IndexedDB', request.error);
+        reject(request.error);
+      };
+    }).catch(reject);
+  });
+}
+
+// --- Broadcast Function ---
+function broadcastState(clientId) {
+  const message = {
+    type: 'STATE_UPDATE',
+    payload: {
+      ...state,
+      trades: state.trades.map(t => ({ ...t, timestamp: t.timestamp.toISOString() }))
     }
-  } catch (e) {
-    console.error('Service Worker: Failed to load state', e);
+  };
+  if (clientId) {
+    self.clients.get(clientId).then(client => {
+      if (client) client.postMessage(message);
+    });
+  } else {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => client.postMessage(message));
+    });
   }
 }
 
-async function broadcastState() {
-  const clients = await self.clients.matchAll({
-    includeUncontrolled: true,
-    type: 'window',
-  });
-  clients.forEach(client => {
-    client.postMessage({ type: 'STATE_UPDATE', payload: state });
-  });
-}
+// --- Simulator Logic ---
+function generateTrade() {
+  if (!state.isRunning || !state.selectedRobot) return;
 
-function runTradeCycle() {
-    if (!state.isRunning || !state.selectedRobot || state.timeLimitReached) return;
-    
-    const fourHourMark = 4 * 3600;
-    const progress = Math.min(state.totalTradingTime / fourHourMark, 1);
+  const robot = ROBOTS.find(r => r.id === state.selectedRobot.id);
+  const pnlFactor = robot ? robot.pnlFactor : 1;
+  const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
+  
+  const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
+  const quantity = Math.floor(Math.random() * 5) + 1;
+  const entryPrice = Math.random() * 100 + 50;
 
-    const targetPnlMap = {
-      'risk-averse': 30 + progress * 5,
-      'balanced': 36 + progress * 9,
-      'high-growth': 46 + progress * 9,
-    };
+  const tradeCost = quantity * entryPrice;
+  if (state.balance < tradeCost && type === 'BUY') {
+    return;
+  }
+  
+  const priceChange = (Math.random() - 0.48) * 10 * pnlFactor;
+  const exitPrice = entryPrice + priceChange;
+  
+  const pnl = (exitPrice - entryPrice) * quantity * (type === 'BUY' ? 1 : -1);
+  
+  const newTrade = {
+    id: Date.now().toString() + Math.random().toString(),
+    symbol,
+    type,
+    quantity,
+    entryPrice,
+    exitPrice,
+    pnl,
+    timestamp: new Date(),
+  };
+  
+  state.trades.unshift(newTrade);
+  if (state.trades.length > 50) {
+    state.trades.pop();
+  }
 
-    const targetPnl = targetPnlMap[state.selectedRobot.id];
-    const pnlDiscrepancy = targetPnl - state.totalPnl;
+  state.balance += newTrade.pnl;
+  state.totalPnl += newTrade.pnl;
 
-    let profitProbability = 0.65;
-    if (pnlDiscrepancy > 5) {
-      profitProbability = 0.85;
-    } 
-    else if (pnlDiscrepancy < -5) {
-      profitProbability = 0.45;
-    }
-
-    const isProfitable = Math.random() < profitProbability;
-    
-    let pnl;
-    if (isProfitable) {
-      pnl = (0.05 + Math.random() * 0.15);
-    } else {
-      pnl = -(0.03 + Math.random() * 0.08);
-    }
-    
-    const quantity = 1;
-    const entryPrice = 100 + (Math.random() - 0.5) * 10;
-    const exitPrice = entryPrice + pnl;
-    const randomSymbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
-
-    const newTrade = {
-      id: new Date().toISOString() + Math.random(),
-      symbol: randomSymbol,
-      type: pnl > 0 ? 'BUY' : 'SELL',
-      quantity,
-      entryPrice,
-      exitPrice,
-      pnl,
-      timestamp: new Date().toJSON(),
-    };
-    
-    state.trades = [newTrade, ...state.trades].slice(0, 100);
-    state.balance += pnl;
-    state.totalPnl += pnl;
-
-    broadcastState();
-    saveState();
-    
-    scheduleNextTrade();
+  broadcastState();
+  saveState();
 }
 
 function scheduleNextTrade() {
-    if (!state.isRunning) return;
-    clearTimeout(tradeTimeout);
-    const randomInterval = Math.random() * 55000 + 5000;
-    tradeTimeout = setTimeout(runTradeCycle, randomInterval);
-}
-
-function stopTrading() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    clearTimeout(tradeTimeout);
-    tradeTimeout = null;
-    state.isRunning = false;
-    broadcastState();
-    saveState();
-}
-
-function startTrading() {
-    if (timerInterval || state.timeLimitReached || !state.selectedRobot) return;
-    
-    state.isRunning = true;
-    
-    timerInterval = setInterval(() => {
-        if (!state.isRunning) {
-            stopTrading();
-            return;
-        }
-
-        state.totalTradingTime += 1;
-        
-        if (state.totalTradingTime >= state.timeLimit) {
-            state.timeLimitReached = true;
-            stopTrading();
-        }
-        
-        broadcastState();
-
-        if(state.totalTradingTime % 5 === 0) {
-            saveState();
-        }
-
-    }, 1000);
-    
+  if (!state.isRunning) return;
+  const delay = Math.random() * 8000 + 4000;
+  tradeTimeoutId = setTimeout(() => {
+    generateTrade();
     scheduleNextTrade();
-    broadcastState();
-    saveState();
+  }, delay);
 }
 
+function startTimer() {
+  if (timerIntervalId) clearInterval(timerIntervalId);
+  timerIntervalId = setInterval(() => {
+    if (!state.isRunning) {
+      clearInterval(timerIntervalId);
+      return;
+    }
+    state.totalTradingTime += 1;
+    if (state.totalTradingTime >= state.timeLimit) {
+      state.isRunning = false;
+      state.timeLimitReached = true;
+      clearTimeout(tradeTimeoutId);
+      clearInterval(timerIntervalId);
+      saveState();
+    }
+    broadcastState();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerIntervalId);
+  timerIntervalId = null;
+}
+
+// --- Event Handlers ---
+function handleReset(mode = 'normal') {
+  clearTimeout(tradeTimeoutId);
+  stopTimer();
+  state.balance = INITIAL_BALANCE;
+  state.trades = [];
+  state.isRunning = false;
+  state.selectedRobot = null;
+  state.totalPnl = 0;
+  state.totalTradingTime = 0;
+  state.timeLimitReached = false;
+  state.timeLimit = mode === 'demo' ? 10 : TRADING_TIME_LIMIT_SECONDS;
+  broadcastState();
+  saveState();
+}
+
+function handleSelectRobot(robot, shouldPause) {
+  state.selectedRobot = robot;
+  if (shouldPause) {
+    state.isRunning = false;
+    clearTimeout(tradeTimeoutId);
+    stopTimer();
+  }
+  broadcastState();
+  saveState();
+}
+
+function handleToggleSimulator() {
+  if (!state.selectedRobot || state.timeLimitReached) return;
+  state.isRunning = !state.isRunning;
+  if (state.isRunning) {
+    scheduleNextTrade();
+    startTimer();
+  } else {
+    clearTimeout(tradeTimeoutId);
+    stopTimer();
+  }
+  broadcastState();
+  saveState();
+}
+
+// --- Service Worker Event Listeners ---
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-      self.clients.claim().then(() => {
-          loadState();
-          if (state.isRunning) {
-            startTrading();
-          }
-      })
+    loadState().then(() => {
+      if (state.isRunning) {
+        startTimer();
+        scheduleNextTrade();
+      }
+      return self.clients.claim();
+    })
   );
 });
 
-self.addEventListener('message', async (event) => {
-  if (!event.data) return;
-  const { type, payload } = event.data;
-
-  switch (type) {
+self.addEventListener('message', (event) => {
+  switch (event.data.type) {
     case 'GET_STATE':
-        loadState();
-        if (state.isRunning && !timerInterval) {
-            startTrading();
-        }
-        if (event.source) {
-            event.source.postMessage({ type: 'STATE_UPDATE', payload: state });
-        } else {
-            broadcastState();
-        }
-        break;
-
-    case 'TOGGLE_SIMULATOR':
-        if (state.isRunning) {
-            stopTrading();
-        } else {
-            startTrading();
-        }
-        break;
-        
+      broadcastState(event.source.id);
+      break;
     case 'SELECT_ROBOT':
-        state.selectedRobot = payload.robot;
-        if(payload.shouldPause) {
-          if (state.isRunning) stopTrading();
-        }
-        broadcastState();
-        saveState();
-        break;
-        
+      handleSelectRobot(event.data.payload.robot, event.data.payload.shouldPause);
+      break;
+    case 'TOGGLE_SIMULATOR':
+      handleToggleSimulator();
+      break;
     case 'RESET_SIMULATOR':
-        stopTrading();
-        state = {
-            balance: INITIAL_BALANCE,
-            trades: [],
-            isRunning: false,
-            selectedRobot: null,
-            totalPnl: 0,
-            totalTradingTime: 0,
-            timeLimit: payload.mode === 'demo' ? 10 : TRADING_TIME_LIMIT_SECONDS,
-            timeLimitReached: false,
-        };
-        try {
-            self.localStorage.removeItem(TUTORIAL_STORAGE_KEY);
-        } catch (e) {
-            console.error(e);
-        }
-        broadcastState();
-        saveState();
-        break;
+      handleReset(event.data.payload.mode);
+      break;
   }
+});
+
+self.addEventListener('fetch', () => {
+  // This is a no-op but it's important to have a fetch handler
+  // to make the service worker installable as a PWA and to keep it active.
+  return;
 });
