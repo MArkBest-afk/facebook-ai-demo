@@ -111,13 +111,6 @@ export function useTradeSimulator() {
     }
   }, [totalTradingTime, timeLimit, isRunning]);
 
-  const stopIntervals = useCallback(() => {
-    if (tradeIntervalRef.current) clearInterval(tradeIntervalRef.current);
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    tradeIntervalRef.current = null;
-    timerIntervalRef.current = null;
-  }, []);
-
   useEffect(() => {
     if (isRunning && selectedRobot) {
       // Start trading timer
@@ -125,8 +118,7 @@ export function useTradeSimulator() {
         setTotalTradingTime(prevTime => prevTime + 1);
       }, 1000);
 
-      // Start trade generation
-      tradeIntervalRef.current = setInterval(() => {
+      const performTrade = () => {
         setBalance(currentBalance => {
           const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
           const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
@@ -147,21 +139,18 @@ export function useTradeSimulator() {
           // Controlled PNL calculation based on robot's risk tolerance
           switch (selectedRobot.riskTolerance) {
             case 'low': {
-              // Target PNL for 4h: $30-35. Avg trade every ~32.5s.
               const positiveBias = 0.1956;
               const baseVolatility = 0.05;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
               break;
             }
             case 'medium': {
-              // Target PNL for 4h: $36-45. Avg trade every ~32.5s.
               const positiveBias = 0.1524;
               const baseVolatility = 0.08;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
               break;
             }
             case 'high': {
-              // Target PNL for 4h: $46-55. Avg trade every ~32.5s.
               const positiveBias = 0.1267;
               const baseVolatility = 0.12;
               pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
@@ -188,14 +177,28 @@ export function useTradeSimulator() {
           setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
           return currentBalance + newTrade.pnl;
         });
-      }, Math.random() * 55000 + 5000);
+      };
       
-    } else {
-      stopIntervals();
-    }
+      const tradeLoop = () => {
+        performTrade();
+        // After performing a trade, schedule the next one.
+        const nextInterval = Math.random() * 55000 + 5000; // 5-60 seconds
+        tradeIntervalRef.current = setTimeout(tradeLoop, nextInterval);
+      };
 
-    return stopIntervals;
-  }, [isRunning, selectedRobot, stopIntervals]);
+      // Schedule the first trade to happen within 1-5 seconds
+      const firstTradeDelay = Math.random() * 4000 + 1000; 
+      tradeIntervalRef.current = setTimeout(tradeLoop, firstTradeDelay);
+      
+      // Return cleanup function to be called on unmount or when dependencies change
+      return () => {
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        if (tradeIntervalRef.current) clearTimeout(tradeIntervalRef.current);
+        timerIntervalRef.current = null;
+        tradeIntervalRef.current = null;
+      };
+    }
+  }, [isRunning, selectedRobot]);
 
   const handleSelectRobot = (robot: Robot) => {
     if(isRunning) {
@@ -235,7 +238,6 @@ export function useTradeSimulator() {
 
   const resetSimulator = (mode: 'normal' | 'demo' = 'normal') => {
     setIsRunning(false);
-    stopIntervals();
     setBalance(INITIAL_BALANCE);
     setTrades([]);
     setSelectedRobot(null);
