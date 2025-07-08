@@ -43,9 +43,17 @@ export function useTradeSimulator() {
     return t(key);
   }, [t]);
 
-  const tradeIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMounted = useRef(false);
+  const robotRef = useRef(selectedRobot);
+  const balanceRef = useRef(balance);
+
+  useEffect(() => {
+    robotRef.current = selectedRobot;
+  }, [selectedRobot]);
+
+  useEffect(() => {
+    balanceRef.current = balance;
+  }, [balance]);
 
   // Load state from local storage on initial mount
   useEffect(() => {
@@ -117,93 +125,87 @@ export function useTradeSimulator() {
   }, [totalTradingTime, timeLimit, isRunning]);
 
   useEffect(() => {
-    if (isRunning && selectedRobot) {
-      // Start trading timer
-      timerIntervalRef.current = setInterval(() => {
+    let tradeTimerId: NodeJS.Timeout | null = null;
+    let clockTimerId: NodeJS.Timeout | null = null;
+
+    const performTrade = () => {
+      const currentRobot = robotRef.current;
+      if (!currentRobot) return;
+
+      const tradeAmount = Math.random() * 5 + 5; // Trade amount between $5 and $10
+      if (balanceRef.current < tradeAmount) {
+        return; // Not enough balance, skip trade
+      }
+      
+      const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
+      const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
+      const entryPrice = Math.random() * 100 + 100; // Realistic price between 100 and 200
+      const quantity = tradeAmount / entryPrice;
+
+      let pnl = 0;
+      let pnlFactor = 0;
+
+      switch (currentRobot.riskTolerance) {
+        case 'low': {
+          const positiveBias = 0.1956;
+          const baseVolatility = 0.05;
+          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+          break;
+        }
+        case 'medium': {
+          const positiveBias = 0.1524;
+          const baseVolatility = 0.08;
+          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+          break;
+        }
+        case 'high': {
+          const positiveBias = 0.1267;
+          const baseVolatility = 0.12;
+          pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+          break;
+        }
+      }
+
+      pnl = tradeAmount * pnlFactor;
+      
+      const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1)
+
+      const newTrade: Trade = {
+        id: new Date().toISOString() + Math.random(),
+        symbol,
+        type,
+        quantity: parseFloat(quantity.toFixed(4)),
+        entryPrice: parseFloat(entryPrice.toFixed(2)),
+        exitPrice: parseFloat(exitPrice.toFixed(2)),
+        pnl: parseFloat(pnl.toFixed(2)),
+        timestamp: new Date(),
+      };
+      
+      setTrades(currentTrades => [newTrade, ...currentTrades]);
+      setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
+      setBalance(currentBalance => currentBalance + newTrade.pnl);
+    };
+
+    const tradeLoop = () => {
+      performTrade();
+      const nextInterval = Math.random() * 55000 + 5000; // 5-60 seconds
+      tradeTimerId = setTimeout(tradeLoop, nextInterval);
+    };
+
+    if (isRunning) {
+      clockTimerId = setInterval(() => {
         setTotalTradingTime(prevTime => prevTime + 1);
       }, 1000);
 
-      const performTrade = () => {
-        setBalance(currentBalance => {
-          const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
-          const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
-      
-          // Define trade parameters based on a controlled trade amount
-          const tradeAmount = Math.random() * 5 + 5; // Trade amount between $5 and $10
-          const entryPrice = Math.random() * 100 + 100; // Realistic price between 100 and 200
-          const quantity = tradeAmount / entryPrice;
-      
-          // Check for sufficient balance BEFORE calculating PNL
-          if (currentBalance < tradeAmount) {
-            return currentBalance; // Not enough balance, skip trade
-          }
-      
-          let pnl = 0;
-          let pnlFactor = 0;
-      
-          // Controlled PNL calculation based on robot's risk tolerance
-          switch (selectedRobot.riskTolerance) {
-            case 'low': {
-              const positiveBias = 0.1956;
-              const baseVolatility = 0.05;
-              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-              break;
-            }
-            case 'medium': {
-              const positiveBias = 0.1524;
-              const baseVolatility = 0.08;
-              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-              break;
-            }
-            case 'high': {
-              const positiveBias = 0.1267;
-              const baseVolatility = 0.12;
-              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
-              break;
-            }
-          }
-      
-          pnl = tradeAmount * pnlFactor;
-          
-          const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1)
-
-          const newTrade: Trade = {
-            id: new Date().toISOString() + Math.random(),
-            symbol,
-            type,
-            quantity: parseFloat(quantity.toFixed(4)),
-            entryPrice: parseFloat(entryPrice.toFixed(2)),
-            exitPrice: parseFloat(exitPrice.toFixed(2)),
-            pnl: parseFloat(pnl.toFixed(2)),
-            timestamp: new Date(),
-          };
-          
-          setTrades(currentTrades => [newTrade, ...currentTrades]);
-          setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
-          return currentBalance + newTrade.pnl;
-        });
-      };
-      
-      const tradeLoop = () => {
-        performTrade();
-        // After performing a trade, schedule the next one.
-        const nextInterval = Math.random() * 55000 + 5000; // 5-60 seconds
-        tradeIntervalRef.current = setTimeout(tradeLoop, nextInterval);
-      };
-
-      // Schedule the first trade to happen within 1-5 seconds
-      const firstTradeDelay = Math.random() * 4000 + 1000; 
-      tradeIntervalRef.current = setTimeout(tradeLoop, firstTradeDelay);
-      
-      // Return cleanup function to be called on unmount or when dependencies change
-      return () => {
-        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        if (tradeIntervalRef.current) clearTimeout(tradeIntervalRef.current);
-        timerIntervalRef.current = null;
-        tradeIntervalRef.current = null;
-      };
+      const firstTradeDelay = Math.random() * 4000 + 1000; // 1-5 seconds
+      tradeTimerId = setTimeout(tradeLoop, firstTradeDelay);
     }
-  }, [isRunning, selectedRobot]);
+    
+    return () => {
+      if (clockTimerId) clearInterval(clockTimerId);
+      if (tradeTimerId) clearTimeout(tradeTimerId);
+    };
+  }, [isRunning]);
 
   const handleSelectRobot = (robot: Robot) => {
     if(isRunning) {
