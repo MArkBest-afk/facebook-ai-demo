@@ -130,29 +130,49 @@ export function useTradeSimulator() {
         setBalance(currentBalance => {
           const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
           const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
-          const quantity = Math.random() * 0.1 + 0.01;
-          const entryPrice = Math.random() * 50000 + 1000;
-  
-          let pnlFactor = 1.0;
-          switch (selectedRobot.riskTolerance) {
-            case 'low': pnlFactor = (Math.random() - 0.48) * 0.05; break;
-            case 'medium': pnlFactor = (Math.random() - 0.45) * 0.1; break;
-            case 'high': pnlFactor = (Math.random() - 0.4) * 0.2; break;
-          }
-  
-          const exitPrice = entryPrice * (1 + pnlFactor);
-          // For a BUY trade, PNL = (exit - entry) * quantity
-          // For a SELL trade, PNL = (entry - exit) * quantity
-          let pnl = (exitPrice - entryPrice) * quantity;
-          if (type === 'SELL') {
-            pnl = -pnl;
-          }
-          
-          const tradeAmount = entryPrice * quantity;
-          if (type === 'BUY' && currentBalance < tradeAmount) {
+      
+          // Define trade parameters based on a controlled trade amount
+          const tradeAmount = Math.random() * 5 + 5; // Trade amount between $5 and $10
+          const entryPrice = Math.random() * 100 + 100; // Realistic price between 100 and 200
+          const quantity = tradeAmount / entryPrice;
+      
+          // Check for sufficient balance BEFORE calculating PNL
+          if (currentBalance < tradeAmount) {
             return currentBalance; // Not enough balance, skip trade
           }
+      
+          let pnl = 0;
+          let pnlFactor = 0;
+      
+          // Controlled PNL calculation based on robot's risk tolerance
+          switch (selectedRobot.riskTolerance) {
+            case 'low': {
+              // Avg PNL per trade: ~$0.0135. Total ~ $32.4
+              const positiveBias = 0.036;
+              const baseVolatility = 0.05;
+              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+              break;
+            }
+            case 'medium': {
+              // Avg PNL per trade: ~$0.0169. Total ~ $40.5
+              const positiveBias = 0.028125;
+              const baseVolatility = 0.08;
+              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+              break;
+            }
+            case 'high': {
+              // Avg PNL per trade: ~$0.021. Total ~ $50.4
+              const positiveBias = 0.02333;
+              const baseVolatility = 0.12;
+              pnlFactor = (Math.random() - 0.5 + positiveBias) * baseVolatility;
+              break;
+            }
+          }
+      
+          pnl = tradeAmount * pnlFactor;
           
+          const exitPrice = entryPrice + (pnl / quantity) * (type === 'BUY' ? 1 : -1)
+
           const newTrade: Trade = {
             id: new Date().toISOString() + Math.random(),
             symbol,
