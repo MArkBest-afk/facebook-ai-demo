@@ -85,9 +85,8 @@ export function useTradeSimulator() {
       } else {
         // New session on first visit.
         const searchParams = new URLSearchParams(window.location.search);
-        const name = searchParams.get('name');
         const id = searchParams.get('id');
-        sendTelegramNotification({ name, id });
+        sendTelegramNotification({ id });
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       setTutorialCompleted(savedTutorial === 'true');
@@ -273,9 +272,8 @@ export function useTradeSimulator() {
     }
 
     const searchParams = new URLSearchParams(window.location.search);
-    const name = searchParams.get('name');
     const id = searchParams.get('id');
-    sendTelegramNotification({ name, id });
+    sendTelegramNotification({ id });
     
     toast({
       titleKey: "sessionReset",
