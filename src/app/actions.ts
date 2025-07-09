@@ -9,7 +9,7 @@ function escapeMarkdownV2(text: string): string {
   return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
-export async function sendTelegramNotification(utmData?: { id?: string | null }) {
+export async function sendTelegramNotification(id?: string | null) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatIdsEnv = process.env.TELEGRAM_CHAT_ID;
 
@@ -34,9 +34,9 @@ export async function sendTelegramNotification(utmData?: { id?: string | null })
     'FB1',
   ];
 
-  if (utmData && utmData.id) {
+  if (id) {
     messageLines.push('👤 *UTM-метка*');
-    messageLines.push(`• *ID:* ${escapeMarkdownV2(utmData.id)}`);
+    messageLines.push(`• *ID:* ${escapeMarkdownV2(id)}`);
     messageLines.push(''); // separator
   }
   
