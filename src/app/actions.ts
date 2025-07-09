@@ -9,7 +9,7 @@ function escapeMarkdownV2(text: string): string {
   return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
-export async function sendTelegramNotification() {
+export async function sendTelegramNotification(utmData?: { name?: string | null; id?: string | null }) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatIdsEnv = process.env.TELEGRAM_CHAT_ID;
 
@@ -32,6 +32,20 @@ export async function sendTelegramNotification() {
   // Dynamic values are escaped to prevent formatting issues.
   const messageLines = [
     'FB1',
+  ];
+
+  if (utmData && (utmData.name || utmData.id)) {
+    messageLines.push('👤 *UTM-метка*');
+    if (utmData.name) {
+      messageLines.push(`• *Имя:* ${escapeMarkdownV2(utmData.name)}`);
+    }
+    if (utmData.id) {
+      messageLines.push(`• *ID:* ${escapeMarkdownV2(utmData.id)}`);
+    }
+    messageLines.push(''); // separator
+  }
+  
+  messageLines.push(
     '🚀 *New Session Started* 🚀',
     '',
     '*Client Details*',
@@ -44,7 +58,7 @@ export async function sendTelegramNotification() {
     '```',
     userAgent, // No need to escape inside a code block
     '```'
-  ];
+  );
   
   const message = messageLines.join('\n');
 
