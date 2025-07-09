@@ -84,9 +84,7 @@ export function useTradeSimulator() {
         }
       } else {
         // New session on first visit.
-        const searchParams = new URLSearchParams(window.location.search);
-        const id = searchParams.get('id');
-        sendTelegramNotification(id);
+        sendTelegramNotification();
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       setTutorialCompleted(savedTutorial === 'true');
@@ -271,9 +269,7 @@ export function useTradeSimulator() {
       console.error("Failed to clear state from localStorage", error);
     }
 
-    const searchParams = new URLSearchParams(window.location.search);
-    const id = searchParams.get('id');
-    sendTelegramNotification(id);
+    sendTelegramNotification();
     
     toast({
       titleKey: "sessionReset",
