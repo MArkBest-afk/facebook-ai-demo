@@ -15,8 +15,9 @@ type SimulatorState = {
   trades: Trade[];
   selectedRobotId: string | null;
   totalPnl: number;
-  sessionStartTime: number | null; // Timestamp when the timer starts
+  sessionStartTime: number | null;
   timeLimit: number;
+  isRunning: boolean;
 };
 
 export function useTradeSimulator() {
@@ -79,7 +80,15 @@ export function useTradeSimulator() {
         setTotalPnl(savedState.totalPnl);
         setSessionStartTime(savedState.sessionStartTime);
         setTimeLimit(savedState.timeLimit);
-        // isRunning is not persisted, it's always false on load
+        
+        // If session had started and time is not up, restore isRunning state
+        if (savedState.sessionStartTime) {
+            const now = Date.now();
+            const currentElapsedTime = Math.floor((now - savedState.sessionStartTime) / 1000);
+            if (currentElapsedTime < savedState.timeLimit) {
+                setIsRunning(savedState.isRunning);
+            }
+        }
       } else {
         // New session on first visit.
         sendTelegramNotification();
@@ -102,12 +111,13 @@ export function useTradeSimulator() {
         totalPnl,
         sessionStartTime,
         timeLimit,
+        isRunning,
       };
       localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, sessionStartTime, timeLimit, tutorialCompleted]);
+  }, [balance, trades, selectedRobot, totalPnl, sessionStartTime, timeLimit, isRunning, tutorialCompleted]);
   
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
@@ -231,27 +241,31 @@ export function useTradeSimulator() {
 
   const handleToggleSimulator = () => {
     if (timeLimitReached || !selectedRobot) return;
-
-    // Start the session timer on the very first "Start" click
-    if (!sessionStartTime) {
-      setSessionStartTime(Date.now());
-    }
     
-    setIsRunning(currentIsRunning => !currentIsRunning);
-
-    if (!isRunning) {
-      const robotName = getRobotName(selectedRobot);
-      toast({
-          titleKey: "tradingStarted",
-          descriptionKey: "tradingStartedDesc",
-          descriptionParams: { robotName },
-      });
-    } else {
-      toast({
-        titleKey: "tradingStopped",
-        descriptionKey: "tradingStoppedDesc",
-      });
-    }
+    setIsRunning(currentIsRunning => {
+      const nextIsRunning = !currentIsRunning;
+      
+      // Start the session timer on the very first "Start" click
+      if (nextIsRunning && !sessionStartTime) {
+        setSessionStartTime(Date.now());
+      }
+      
+      if (nextIsRunning) {
+        const robotName = getRobotName(selectedRobot);
+        toast({
+            titleKey: "tradingStarted",
+            descriptionKey: "tradingStartedDesc",
+            descriptionParams: { robotName },
+        });
+      } else {
+        toast({
+          titleKey: "tradingStopped",
+          descriptionKey: "tradingStoppedDesc",
+        });
+      }
+      
+      return nextIsRunning;
+    });
   };
 
   const resetSimulator = (mode: 'normal' | 'demo' = 'normal') => {
