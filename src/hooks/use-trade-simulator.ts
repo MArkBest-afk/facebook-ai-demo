@@ -222,7 +222,7 @@ export function useTradeSimulator() {
     }
   }, [isRunning, performTrade]);
 
-  const handleSelectRobot = (robot: Robot) => {
+  const handleSelectRobot = useCallback((robot: Robot) => {
     if(isRunning) {
         setIsRunning(false);
         toast({
@@ -237,7 +237,7 @@ export function useTradeSimulator() {
         titleParams: { robotName },
         descriptionKey: "robotSelectedDesc",
     });
-  };
+  }, [isRunning, getRobotName, toast]);
 
   const handleToggleSimulator = () => {
     if (timeLimitReached || !selectedRobot) return;
@@ -268,7 +268,7 @@ export function useTradeSimulator() {
     });
   };
 
-  const resetSimulator = (mode: 'normal' | 'demo' = 'normal') => {
+  const resetSimulator = useCallback((mode: 'normal' | 'demo' = 'normal') => {
     setIsRunning(false);
     setBalance(INITIAL_BALANCE);
     setTrades([]);
@@ -296,7 +296,7 @@ export function useTradeSimulator() {
       titleKey: "sessionReset",
       descriptionKey: "sessionResetDesc",
     });
-  };
+  }, [toast]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
