@@ -32,6 +32,7 @@ export function useTradeSimulator() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [timeLimit, setTimeLimit] = useState(TRADING_TIME_LIMIT_SECONDS);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
+  const [sessionResetFlag, setSessionResetFlag] = useState(0);
 
   const { toast } = useToast();
   const { t } = useI18n();
@@ -50,7 +51,8 @@ export function useTradeSimulator() {
   const robotRef = useRef(selectedRobot);
   const balanceRef = useRef(balance);
   const isRunningRef = useRef(isRunning);
-
+  const prevIsRunning = useRef(isRunning);
+  const prevSelectedRobot = useRef(selectedRobot);
 
   useEffect(() => {
     robotRef.current = selectedRobot;
@@ -64,7 +66,6 @@ export function useTradeSimulator() {
     isRunningRef.current = isRunning;
   }, [isRunning]);
 
-  // Load state from local storage on initial mount
   useEffect(() => {
     isMounted.current = true;
     try {
@@ -76,21 +77,21 @@ export function useTradeSimulator() {
         if (savedState.selectedRobotId) {
           const robot = ROBOTS.find(r => r.id === savedState.selectedRobotId) || null;
           setSelectedRobot(robot);
+          prevSelectedRobot.current = robot;
         }
         setTotalPnl(savedState.totalPnl);
         setSessionStartTime(savedState.sessionStartTime);
         setTimeLimit(savedState.timeLimit);
         
-        // If session had started and time is not up, restore isRunning state
         if (savedState.sessionStartTime) {
             const now = Date.now();
             const currentElapsedTime = Math.floor((now - savedState.sessionStartTime) / 1000);
             if (currentElapsedTime < savedState.timeLimit) {
                 setIsRunning(savedState.isRunning);
+                prevIsRunning.current = savedState.isRunning;
             }
         }
       } else {
-        // New session on first visit.
         sendTelegramNotification();
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
@@ -100,7 +101,6 @@ export function useTradeSimulator() {
     }
   }, []);
 
-  // Save state to local storage whenever it changes
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
     try {
@@ -128,7 +128,6 @@ export function useTradeSimulator() {
     }
   }, [tutorialCompleted]);
 
-  // Main timer logic
   useEffect(() => {
     let clockTimerId: NodeJS.Timeout | null = null;
     
@@ -140,12 +139,12 @@ export function useTradeSimulator() {
 
         if (currentElapsedTime >= timeLimit) {
           setTimeLimitReached(true);
-          setIsRunning(false); // Stop the robot if it's running
+          setIsRunning(false);
           if (clockTimerId) clearInterval(clockTimerId);
         }
       };
 
-      updateElapsedTime(); // Initial check
+      updateElapsedTime();
       clockTimerId = setInterval(updateElapsedTime, 1000);
     }
 
@@ -153,7 +152,6 @@ export function useTradeSimulator() {
       if (clockTimerId) clearInterval(clockTimerId);
     };
   }, [sessionStartTime, timeLimit]);
-
 
   const performTrade = useCallback(() => {
     if (!isRunningRef.current) return;
@@ -165,7 +163,6 @@ export function useTradeSimulator() {
       return; 
     }
     
-    // Simplified PNL calculation for guaranteed positive trend over time
     const tradeAmount = Math.random() * (10 - 5) + 5; 
     const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
     const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
@@ -176,7 +173,7 @@ export function useTradeSimulator() {
     let pnlFactor;
     switch (currentRobot.riskTolerance) {
         case 'low': 
-            pnlFactor = (Math.random() - 0.48) * 0.05; // Slightly biased towards profit
+            pnlFactor = (Math.random() - 0.48) * 0.05;
             break;
         case 'medium':
             pnlFactor = (Math.random() - 0.47) * 0.08;
@@ -206,8 +203,7 @@ export function useTradeSimulator() {
     setTotalPnl(currentPnl => currentPnl + newTrade.pnl);
     setBalance(currentBalance => currentBalance + newTrade.pnl);
 
-    // Schedule next trade
-    const nextInterval = Math.random() * (60000 - 5000) + 5000; // 5s to 60s
+    const nextInterval = Math.random() * (60000 - 5000) + 5000;
     tradeTimerRef.current = setTimeout(performTrade, nextInterval);
   }, []);
 
@@ -217,55 +213,72 @@ export function useTradeSimulator() {
         tradeTimerRef.current = null;
     }
     if (isRunning) {
-        const firstTradeDelay = Math.random() * 4000 + 1000; // 1-5 seconds
+        const firstTradeDelay = Math.random() * 4000 + 1000;
         tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
     }
   }, [isRunning, performTrade]);
 
-  const handleSelectRobot = useCallback((robot: Robot) => {
-    if(isRunning) {
-        setIsRunning(false);
-        toast({
-            titleKey: "simulatorPaused",
-            descriptionKey: "simulatorPausedDesc",
-        });
+  useEffect(() => {
+    if (!isMounted.current) return;
+
+    if (isRunning && !prevIsRunning.current && selectedRobot) {
+      const robotName = getRobotName(selectedRobot);
+      toast({
+        titleKey: "tradingStarted",
+        descriptionKey: "tradingStartedDesc",
+        descriptionParams: { robotName },
+      });
+    } else if (!isRunning && prevIsRunning.current) {
+      toast({
+        titleKey: "tradingStopped",
+        descriptionKey: "tradingStoppedDesc",
+      });
     }
+    prevIsRunning.current = isRunning;
+  }, [isRunning, selectedRobot, getRobotName, toast]);
+
+  useEffect(() => {
+    if (!isMounted.current || !selectedRobot) return;
+    
+    if (selectedRobot.id !== prevSelectedRobot.current?.id) {
+       if(isRunning) {
+          setIsRunning(false);
+          toast({
+              titleKey: "simulatorPaused",
+              descriptionKey: "simulatorPausedDesc",
+          });
+      }
+      const robotName = getRobotName(selectedRobot);
+      toast({
+          titleKey: "robotSelected",
+          titleParams: { robotName },
+          descriptionKey: "robotSelectedDesc",
+      });
+    }
+    prevSelectedRobot.current = selectedRobot;
+  }, [selectedRobot, isRunning, getRobotName, toast]);
+  
+  useEffect(() => {
+    if (sessionResetFlag > 0) {
+      toast({
+        titleKey: "sessionReset",
+        descriptionKey: "sessionResetDesc",
+      });
+    }
+  }, [sessionResetFlag, toast]);
+
+
+  const handleSelectRobot = useCallback((robot: Robot) => {
     setSelectedRobot(robot);
-    const robotName = getRobotName(robot);
-    toast({
-        titleKey: "robotSelected",
-        titleParams: { robotName },
-        descriptionKey: "robotSelectedDesc",
-    });
-  }, [isRunning, getRobotName, toast]);
+  }, []);
 
   const handleToggleSimulator = () => {
     if (timeLimitReached || !selectedRobot) return;
     
-    setIsRunning(currentIsRunning => {
-      const nextIsRunning = !currentIsRunning;
-      
-      // Start the session timer on the very first "Start" click
-      if (nextIsRunning && !sessionStartTime) {
-        setSessionStartTime(Date.now());
-      }
-      
-      if (nextIsRunning) {
-        const robotName = getRobotName(selectedRobot);
-        toast({
-            titleKey: "tradingStarted",
-            descriptionKey: "tradingStartedDesc",
-            descriptionParams: { robotName },
-        });
-      } else {
-        toast({
-          titleKey: "tradingStopped",
-          descriptionKey: "tradingStoppedDesc",
-        });
-      }
-      
-      return nextIsRunning;
-    });
+    if (!sessionStartTime) {
+      setSessionStartTime(Date.now());
+    }
+    setIsRunning(currentIsRunning => !currentIsRunning);
   };
 
   const resetSimulator = useCallback((mode: 'normal' | 'demo' = 'normal') => {
@@ -289,14 +302,11 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to clear state from localStorage", error);
     }
+    setSessionResetFlag(f => f + 1);
 
     sendTelegramNotification();
     
-    toast({
-      titleKey: "sessionReset",
-      descriptionKey: "sessionResetDesc",
-    });
-  }, [toast]);
+  }, []);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
