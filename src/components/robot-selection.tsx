@@ -78,7 +78,8 @@ export function RobotSelection({ selectedRobot, onSelect, isRunning, onToggle, t
                 className={cn(
                   "border p-4 rounded-lg cursor-pointer transition-all duration-300 relative",
                   isActive ? "border-primary ring-2 ring-primary shadow-lg" : "hover:border-primary/50 hover:bg-card/80",
-                  (timeLimitReached || isRunning) && "pointer-events-none opacity-50"
+                  // Disable selection only if time is up. User should be able to switch robots when timer is running but robot is stopped.
+                  timeLimitReached || (isRunning && "pointer-events-none opacity-50")
                 )}
               >
                 {isActive && (

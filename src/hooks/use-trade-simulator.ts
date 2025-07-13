@@ -15,9 +15,8 @@ type SimulatorState = {
   trades: Trade[];
   selectedRobotId: string | null;
   totalPnl: number;
-  totalTradingTime: number;
+  sessionStartTime: number | null; // Timestamp when the timer starts
   timeLimit: number;
-  isRunning: boolean;
 };
 
 export function useTradeSimulator() {
@@ -28,7 +27,8 @@ export function useTradeSimulator() {
   const [totalPnl, setTotalPnl] = useState(0);
   const [tutorialCompleted, setTutorialCompleted] = useState<boolean>();
 
-  const [totalTradingTime, setTotalTradingTime] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [timeLimit, setTimeLimit] = useState(TRADING_TIME_LIMIT_SECONDS);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
 
@@ -77,11 +77,9 @@ export function useTradeSimulator() {
           setSelectedRobot(robot);
         }
         setTotalPnl(savedState.totalPnl);
-        setTotalTradingTime(savedState.totalTradingTime);
+        setSessionStartTime(savedState.sessionStartTime);
         setTimeLimit(savedState.timeLimit);
-        if (savedState.isRunning && savedState.totalTradingTime < savedState.timeLimit) {
-          setIsRunning(true);
-        }
+        // isRunning is not persisted, it's always false on load
       } else {
         // New session on first visit.
         sendTelegramNotification();
@@ -102,15 +100,14 @@ export function useTradeSimulator() {
         trades,
         selectedRobotId: selectedRobot?.id ?? null,
         totalPnl,
-        totalTradingTime,
+        sessionStartTime,
         timeLimit,
-        isRunning,
       };
       localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, totalTradingTime, timeLimit, isRunning, tutorialCompleted]);
+  }, [balance, trades, selectedRobot, totalPnl, sessionStartTime, timeLimit, tutorialCompleted]);
   
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
@@ -121,16 +118,32 @@ export function useTradeSimulator() {
     }
   }, [tutorialCompleted]);
 
+  // Main timer logic
   useEffect(() => {
-    if (totalTradingTime >= timeLimit) {
-      setTimeLimitReached(true);
-      if (isRunning) {
-        setIsRunning(false);
-      }
-    } else {
-      setTimeLimitReached(false);
+    let clockTimerId: NodeJS.Timeout | null = null;
+    
+    if (sessionStartTime) {
+      const updateElapsedTime = () => {
+        const now = Date.now();
+        const currentElapsedTime = Math.floor((now - sessionStartTime) / 1000);
+        setElapsedTime(currentElapsedTime);
+
+        if (currentElapsedTime >= timeLimit) {
+          setTimeLimitReached(true);
+          setIsRunning(false); // Stop the robot if it's running
+          if (clockTimerId) clearInterval(clockTimerId);
+        }
+      };
+
+      updateElapsedTime(); // Initial check
+      clockTimerId = setInterval(updateElapsedTime, 1000);
     }
-  }, [totalTradingTime, timeLimit, isRunning]);
+
+    return () => {
+      if (clockTimerId) clearInterval(clockTimerId);
+    };
+  }, [sessionStartTime, timeLimit]);
+
 
   const performTrade = useCallback(() => {
     if (!isRunningRef.current) return;
@@ -199,19 +212,6 @@ export function useTradeSimulator() {
     }
   }, [isRunning, performTrade]);
 
-  // Clock timer
-  useEffect(() => {
-    let clockTimerId: NodeJS.Timeout | null = null;
-    if (isRunning) {
-      clockTimerId = setInterval(() => {
-        setTotalTradingTime(prevTime => prevTime + 1);
-      }, 1000);
-    }
-    return () => {
-      if (clockTimerId) clearInterval(clockTimerId);
-    };
-  }, [isRunning]);
-
   const handleSelectRobot = (robot: Robot) => {
     if(isRunning) {
         setIsRunning(false);
@@ -231,7 +231,13 @@ export function useTradeSimulator() {
 
   const handleToggleSimulator = () => {
     if (timeLimitReached || !selectedRobot) return;
-    setIsRunning(!isRunning);
+
+    // Start the session timer on the very first "Start" click
+    if (!sessionStartTime) {
+      setSessionStartTime(Date.now());
+    }
+    
+    setIsRunning(currentIsRunning => !currentIsRunning);
 
     if (!isRunning) {
       const robotName = getRobotName(selectedRobot);
@@ -254,7 +260,8 @@ export function useTradeSimulator() {
     setTrades([]);
     setSelectedRobot(null);
     setTotalPnl(0);
-    setTotalTradingTime(0);
+    setSessionStartTime(null);
+    setElapsedTime(0);
     
     const newTimeLimit = mode === 'demo' ? 10 : TRADING_TIME_LIMIT_SECONDS;
     setTimeLimit(newTimeLimit);
@@ -292,7 +299,7 @@ export function useTradeSimulator() {
     resetSimulator,
     tutorialCompleted,
     completeTutorial,
-    totalTradingTime,
+    totalTradingTime: elapsedTime,
     timeLimitReached,
     timeLimit,
   };
