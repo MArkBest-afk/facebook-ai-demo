@@ -173,13 +173,13 @@ export function useTradeSimulator() {
     let pnlFactor;
     switch (currentRobot.riskTolerance) {
         case 'low': 
-            pnlFactor = (Math.random() - 0.48) * 0.05;
+            pnlFactor = (Math.random() - 0.40) * 0.05;
             break;
         case 'medium':
-            pnlFactor = (Math.random() - 0.47) * 0.08;
+            pnlFactor = (Math.random() - 0.38) * 0.08;
             break;
         case 'high':
-            pnlFactor = (Math.random() - 0.46) * 0.12;
+            pnlFactor = (Math.random() - 0.35) * 0.12;
             break;
         default:
             pnlFactor = (Math.random() - 0.5) * 0.05;
