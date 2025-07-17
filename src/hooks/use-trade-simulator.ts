@@ -7,7 +7,7 @@ import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
 import { sendTelegramNotification } from '@/app/actions';
 
-const STATE_STORAGE_KEY = 'tradeSimulatorState';
+const STATE_STORAGE_KEY_PREFIX = 'tradeSimulatorState_';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
 
 type SimulatorState = {
@@ -19,6 +19,7 @@ type SimulatorState = {
   sessionStartTime: number | null;
   timeLimit: number;
   isRunning: boolean;
+  lastActive: number;
 };
 
 const generateAccountId = () => `ACC-${Date.now()}-${Math.floor(Math.random() * 900) + 100}`;
@@ -70,43 +71,50 @@ export function useTradeSimulator() {
     isRunningRef.current = isRunning;
   }, [isRunning]);
 
+  // Load state from localStorage on initial mount
   useEffect(() => {
     isMounted.current = true;
     try {
-      const savedStateJSON = localStorage.getItem(STATE_STORAGE_KEY);
+      const existingAccountId = Object.keys(localStorage).find(k => k.startsWith(STATE_STORAGE_KEY_PREFIX))?.replace(STATE_STORAGE_KEY_PREFIX, '');
+      const currentAccountId = existingAccountId || generateAccountId();
+      setAccountId(currentAccountId);
+
+      const savedStateJSON = localStorage.getItem(STATE_STORAGE_KEY_PREFIX + currentAccountId);
       if (savedStateJSON) {
-        const savedState: SimulatorState = JSON.parse(savedStateJSON);
-        setAccountId(savedState.accountId);
-        setBalance(savedState.balance);
-        setTrades(savedState.trades.map(t => ({...t, timestamp: new Date(t.timestamp)})));
+        const savedState: Partial<SimulatorState> = JSON.parse(savedStateJSON);
+        setBalance(savedState.balance ?? INITIAL_BALANCE);
+        setTrades(savedState.trades?.map(t => ({...t, timestamp: new Date(t.timestamp)})) ?? []);
         if (savedState.selectedRobotId) {
           const robot = ROBOTS.find(r => r.id === savedState.selectedRobotId) || null;
           setSelectedRobot(robot);
           prevSelectedRobot.current = robot;
         }
-        setTotalPnl(savedState.totalPnl);
-        setSessionStartTime(savedState.sessionStartTime);
-        setTimeLimit(savedState.timeLimit);
+        setTotalPnl(savedState.totalPnl ?? 0);
+        setSessionStartTime(savedState.sessionStartTime ?? null);
+        setTimeLimit(savedState.timeLimit ?? TRADING_TIME_LIMIT_SECONDS);
         
         if (savedState.sessionStartTime) {
             const now = Date.now();
             const currentElapsedTime = Math.floor((now - savedState.sessionStartTime) / 1000);
-            if (currentElapsedTime < savedState.timeLimit) {
-                setIsRunning(savedState.isRunning);
-                prevIsRunning.current = savedState.isRunning;
+            if (currentElapsedTime < (savedState.timeLimit ?? TRADING_TIME_LIMIT_SECONDS)) {
+                setIsRunning(savedState.isRunning ?? false);
+                prevIsRunning.current = savedState.isRunning ?? false;
             }
         }
       } else {
-        setAccountId(generateAccountId());
         sendTelegramNotification();
       }
+
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
       setTutorialCompleted(savedTutorial === 'true');
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
+      // Fallback to default state
+      setAccountId(generateAccountId());
     }
   }, []);
 
+  // Save state to localStorage whenever it changes
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current || !accountId) return;
     try {
@@ -119,8 +127,9 @@ export function useTradeSimulator() {
         sessionStartTime,
         timeLimit,
         isRunning,
+        lastActive: Date.now(),
       };
-      localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(stateToSave));
+      localStorage.setItem(STATE_STORAGE_KEY_PREFIX + accountId, JSON.stringify(stateToSave));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
@@ -290,7 +299,16 @@ export function useTradeSimulator() {
 
   const resetSimulator = useCallback((mode: 'normal' | 'demo' = 'normal') => {
     setIsRunning(false);
-    setAccountId(generateAccountId());
+
+    try {
+      localStorage.removeItem(STATE_STORAGE_KEY_PREFIX + accountId);
+    } catch (error) {
+      console.error("Failed to clear old state from localStorage", error);
+    }
+    
+    const newAccountId = generateAccountId();
+    setAccountId(newAccountId);
+
     setBalance(INITIAL_BALANCE);
     setTrades([]);
     setSelectedRobot(null);
@@ -305,16 +323,15 @@ export function useTradeSimulator() {
     setTutorialCompleted(false);
 
     try {
-      localStorage.removeItem(STATE_STORAGE_KEY);
       localStorage.setItem(TUTORIAL_STORAGE_KEY, 'false');
     } catch (error) {
-      console.error("Failed to clear state from localStorage", error);
+      console.error("Failed to clear tutorial state from localStorage", error);
     }
     setSessionResetFlag(f => f + 1);
 
     sendTelegramNotification();
     
-  }, []);
+  }, [accountId]);
 
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);

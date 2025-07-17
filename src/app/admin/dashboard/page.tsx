@@ -5,42 +5,71 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, TrendingUp, TrendingDown } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { INITIAL_BALANCE } from "@/lib/constants";
 
-type User = {
-    id: string;
+type UserSession = {
+    accountId: string;
     status: 'Online' | 'Offline';
     lastSeen: string;
     initialBalance: number;
     currentBalance: number;
     pnl: number;
+    isRunning: boolean;
 };
 
-const initialMockUsers: User[] = [
-    { id: 'user-1a2b3c', status: 'Online', lastSeen: 'Just now', initialBalance: 150, currentBalance: 250.75, pnl: 100.75 },
-    { id: 'user-4d5e6f', status: 'Offline', lastSeen: '15 minutes ago', initialBalance: 150, currentBalance: 120.50, pnl: -29.50 },
-    { id: 'user-7g8h9i', status: 'Online', lastSeen: '5 minutes ago', initialBalance: 150, currentBalance: 580.00, pnl: 430.00 },
-    { id: 'user-j1k2l3', status: 'Offline', lastSeen: '2 hours ago', initialBalance: 150, currentBalance: 155.20, pnl: 5.20 },
-    { id: 'user-m4n5o6', status: 'Offline', lastSeen: '1 day ago', initialBalance: 150, currentBalance: 95.00, pnl: -55.00 },
-];
+const STATE_STORAGE_KEY_PREFIX = 'tradeSimulatorState_';
+const SESSION_TIMEOUT_MS = 60 * 1000; // 1 minute
+
+const formatTimeAgo = (timestamp: number | null): string => {
+    if (timestamp === null) return 'Never';
+    const now = Date.now();
+    const seconds = Math.floor((now - timestamp) / 1000);
+
+    if (seconds < 5) return 'Just now';
+    if (seconds < 60) return `${seconds} seconds ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+}
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const [users, setUsers] = useState<User[]>(initialMockUsers);
+    const [users, setUsers] = useState<UserSession[]>([]);
 
     useEffect(() => {
-        // Simulate real-time status updates
-        const interval = setInterval(() => {
-            setUsers(prevUsers => prevUsers.map(user => {
-                if (Math.random() < 0.2) { // 20% chance to toggle status
-                    const newStatus = user.status === 'Online' ? 'Offline' : 'Online';
-                    return { ...user, status: newStatus, lastSeen: newStatus === 'Online' ? 'Just now' : 'A moment ago' };
+        const fetchUserSessions = () => {
+            if (typeof window === 'undefined') return;
+            
+            const sessions: UserSession[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(STATE_STORAGE_KEY_PREFIX)) {
+                    try {
+                        const savedState = JSON.parse(localStorage.getItem(key)!);
+                        const isTimedOut = (Date.now() - (savedState.lastActive || 0)) > SESSION_TIMEOUT_MS;
+                        
+                        sessions.push({
+                            accountId: savedState.accountId,
+                            status: savedState.isRunning && !isTimedOut ? 'Online' : 'Offline',
+                            lastSeen: formatTimeAgo(savedState.lastActive),
+                            initialBalance: INITIAL_BALANCE,
+                            currentBalance: savedState.balance,
+                            pnl: savedState.totalPnl,
+                            isRunning: savedState.isRunning,
+                        });
+                    } catch (e) {
+                        console.error(`Failed to parse session data for key ${key}:`, e);
+                    }
                 }
-                return user;
-            }));
-        }, 5000); // Update every 5 seconds
+            }
+            setUsers(sessions);
+        };
+
+        fetchUserSessions();
+        const interval = setInterval(fetchUserSessions, 5000); // Poll every 5 seconds
 
         return () => clearInterval(interval);
     }, []);
@@ -82,7 +111,7 @@ export default function AdminDashboardPage() {
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-4">User Statistics</h2>
-                    <p className="text-muted-foreground mb-4">Displaying mock data. A real backend is required for live user tracking.</p>
+                    <p className="text-muted-foreground mb-4">Displaying live sessions from this browser. No central backend is used.</p>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -91,7 +120,7 @@ export default function AdminDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{totalUsers}</div>
-                                <p className="text-xs text-muted-foreground">all registered users</p>
+                                <p className="text-xs text-muted-foreground">all registered sessions</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -134,22 +163,30 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.map((user) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-mono">{user.id}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={user.status === 'Online' ? 'default' : 'secondary'} className={cn(user.status === 'Online' ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
-                                                    <span className={cn("mr-2 h-2 w-2 rounded-full", user.status === 'Online' ? 'bg-success' : 'bg-muted-foreground')}></span>
-                                                    {user.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">{user.lastSeen}</TableCell>
-                                            <TableCell className="text-right">${user.currentBalance.toFixed(2)}</TableCell>
-                                            <TableCell className={cn("text-right font-medium", user.pnl >= 0 ? "text-success" : "text-destructive")}>
-                                                {user.pnl >= 0 ? '+' : ''}${user.pnl.toFixed(2)}
+                                    {users.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                                No active user sessions found in this browser. Open the main app in another tab to see data here.
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        users.map((user) => (
+                                            <TableRow key={user.accountId}>
+                                                <TableCell className="font-mono">{user.accountId}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={user.status === 'Online' ? 'default' : 'secondary'} className={cn(user.status === 'Online' ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
+                                                        <span className={cn("mr-2 h-2 w-2 rounded-full", user.status === 'Online' ? 'bg-success' : 'bg-muted-foreground')}></span>
+                                                        {user.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">{user.lastSeen}</TableCell>
+                                                <TableCell className="text-right">${user.currentBalance.toFixed(2)}</TableCell>
+                                                <TableCell className={cn("text-right font-medium", user.pnl >= 0 ? "text-success" : "text-destructive")}>
+                                                    {user.pnl >= 0 ? '+' : ''}${user.pnl.toFixed(2)}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
