@@ -8,12 +8,13 @@ import { useI18n } from '@/hooks/use-i18n';
 import { Button } from './ui/button';
 
 interface BalanceCardProps {
+  accountId: string;
   balance: number;
   pnl: number;
   onWithdraw: () => void;
 }
 
-export function BalanceCard({ balance, pnl, onWithdraw }: BalanceCardProps) {
+export function BalanceCard({ accountId, balance, pnl, onWithdraw }: BalanceCardProps) {
   const [isUpdated, setIsUpdated] = useState(false);
   const prevBalanceRef = useRef(balance);
   const { t } = useI18n();
@@ -34,7 +35,7 @@ export function BalanceCard({ balance, pnl, onWithdraw }: BalanceCardProps) {
           <Wallet className="w-6 h-6" />
           <span>{t('accountBalance')}</span>
         </CardTitle>
-        <CardDescription>{t('accountBalanceDescription')}</CardDescription>
+        <CardDescription>{t('accountBalanceDescription')} <span className="font-mono text-foreground">{accountId}</span></CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div 

@@ -3,7 +3,7 @@
   "appDescription": "Trade on real markets in real-time with demo funds.",
   "resetSession": "Reset Session",
   "accountBalance": "Account Balance",
-  "accountBalanceDescription": "Your demo account balance.",
+  "accountBalanceDescription": "Your demo account number:",
   "totalPnl": "Total Profit/Loss",
   "selectARobot": "Select a Robot",
   "selectARobotDescription": "Choose your AI trading partner. A minimum of ${initialBalance} is required to start.",

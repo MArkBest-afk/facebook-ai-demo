@@ -11,6 +11,7 @@ const STATE_STORAGE_KEY = 'tradeSimulatorState';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
 
 type SimulatorState = {
+  accountId: string;
   balance: number;
   trades: Trade[];
   selectedRobotId: string | null;
@@ -20,7 +21,10 @@ type SimulatorState = {
   isRunning: boolean;
 };
 
+const generateAccountId = () => `ACC-${Date.now()}-${Math.floor(Math.random() * 900) + 100}`;
+
 export function useTradeSimulator() {
+  const [accountId, setAccountId] = useState('');
   const [balance, setBalance] = useState(INITIAL_BALANCE);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -72,6 +76,7 @@ export function useTradeSimulator() {
       const savedStateJSON = localStorage.getItem(STATE_STORAGE_KEY);
       if (savedStateJSON) {
         const savedState: SimulatorState = JSON.parse(savedStateJSON);
+        setAccountId(savedState.accountId);
         setBalance(savedState.balance);
         setTrades(savedState.trades.map(t => ({...t, timestamp: new Date(t.timestamp)})));
         if (savedState.selectedRobotId) {
@@ -92,6 +97,7 @@ export function useTradeSimulator() {
             }
         }
       } else {
+        setAccountId(generateAccountId());
         sendTelegramNotification();
       }
       const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
@@ -102,9 +108,10 @@ export function useTradeSimulator() {
   }, []);
 
   useEffect(() => {
-    if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
+    if (typeof tutorialCompleted === 'undefined' || !isMounted.current || !accountId) return;
     try {
       const stateToSave: SimulatorState = {
+        accountId,
         balance,
         trades,
         selectedRobotId: selectedRobot?.id ?? null,
@@ -117,7 +124,7 @@ export function useTradeSimulator() {
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }
-  }, [balance, trades, selectedRobot, totalPnl, sessionStartTime, timeLimit, isRunning, tutorialCompleted]);
+  }, [accountId, balance, trades, selectedRobot, totalPnl, sessionStartTime, timeLimit, isRunning, tutorialCompleted]);
   
   useEffect(() => {
     if (typeof tutorialCompleted === 'undefined' || !isMounted.current) return;
@@ -283,6 +290,7 @@ export function useTradeSimulator() {
 
   const resetSimulator = useCallback((mode: 'normal' | 'demo' = 'normal') => {
     setIsRunning(false);
+    setAccountId(generateAccountId());
     setBalance(INITIAL_BALANCE);
     setTrades([]);
     setSelectedRobot(null);
@@ -313,6 +321,7 @@ export function useTradeSimulator() {
   }, []);
 
   return {
+    accountId,
     balance,
     trades,
     isRunning,

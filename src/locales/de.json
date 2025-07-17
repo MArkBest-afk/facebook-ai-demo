@@ -3,7 +3,7 @@
   "appDescription": "Handeln Sie in Echtzeit auf realen Märkten mit Demoguthaben.",
   "resetSession": "Sitzung zurücksetzen",
   "accountBalance": "Kontostand",
-  "accountBalanceDescription": "Ihr Demo-Kontostand.",
+  "accountBalanceDescription": "Ihre Demo-Kontonummer:",
   "totalPnl": "Gesamtgewinn/-verlust",
   "selectARobot": "Einen Roboter auswählen",
   "selectARobotDescription": "Wählen Sie Ihren KI-Handelspartner. Ein Minimum von ${initialBalance} ist für den Start erforderlich.",

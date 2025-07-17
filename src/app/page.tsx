@@ -43,6 +43,7 @@ export default function Home() {
   const { t } = useI18n();
   const { toast } = useToast();
   const { 
+    accountId,
     balance, 
     trades, 
     isRunning, 
@@ -300,7 +301,7 @@ export default function Home() {
           </header>
           <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 flex flex-col gap-8">
-              <BalanceCard balance={balance} pnl={totalPnl} onWithdraw={handleWithdraw} />
+              <BalanceCard accountId={accountId} balance={balance} pnl={totalPnl} onWithdraw={handleWithdraw} />
               <RobotSelection
                 selectedRobot={selectedRobot}
                 onSelect={handleSelectRobot}

@@ -3,7 +3,7 @@
   "appDescription": "Торгуйте на реальных рынках в реальном времени с демо-счетом.",
   "resetSession": "Сбросить сессию",
   "accountBalance": "Баланс счета",
-  "accountBalanceDescription": "Баланс вашего демо-счета.",
+  "accountBalanceDescription": "Номер вашего демо-счета:",
   "totalPnl": "Общая прибыль/убыток",
   "selectARobot": "Выберите робота",
   "selectARobotDescription": "Выберите своего AI-партнера. Для старта требуется минимум ${initialBalance}.",
