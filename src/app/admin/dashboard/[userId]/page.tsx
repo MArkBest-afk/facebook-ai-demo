@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -49,6 +50,7 @@ export default function UserDetailPage() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [name, setName] = useState('');
     const [balanceInput, setBalanceInput] = useState('');
+    const [comment, setComment] = useState('');
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
 
@@ -61,6 +63,7 @@ export default function UserDetailPage() {
                 setUser(userData);
                 setName(userData.name || '');
                 setBalanceInput(userData.balance.toFixed(2));
+                setComment(userData.comment || '');
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -177,6 +180,7 @@ export default function UserDetailPage() {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Неверная сумма баланса.' });
         }
     };
+    const handleSaveComment = () => handleUpdateProfile({ comment });
     const handleRobotSelect = (robotId: string) => handleUpdateProfile({ selectedRobotId: robotId });
     const handleToggleRunning = (isRunning: boolean) => {
         const updates: Partial<User> = { isRunning };
@@ -436,8 +440,8 @@ export default function UserDetailPage() {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="lg:col-span-2">
-                    <Card className="h-full">
+                <div className="lg:col-span-2 flex flex-col gap-8">
+                    <Card className="flex-grow">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <History className="w-6 h-6" />
@@ -477,6 +481,26 @@ export default function UserDetailPage() {
                                     </TableBody>
                                 </Table>
                             </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <MessageSquare className="w-6 h-6" />
+                                <span>Комментарий</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea 
+                                value={comment} 
+                                onChange={(e) => setComment(e.target.value)} 
+                                placeholder="Оставьте комментарий о клиенте..." 
+                                rows={4}
+                            />
+                            <Button onClick={handleSaveComment} disabled={isUpdating}>
+                                <Save className="mr-2 h-4 w-4" />
+                                Сохранить комментарий
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>

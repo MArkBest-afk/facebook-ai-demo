@@ -154,6 +154,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         createdAt: new Date(),
         ipAddress: geoLocation.ipAddress,
         location: geoLocation.location,
+        comment: '',
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -316,6 +317,9 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
                 updateData.sessionStartTime = Date.now();
              }
         }
+    }
+    if (updates.comment !== undefined) {
+        updateData.comment = updates.comment;
     }
 
 

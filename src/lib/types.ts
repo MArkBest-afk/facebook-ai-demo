@@ -34,6 +34,8 @@ export interface User {
   isSubscribed?: boolean;
   ipAddress?: string;
   location?: string;
+  comment?: string;
 }
 
     
+
