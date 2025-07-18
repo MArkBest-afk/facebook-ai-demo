@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
-import { getUserById, updateUserProfile, resetUserSession, addManualTrade, updateUserSubscription } from '@/lib/actions';
+import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -111,21 +111,21 @@ export default function UserDetailPage() {
         }
     };
     
-    const handleResetSession = async () => {
+    const handleDeleteUser = async () => {
         if (!user) return;
         setIsUpdating(true);
         try {
-            const success = await resetUserSession(user._id.toString());
+            const success = await deleteUser(user._id.toString());
             if (success) {
-                toast({ title: 'Успех', description: 'Сессия пользователя была сброшена.' });
-                await fetchUser(); // Refetch to show the reset state
+                toast({ title: 'Успех', description: 'Пользователь был удален.' });
+                router.push('/admin/dashboard');
             } else {
-                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось сбросить сессию.' });
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось удалить пользователя.' });
+                 setIsUpdating(false);
             }
         } catch (error) {
-            console.error("Reset error:", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка во время сброса.' });
-        } finally {
+            console.error("Delete error:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка во время удаления.' });
             setIsUpdating(false);
         }
     };
@@ -229,13 +229,13 @@ export default function UserDetailPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Это действие сбросит сессию пользователя, включая его баланс, историю торгов и выбор робота. Это действие нельзя отменить.
+                                        Это действие навсегда удалит пользователя и все связанные с ним данные из базы. Это действие нельзя отменить.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleResetSession}>
-                                        Сбросить сессию
+                                    <AlertDialogAction onClick={handleDeleteUser}>
+                                        Удалить пользователя
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
@@ -484,5 +484,3 @@ export default function UserDetailPage() {
         </div>
     );
 }
-
-    
