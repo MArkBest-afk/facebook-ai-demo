@@ -29,6 +29,8 @@ export function BalanceCard({ accountId, balance, pnl, onWithdraw }: BalanceCard
     }
   }, [balance]);
 
+  const shortAccountId = accountId ? `...${accountId.slice(-6)}` : '';
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -37,7 +39,7 @@ export function BalanceCard({ accountId, balance, pnl, onWithdraw }: BalanceCard
             <Wallet className="w-6 h-6" />
             <span>{t('accountBalance')}</span>
             </CardTitle>
-            <span className="font-mono text-sm text-muted-foreground">{accountId}</span>
+            <span className="font-mono text-sm text-muted-foreground">{shortAccountId}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-2">
