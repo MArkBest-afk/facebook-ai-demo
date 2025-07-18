@@ -17,7 +17,6 @@ async function getDb() {
 function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
     const plainDoc = { ...doc, _id: doc._id.toString() };
     
-    // Convert other potential ObjectIds if needed, e.g., in nested arrays
     if ('trades' in plainDoc && Array.isArray(plainDoc.trades)) {
         plainDoc.trades = plainDoc.trades.map((trade: any) => {
             if (trade.id && typeof trade.id !== 'string') {
@@ -26,8 +25,9 @@ function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
             return trade;
         });
     }
-    return plainDoc;
+    return plainDoc as any;
 }
+
 
 // Escapes a string for Telegram's MarkdownV2 format.
 function escapeMarkdownV2(text: string): string {
@@ -105,8 +105,7 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         }
     }
 
-    // Create a new user
-    const newUser: Omit<User, '_id'> = {
+    const newUser: Omit<User, '_id' | 'name' | 'isSubscribed'> = {
         balance: INITIAL_BALANCE,
         trades: [],
         selectedRobotId: null,
@@ -118,10 +117,9 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         createdAt: new Date(),
     };
 
-    const result = await usersCollection.insertOne(newUser);
+    const result = await usersCollection.insertOne(newUser as any);
     const createdUser = { ...newUser, _id: result.insertedId };
     
-    // Send Telegram notification for the new user
     await sendTelegramNotification(result.insertedId.toHexString());
 
     return toPlainObject(createdUser) as unknown as User;
@@ -132,10 +130,8 @@ export async function updateUser(accountId: string, updates: Partial<User>): Pro
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
     
-    // Create a new object for updates to avoid mutating the original
     const updateData: Partial<User> & { lastActive: Date } = { ...updates, lastActive: new Date() };
     
-    // Remove _id from updates if it exists to prevent errors
     if ('_id' in updateData) {
         delete (updateData as any)._id;
     }
@@ -206,4 +202,40 @@ export async function getAllUsers(): Promise<WithId<User>[]> {
     const usersCollection = db.collection<User>('users');
     const users = await usersCollection.find({}).sort({ createdAt: -1 }).toArray();
     return users.map(user => toPlainObject(user)) as WithId<User>[];
+}
+
+export async function getUserById(userId: string): Promise<User | null> {
+    if (!ObjectId.isValid(userId)) return null;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+    return user ? toPlainObject(user) as unknown as User : null;
+}
+
+export async function updateUserProfile(userId: string, updates: { name?: string; isSubscribed?: boolean }): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const updateData: any = {};
+    if (updates.name !== undefined) {
+        updateData.name = updates.name;
+    }
+    if (updates.isSubscribed !== undefined) {
+        updateData.isSubscribed = updates.isSubscribed;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+        return false;
+    }
+    
+    updateData.lastActive = new Date();
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: updateData }
+    );
+
+    return result.modifiedCount > 0;
 }

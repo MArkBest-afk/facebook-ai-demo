@@ -29,4 +29,6 @@ export interface User {
   isRunning: boolean;
   lastActive: Date;
   createdAt: Date;
+  name?: string;
+  isSubscribed?: boolean;
 }

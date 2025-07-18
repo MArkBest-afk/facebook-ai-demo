@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
 
     const onlineUsers = users.filter(u => u.isRunning && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
     const totalUsers = users.length;
-    const totalPnl = users.reduce((acc, user) => acc + user.totalPnl, 0);
+    const totalPnl = users.reduce((acc, user) => acc + (user.totalPnl || 0), 0);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -133,6 +133,7 @@ export default function AdminDashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>User ID</TableHead>
+                                        <TableHead>Name</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Last Seen</TableHead>
                                         <TableHead>Created</TableHead>
@@ -143,13 +144,13 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                                 Loading user data...
                                             </TableCell>
                                         </TableRow>
                                     ) : users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                                 No users found.
                                             </TableCell>
                                         </TableRow>
@@ -157,8 +158,9 @@ export default function AdminDashboardPage() {
                                         users.map((user) => {
                                             const isOnline = user.isRunning && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
                                             return (
-                                                <TableRow key={user._id.toString()}>
+                                                <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
                                                     <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
+                                                    <TableCell>{user.name || 'N/A'}</TableCell>
                                                     <TableCell>
                                                         <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
                                                             <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
