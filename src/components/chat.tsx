@@ -124,7 +124,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                      {msg.sender !== sender && msg.senderName && (
                                         <div className="text-xs font-medium text-muted-foreground ml-2">{msg.senderName}</div>
                                     )}
-                                    <div className={cn("flex items-end gap-2 w-full", msg.sender === sender ? "justify-end" : "justify-start")}>
+                                    <div className={cn("flex items-end gap-2", msg.sender === sender ? "justify-end" : "justify-start")}>
                                         {isAdmin && msg.sender !== sender && (
                                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
                                                 <Trash2 className="h-3 w-3" />
