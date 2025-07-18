@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
@@ -245,11 +246,13 @@ export default function Home() {
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-4">
-                <Bot className="w-10 h-10 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">f</span>
+                </div>
                 <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('appName')}</h1>
               </div>
-              <p className="text-muted-foreground sm:ml-[56px]">
+              <p className="text-muted-foreground sm:ml-[52px]">
                 {t('appDescription')}
               </p>
             </div>
