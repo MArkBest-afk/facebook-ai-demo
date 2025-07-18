@@ -12,6 +12,7 @@ import type { ChatMessage } from '@/lib/types';
 import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from './ui/label';
 
 interface ChatProps {
     userId: string;
@@ -26,6 +27,7 @@ interface ChatProps {
 export function Chat({ userId, messages, sender, onNewMessage, onClose, title = "Chat", isAdmin = false }: ChatProps) {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [adminName, setAdminName] = useState('Поддержка');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
@@ -42,7 +44,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         if (!newMessage.trim() || isSending) return;
         setIsSending(true);
         try {
-            await sendChatMessage(userId, sender, newMessage.trim());
+            await sendChatMessage(userId, sender, newMessage.trim(), sender === 'admin' ? adminName : undefined);
             setNewMessage('');
             onNewMessage?.();
         } catch (error) {
@@ -118,37 +120,53 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                             </div>
                         ) : (
                             messages.map((msg) => (
-                                <div key={msg.id} className={cn("flex items-end gap-2 group", msg.sender === sender ? "justify-end" : "justify-start")}>
-                                    {isAdmin && msg.sender !== sender && (
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
+                                <div key={msg.id} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
+                                     {msg.sender !== sender && msg.senderName && (
+                                        <div className="text-xs font-medium text-muted-foreground ml-2">{msg.senderName}</div>
                                     )}
-                                    <div
-                                        className={cn(
-                                            "flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm",
-                                            msg.sender === sender
-                                                ? "ml-auto bg-primary text-primary-foreground"
-                                                : "bg-muted"
+                                    <div className={cn("flex items-end gap-2 w-full", msg.sender === sender ? "justify-end" : "justify-start")}>
+                                        {isAdmin && msg.sender !== sender && (
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
                                         )}
-                                    >
-                                        <p>{msg.text}</p>
-                                        <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        <div
+                                            className={cn(
+                                                "flex w-max max-w-[75%] flex-col gap-1 rounded-lg px-3 py-2 text-sm",
+                                                msg.sender === sender
+                                                    ? "ml-auto bg-primary text-primary-foreground"
+                                                    : "bg-muted"
+                                            )}
+                                        >
+                                            <p>{msg.text}</p>
+                                            <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
+                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        {isAdmin && msg.sender === sender && (
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                     </div>
-                                    {isAdmin && msg.sender === sender && (
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                    )}
                                 </div>
                             ))
                         )}
                     </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="p-4 border-t">
+            <CardFooter className="p-4 border-t flex flex-col gap-2">
+                {isAdmin && (
+                    <div className="w-full space-y-1.5">
+                        <Label htmlFor="admin-name">Ваше имя в чате</Label>
+                        <Input 
+                            id="admin-name"
+                            value={adminName}
+                            onChange={(e) => setAdminName(e.target.value)}
+                            placeholder="Поддержка"
+                        />
+                    </div>
+                )}
                 <div className="flex w-full items-center space-x-2">
                     <Input
                         value={newMessage}
@@ -165,3 +183,5 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         </Card>
     );
 }
+
+    

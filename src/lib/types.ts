@@ -28,6 +28,7 @@ export interface Notification {
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'admin';
+  senderName?: string;
   text: string;
   timestamp: Date;
   read: boolean;
@@ -53,3 +54,5 @@ export interface User {
   notifications?: Notification[];
   chatMessages?: ChatMessage[];
 }
+
+    

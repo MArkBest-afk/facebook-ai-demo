@@ -408,7 +408,7 @@ export async function markNotificationsAsRead(userId: string, notificationIds: s
     return result.modifiedCount > 0;
 }
 
-export async function sendChatMessage(userId: string, sender: 'user' | 'admin', text: string): Promise<boolean> {
+export async function sendChatMessage(userId: string, sender: 'user' | 'admin', text: string, senderName?: string): Promise<boolean> {
     if (!ObjectId.isValid(userId) || !text) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
@@ -416,6 +416,7 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
     const newChatMessage: ChatMessage = {
         id: new ObjectId().toHexString(),
         sender,
+        senderName: senderName,
         text,
         timestamp: new Date(),
         read: false,
@@ -473,3 +474,5 @@ export async function clearChatHistory(userId: string): Promise<boolean> {
 
     return result.modifiedCount > 0;
 }
+
+    
