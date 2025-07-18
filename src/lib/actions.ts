@@ -180,6 +180,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         comment: '',
         notifications: [],
         chatMessages: [],
+        isAiChatEnabled: false,
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -324,6 +325,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     if (updates.isBlocked !== undefined) updateData.isBlocked = updates.isBlocked;
     if (updates.selectedRobotId !== undefined) updateData.selectedRobotId = updates.selectedRobotId;
     if (updates.comment !== undefined) updateData.comment = updates.comment;
+    if (updates.isAiChatEnabled !== undefined) updateData.isAiChatEnabled = updates.isAiChatEnabled;
 
     if (updates.balance !== undefined) {
         const newBalance = updates.balance;
@@ -416,6 +418,9 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
     if (!ObjectId.isValid(userId) || !text) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
+    
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) return false;
 
     const newChatMessage: ChatMessage = {
         id: new ObjectId().toHexString(),
@@ -433,6 +438,24 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
             $set: { lastActive: new Date() }
         }
     );
+
+    // If the message is from a user and AI chat is enabled, trigger the AI response.
+    if (sender === 'user' && user.isAiChatEnabled) {
+        try {
+            // Get the latest chat history after adding the user's message
+            const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+            if (updatedUser && updatedUser.chatMessages) {
+                const aiResponse = await assistChat({ chatHistory: updatedUser.chatMessages });
+                if (aiResponse && aiResponse.answer) {
+                    // Send AI's response as admin
+                    await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+                }
+            }
+        } catch (error) {
+            console.error('Error triggering AI chat response:', error);
+            // Optionally send a fallback message to the user
+        }
+    }
 
     return result.modifiedCount > 0;
 }
@@ -477,34 +500,4 @@ export async function clearChatHistory(userId: string): Promise<boolean> {
     );
 
     return result.modifiedCount > 0;
-}
-
-export async function requestAiChatResponse(userId: string): Promise<boolean> {
-    if (!ObjectId.isValid(userId)) return false;
-
-    const user = await getUserById(userId);
-    if (!user || !user.chatMessages || user.chatMessages.length === 0) {
-        return false;
-    }
-
-    const lastMessage = user.chatMessages[user.chatMessages.length - 1];
-
-    // Check if the last message is from an admin or if it's too recent
-    if (lastMessage.sender === 'admin') {
-        return false;
-    }
-    
-    // Trigger AI response
-    try {
-        const aiResponse = await assistChat({ chatHistory: user.chatMessages });
-        if (aiResponse && aiResponse.answer) {
-            await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
-            return true;
-        }
-    } catch (error) {
-        console.error('Error triggering AI chat response:', error);
-    }
-    
-
-    return false;
 }

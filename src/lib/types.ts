@@ -53,6 +53,5 @@ export interface User {
   comment?: string;
   notifications?: Notification[];
   chatMessages?: ChatMessage[];
+  isAiChatEnabled?: boolean;
 }
-
-    

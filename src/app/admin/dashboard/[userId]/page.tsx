@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -107,6 +107,7 @@ export default function UserDetailPage() {
                         sessionStartTime: userData.sessionStartTime,
                         timeLimit: userData.timeLimit,
                         balance: userData.balance, // Also update balance in case of manual trades
+                        isAiChatEnabled: userData.isAiChatEnabled,
                     };
                 });
                 setChatMessages(userData.chatMessages || []);
@@ -242,6 +243,7 @@ export default function UserDetailPage() {
         handleUpdateProfile(updates);
     }
     const handleToggleBlocked = (isBlocked: boolean) => handleUpdateProfile({ isBlocked });
+    const handleToggleAiChat = (isEnabled: boolean) => handleUpdateProfile({ isAiChatEnabled: isEnabled });
 
 
     if (isLoading) {
@@ -493,14 +495,39 @@ export default function UserDetailPage() {
                     </Card>
                 </div>
                 <div className="lg:col-span-2 flex flex-col gap-8">
-                     <Chat 
-                        userId={user._id.toString()} 
-                        messages={chatMessages}
-                        sender="admin"
-                        title="Чат с клиентом"
-                        onNewMessage={fetchDynamicUserData}
-                        isAdmin
-                    />
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="w-6 h-6" />
+                                    <span>Чат с клиентом</span>
+                                </div>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+                                <div className="space-y-0.5">
+                                    <Label className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />AI Ассистент</Label>
+                                    <p className={cn("text-sm", user.isAiChatEnabled ? "text-success" : "text-muted-foreground")}>
+                                        {user.isAiChatEnabled ? "AI помогает в чате" : "AI отключен"}
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={!!user.isAiChatEnabled}
+                                    onCheckedChange={handleToggleAiChat}
+                                    disabled={isUpdating}
+                                    aria-readonly
+                                />
+                            </div>
+                             <Chat 
+                                userId={user._id.toString()} 
+                                messages={chatMessages}
+                                sender="admin"
+                                onNewMessage={fetchDynamicUserData}
+                                isAdmin
+                            />
+                        </CardContent>
+                    </Card>
                     <Card className="flex-grow">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -568,5 +595,3 @@ export default function UserDetailPage() {
         </div>
     );
 }
-
-    
