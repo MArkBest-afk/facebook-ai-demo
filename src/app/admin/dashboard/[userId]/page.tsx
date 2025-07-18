@@ -214,7 +214,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                                                     <TableCell>{new Date(trade.timestamp).toLocaleString()}</TableCell>
                                                     <TableCell>{trade.symbol}</TableCell>
                                                     <TableCell className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive')}>{trade.type}</TableCell>
-                                                    <TableCell className={cn("text-right font-medium", trade.pnl >= 0 ? "text-success" : "text-destructive")}>
+                                                    <TableCell className={cn("text-right font-medium", trade.pnl >= 0 ? 'text-success' : 'text-destructive')}>
                                                          {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                                                     </TableCell>
                                                 </TableRow>
