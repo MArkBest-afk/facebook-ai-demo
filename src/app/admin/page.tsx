@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -23,7 +24,7 @@ export default function AdminLoginPage() {
 
     // Simulate network delay
     setTimeout(() => {
-      if (username === 'admin1' && password === 'password1') {
+      if (username === 'admin' && password === 'password1') {
         try {
             sessionStorage.setItem('isAdminAuthenticated', 'true');
             router.push('/admin/dashboard');
@@ -31,15 +32,15 @@ export default function AdminLoginPage() {
             console.error("Could not set sessionStorage", error);
             toast({
               variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Could not save session. Please enable cookies/storage.',
+              title: 'Ошибка входа',
+              description: 'Не удалось сохранить сессию. Пожалуйста, включите cookies/хранилище.',
             });
         }
       } else {
         toast({
           variant: 'destructive',
-          title: 'Login Failed',
-          description: 'Incorrect username or password.',
+          title: 'Ошибка входа',
+          description: 'Неверное имя пользователя или пароль.',
         });
       }
       setIsLoading(false);
@@ -51,17 +52,17 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
           <Bot className="mx-auto h-12 w-12 text-primary" />
-          <CardTitle className="mt-4 text-2xl font-headline">Admin Panel</CardTitle>
-          <CardDescription>Please sign in to continue</CardDescription>
+          <CardTitle className="mt-4 text-2xl font-headline">Панель администратора</CardTitle>
+          <CardDescription>Пожалуйста, войдите для продолжения</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Имя пользователя</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="admin1"
+                placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
@@ -69,7 +70,7 @@ export default function AdminLoginPage() {
               />
             </div>
             <div className="space-y-2 relative">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -83,7 +84,7 @@ export default function AdminLoginPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-[2.1rem] text-muted-foreground"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -92,7 +93,7 @@ export default function AdminLoginPage() {
               {isLoading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-solid border-white border-t-transparent"></div>
               ) : (
-                'Sign In'
+                'Войти'
               )}
             </Button>
           </form>
@@ -101,3 +102,5 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+
+    

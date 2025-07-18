@@ -22,15 +22,15 @@ import { Progress } from '@/components/ui/progress';
 
 
 const formatTimeAgo = (date: Date | null): string => {
-    if (!date) return 'Never';
+    if (!date) return 'Никогда';
     const now = Date.now();
     const seconds = Math.floor((now - new Date(date).getTime()) / 1000);
 
-    if (seconds < 5) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
+    if (seconds < 5) return 'Только что';
+    if (seconds < 60) return `${seconds}с назад`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}м назад`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}ч назад`;
+    return `${Math.floor(seconds / 86400)}д назад`;
 }
 
 const formatTime = (seconds: number) => {
@@ -62,12 +62,12 @@ export default function UserDetailPage() {
                 setName(userData.name || '');
                 setBalanceInput(userData.balance.toFixed(2));
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
             }
         } catch (error) {
             console.error("Failed to fetch user:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load user data.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные пользователя.' });
         } finally {
             setIsLoading(false);
         }
@@ -99,13 +99,13 @@ export default function UserDetailPage() {
             const success = await updateUserProfile(user._id.toString(), updates);
             if (success) {
                 await fetchUser(); // Refetch user data to get the latest state
-                toast({ title: 'Success', description: 'User profile updated.' });
+                toast({ title: 'Успех', description: 'Профиль пользователя обновлен.' });
             } else {
                 // toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
             }
         } catch (error) {
             console.error("Update error:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
         } finally {
             setIsUpdating(false);
         }
@@ -117,14 +117,14 @@ export default function UserDetailPage() {
         try {
             const success = await resetUserSession(user._id.toString());
             if (success) {
-                toast({ title: 'Success', description: 'User session has been reset.' });
+                toast({ title: 'Успех', description: 'Сессия пользователя была сброшена.' });
                 await fetchUser(); // Refetch to show the reset state
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to reset session.' });
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось сбросить сессию.' });
             }
         } catch (error) {
             console.error("Reset error:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred during reset.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка во время сброса.' });
         } finally {
             setIsUpdating(false);
         }
@@ -136,14 +136,14 @@ export default function UserDetailPage() {
         try {
             const success = await addManualTrade(user._id.toString(), tradeType);
             if (success) {
-                toast({ title: 'Success', description: `Manual ${tradeType} trade added.` });
+                toast({ title: 'Успех', description: `Ручная ${tradeType === 'profitable' ? 'прибыльная' : 'убыточная'} сделка добавлена.` });
                 await fetchUser();
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to add manual trade.' });
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось добавить ручную сделку.' });
             }
         } catch (error) {
             console.error("Manual trade error:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
         } finally {
             setIsUpdating(false);
         }
@@ -155,14 +155,14 @@ export default function UserDetailPage() {
         try {
             const success = await updateUserSubscription(user._id.toString(), isSubscribed);
             if (success) {
-                toast({ title: 'Success', description: 'Subscription status updated.' });
+                toast({ title: 'Успех', description: 'Статус подписки обновлен.' });
                 await fetchUser();
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subscription.' });
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить подписку.' });
             }
         } catch (error) {
             console.error("Subscription update error:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
         } finally {
             setIsUpdating(false);
         }
@@ -174,7 +174,7 @@ export default function UserDetailPage() {
         if (!isNaN(newBalance)) {
             handleUpdateProfile({ balance: newBalance });
         } else {
-            toast({ variant: 'destructive', title: 'Error', description: 'Invalid balance amount.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Неверная сумма баланса.' });
         }
     };
     const handleRobotSelect = (robotId: string) => handleUpdateProfile({ selectedRobotId: robotId });
@@ -199,7 +199,7 @@ export default function UserDetailPage() {
     if (!user) {
         return (
             <div className="flex h-screen items-center justify-center">
-                <p>User not found.</p>
+                <p>Пользователь не найден.</p>
             </div>
         );
     }
@@ -216,7 +216,7 @@ export default function UserDetailPage() {
                         <Button variant="outline" size="icon" onClick={() => router.push('/admin/dashboard')}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <h1 className="text-xl font-headline text-primary truncate">{user.name || `User ${user._id.toString().slice(-6)}`}</h1>
+                        <h1 className="text-xl font-headline text-primary truncate">{user.name || `Пользователь ${user._id.toString().slice(-6)}`}</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         <AlertDialog>
@@ -227,15 +227,15 @@ export default function UserDetailPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        This action will reset the user's session, including their balance, trade history, and robot selection. This cannot be undone.
+                                        Это действие сбросит сессию пользователя, включая его баланс, историю торгов и выбор робота. Это действие нельзя отменить.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
                                     <AlertDialogAction onClick={handleResetSession}>
-                                        Reset Session
+                                        Сбросить сессию
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
@@ -252,22 +252,22 @@ export default function UserDetailPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
-                                <span>User Profile</span>
+                                <span>Профиль пользователя</span>
                                 <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
                                     <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
-                                    {isOnline ? 'Online' : 'Offline'}
+                                    {isOnline ? 'Онлайн' : 'Оффлайн'}
                                 </Badge>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="userId">User ID</Label>
+                                <Label htmlFor="userId">ID пользователя</Label>
                                 <Input id="userId" value={user._id.toString()} readOnly className="font-mono text-xs" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="userName">Name</Label>
+                                <Label htmlFor="userName">Имя</Label>
                                 <div className="flex gap-2">
-                                    <Input id="userName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter user name" />
+                                    <Input id="userName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Введите имя пользователя" />
                                     <Button onClick={handleSaveName} disabled={isUpdating} size="icon">
                                         <Save className="h-4 w-4" />
                                     </Button>
@@ -275,9 +275,9 @@ export default function UserDetailPage() {
                             </div>
                              <div className="flex items-center justify-between rounded-lg border p-3">
                                 <div className="space-y-0.5">
-                                    <Label>Subscribed</Label>
+                                    <Label>Подписан</Label>
                                     <p className={cn("text-sm", user.isSubscribed ? "text-success" : "text-muted-foreground")}>
-                                        {user.isSubscribed ? "User is subscribed" : "Not subscribed"}
+                                        {user.isSubscribed ? "Пользователь подписан" : "Не подписан"}
                                     </p>
                                 </div>
                                 <Switch
@@ -294,16 +294,16 @@ export default function UserDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Globe className="w-6 h-6" />
-                                <span>Client Information</span>
+                                <span>Информация о клиенте</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">IP Address</span>
+                                <span className="text-muted-foreground">IP Адрес</span>
                                 <span className="font-mono">{user.ipAddress || 'N/A'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Location</span>
+                                <span className="text-muted-foreground">Местоположение</span>
                                 <span className="font-medium flex items-center gap-2">
                                     <MapPin className="w-4 h-4" /> {user.location || 'N/A'}
                                 </span>
@@ -315,15 +315,15 @@ export default function UserDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <UserX className="w-6 h-6" />
-                                <span>Access Control</span>
+                                <span>Управление доступом</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between rounded-lg border p-3">
                                 <div className="space-y-0.5">
-                                    <Label>User Access</Label>
+                                    <Label>Доступ пользователя</Label>
                                     <p className={cn("text-sm", user.isBlocked ? "text-destructive" : "text-muted-foreground")}>
-                                        {user.isBlocked ? "User is blocked" : "User has access"}
+                                        {user.isBlocked ? "Пользователь заблокирован" : "Пользователь имеет доступ"}
                                     </p>
                                 </div>
                                 <Switch
@@ -340,28 +340,28 @@ export default function UserDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Bot className="w-6 h-6" />
-                                <span>Robot Control</span>
+                                <span>Управление роботом</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                              <div>
                                 <div className="flex justify-between items-center text-sm font-medium mb-2">
-                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Time Remaining</span>
+                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Оставшееся время</span>
                                     <span className={cn(timeIsUp && "text-destructive font-bold")}>
-                                        {timeIsUp ? "Time Expired" : formatTime(remainingTime)}
+                                        {timeIsUp ? "Время вышло" : formatTime(remainingTime)}
                                     </span>
                                 </div>
                                 <Progress value={100 - timeProgress} className="h-2" />
                             </div>
                             <div>
-                                <Label htmlFor="robot-select">Selected Robot</Label>
+                                <Label htmlFor="robot-select">Выбранный робот</Label>
                                 <Select
                                     value={user.selectedRobotId || ''}
                                     onValueChange={handleRobotSelect}
                                     disabled={isUpdating || timeIsUp}
                                 >
                                     <SelectTrigger id="robot-select">
-                                        <SelectValue placeholder="Select a robot" />
+                                        <SelectValue placeholder="Выберите робота" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {ROBOTS.map(robot => (
@@ -374,9 +374,9 @@ export default function UserDetailPage() {
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3">
                                 <div className="space-y-0.5">
-                                    <Label>Trading Status</Label>
+                                    <Label>Статус торговли</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        {user.isRunning ? "Robot is currently active." : "Robot is stopped."}
+                                        {user.isRunning ? "Робот активен." : "Робот остановлен."}
                                     </p>
                                 </div>
                                 <Switch
@@ -389,11 +389,11 @@ export default function UserDetailPage() {
                             <div className="grid grid-cols-2 gap-2 pt-2">
                                 <Button variant="outline" onClick={() => handleManualTrade('profitable')} disabled={isUpdating}>
                                     <TrendingUp className="mr-2 h-4 w-4 text-success" />
-                                    <span>Profit</span>
+                                    <span>Прибыль</span>
                                 </Button>
                                 <Button variant="outline" onClick={() => handleManualTrade('losing')} disabled={isUpdating}>
                                     <TrendingDown className="mr-2 h-4 w-4 text-destructive" />
-                                    <span>Loss</span>
+                                    <span>Убыток</span>
                                 </Button>
                             </div>
                         </CardContent>
@@ -402,7 +402,7 @@ export default function UserDetailPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Balance</CardTitle>
+                                <CardTitle className="text-sm font-medium">Баланс</CardTitle>
                                 <Wallet className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -416,7 +416,7 @@ export default function UserDetailPage() {
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total P/L</CardTitle>
+                                <CardTitle className="text-sm font-medium">Общий П/У</CardTitle>
                                 <BarChart2 className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -428,11 +428,11 @@ export default function UserDetailPage() {
                     </div>
                      <Card>
                         <CardHeader>
-                            <CardTitle className="text-sm font-medium">Activity</CardTitle>
+                            <CardTitle className="text-sm font-medium">Активность</CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground space-y-2">
-                           <div className="flex justify-between"><span>Last Seen:</span> <span className="font-medium text-foreground">{formatTimeAgo(user.lastActive)}</span></div>
-                           <div className="flex justify-between"><span>Created:</span> <span className="font-medium text-foreground">{formatTimeAgo(user.createdAt)}</span></div>
+                           <div className="flex justify-between"><span>Последняя активность:</span> <span className="font-medium text-foreground">{formatTimeAgo(user.lastActive)}</span></div>
+                           <div className="flex justify-between"><span>Создан:</span> <span className="font-medium text-foreground">{formatTimeAgo(user.createdAt)}</span></div>
                         </CardContent>
                     </Card>
                 </div>
@@ -441,7 +441,7 @@ export default function UserDetailPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <History className="w-6 h-6" />
-                                <span>Trade History</span>
+                                <span>История торгов</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -449,10 +449,10 @@ export default function UserDetailPage() {
                                 <Table>
                                     <TableHeader className="sticky top-0 bg-card z-10">
                                         <TableRow>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead>Symbol</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead className="text-right">P/L</TableHead>
+                                            <TableHead>Время</TableHead>
+                                            <TableHead>Символ</TableHead>
+                                            <TableHead>Тип</TableHead>
+                                            <TableHead className="text-right">П/У</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -470,7 +470,7 @@ export default function UserDetailPage() {
                                         ) : (
                                             <TableRow>
                                                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                    No trades found for this user.
+                                                    Сделки для этого пользователя не найдены.
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -484,3 +484,5 @@ export default function UserDetailPage() {
         </div>
     );
 }
+
+    
