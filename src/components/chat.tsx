@@ -138,7 +138,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                                     : "bg-muted"
                                             )}
                                         >
-                                            <p className="break-words">{msg.text}</p>
+                                            <p className="break-all">{msg.text}</p>
                                             <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
