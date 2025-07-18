@@ -180,7 +180,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         comment: '',
         notifications: [],
         chatMessages: [],
-        isAiChatEnabled: false,
+        isAiChatEnabled: true,
         hasUnreadAdminMessages: false,
     };
 
@@ -456,7 +456,10 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
                 // Ensure chat history is not empty
                 const chatHistory = updatedUser.chatMessages || [];
                 if (chatHistory.length > 0) {
-                     const serializableChatHistory = JSON.stringify(chatHistory);
+                     const serializableChatHistory = JSON.stringify(chatHistory.map(msg => ({
+                         sender: msg.senderName || msg.sender,
+                         text: msg.text,
+                     })));
 
                      const aiResponse = await assistChat({ chatHistory: serializableChatHistory });
 
