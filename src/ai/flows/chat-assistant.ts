@@ -38,7 +38,7 @@ export async function assistChat(input: AssistChatInput): Promise<AssistChatOutp
 
 const prompt = ai.definePrompt({
   name: 'assistChatPrompt',
-  input: { schema: AssistChatInputSchema },
+  input: { schema: z.object({ chatHistory: z.string() }) }, // Expect a JSON string
   output: { schema: AssistChatOutputSchema },
   prompt: `You are an expert AI assistant acting as a support manager for a demo trading platform called "Facebook AI".
 Your name is Gemini, but you should always sign off as "Поддержка" or "Support".
@@ -61,7 +61,7 @@ Do not make up features. If you don't know the answer, politely state that you w
 Always communicate in the language of the user's last message. The primary language is Russian.
 
 Chat History (JSON format):
-{{{json chatHistory}}}
+{{{chatHistory}}}
 
 Based on the last message from the user, provide a helpful answer.
 `,
@@ -74,13 +74,16 @@ const assistChatFlow = ai.defineFlow(
     outputSchema: AssistChatOutputSchema,
   },
   async (input) => {
-    // Convert Date objects to string representations for the prompt
-    const serializableChatHistory = input.chatHistory.map(msg => ({
-        ...msg,
-        timestamp: msg.timestamp.toISOString(),
-    }));
+    // Convert the chat history with Date objects to a JSON string with ISO date strings.
+    // This is the correct way to handle complex objects for the prompt.
+    const serializableChatHistory = JSON.stringify(
+        input.chatHistory.map(msg => ({
+            ...msg,
+            timestamp: msg.timestamp.toISOString(),
+        }))
+    );
     
-    const { output } = await prompt({ chatHistory: serializableChatHistory as any });
+    const { output } = await prompt({ chatHistory: serializableChatHistory });
     return output!;
   }
 );
