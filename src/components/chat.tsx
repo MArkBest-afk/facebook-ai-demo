@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, Trash2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
-import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
+import { sendChatMessage, deleteChatMessage, clearChatHistory, triggerAiChatResponse } from '@/lib/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
@@ -47,6 +47,16 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             await sendChatMessage(userId, sender, newMessage.trim(), sender === 'admin' ? adminName : undefined);
             setNewMessage('');
             onNewMessage?.();
+
+            if (sender === 'user') {
+                // Non-blocking call to trigger AI check
+                triggerAiChatResponse(userId).then(replied => {
+                    if (replied) {
+                        onNewMessage?.();
+                    }
+                });
+            }
+
         } catch (error) {
             console.error('Failed to send message:', error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
@@ -184,4 +194,3 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     );
 }
 
-    

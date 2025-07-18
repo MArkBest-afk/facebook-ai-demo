@@ -6,6 +6,8 @@ import clientPromise from './mongodb';
 import type { Robot, Trade, User, Notification, ChatMessage } from './types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
 import { headers } from 'next/headers';
+import { assistChat } from '@/ai/flows/chat-assistant';
+
 
 // Helper function to get the database instance
 async function getDb() {
@@ -325,7 +327,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
 
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
-        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
+        updateData.totalPnl = userBeforeUpdate.totalPnl + (updates.balance - userBeforeUpdate.balance);
     }
 
     if (updates.isRunning !== undefined) {
@@ -475,4 +477,37 @@ export async function clearChatHistory(userId: string): Promise<boolean> {
     return result.modifiedCount > 0;
 }
 
-    
+export async function triggerAiChatResponse(userId: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+
+    const user = await getUserById(userId);
+    if (!user || !user.chatMessages || user.chatMessages.length === 0) {
+        return false;
+    }
+
+    const lastMessage = user.chatMessages[user.chatMessages.length - 1];
+
+    // If the last message is from an admin, do nothing.
+    if (lastMessage.sender === 'admin') {
+        return false;
+    }
+
+    // Check if the last message from the user is older than 3 minutes.
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+    if (new Date(lastMessage.timestamp) > threeMinutesAgo) {
+        return false;
+    }
+
+    // Trigger AI response
+    try {
+        const aiResponse = await assistChat({ chatHistory: user.chatMessages });
+        if (aiResponse && aiResponse.answer) {
+            await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+            return true;
+        }
+    } catch (error) {
+        console.error('Error triggering AI chat response:', error);
+    }
+
+    return false;
+}
