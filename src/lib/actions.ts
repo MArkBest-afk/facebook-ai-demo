@@ -213,7 +213,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     return user ? toPlainObject(user) as unknown as User : null;
 }
 
-export async function updateUserProfile(userId: string, updates: { name?: string; isSubscribed?: boolean }): Promise<boolean> {
+export async function updateUserProfile(userId: string, updates: { name?: string; isSubscribed?: boolean; balance?: number }): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
@@ -225,9 +225,12 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     if (updates.isSubscribed !== undefined) {
         updateData.isSubscribed = updates.isSubscribed;
     }
+    if (updates.balance !== undefined) {
+        updateData.balance = updates.balance;
+    }
 
     if (Object.keys(updateData).length === 0) {
-        return false;
+        return true; // Nothing to update, but not an error
     }
     
     updateData.lastActive = new Date();

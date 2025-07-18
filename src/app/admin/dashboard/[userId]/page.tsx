@@ -34,6 +34,7 @@ export default function UserDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const [name, setName] = useState('');
+    const [balanceInput, setBalanceInput] = useState('');
     const userId = params.userId as string;
 
     const fetchUser = useCallback(async () => {
@@ -44,6 +45,7 @@ export default function UserDetailPage() {
             if (userData) {
                 setUser(userData);
                 setName(userData.name || '');
+                setBalanceInput(userData.balance.toFixed(2));
             } else {
                 toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
                 router.push('/admin/dashboard');
@@ -66,7 +68,7 @@ export default function UserDetailPage() {
         try {
             const success = await updateUserProfile(user._id.toString(), updates);
             if (success) {
-                setUser(prev => prev ? { ...prev, ...updates } : null);
+                await fetchUser(); // Refetch user data to get the latest state
                 toast({ title: 'Success', description: 'User profile updated.' });
             } else {
                 toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
@@ -80,6 +82,14 @@ export default function UserDetailPage() {
     };
 
     const handleSaveName = () => handleUpdateProfile({ name });
+    const handleSaveBalance = () => {
+        const newBalance = parseFloat(balanceInput);
+        if (!isNaN(newBalance)) {
+            handleUpdateProfile({ balance: newBalance });
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Invalid balance amount.' });
+        }
+    };
     const handleSubscribeUser = () => handleUpdateProfile({ isSubscribed: true });
 
 
@@ -165,7 +175,12 @@ export default function UserDetailPage() {
                                 <Wallet className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">${user.balance.toFixed(2)}</div>
+                                <div className="flex gap-2">
+                                    <Input type="number" value={balanceInput} onChange={(e) => setBalanceInput(e.target.value)} placeholder="0.00" />
+                                    <Button onClick={handleSaveBalance} disabled={isUpdating} size="icon">
+                                        <Save className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
                         <Card>
