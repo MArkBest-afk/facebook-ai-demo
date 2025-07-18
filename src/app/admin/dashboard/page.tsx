@@ -79,7 +79,7 @@ export default function AdminDashboardPage() {
         router.push('/');
     }
 
-    const onlineUsers = users.filter(u => u.isRunning && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
+    const onlineUsers = users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
     const totalUsers = users.length;
     const totalPnl = users.reduce((acc, user) => acc + (user.totalPnl || 0), 0);
 
@@ -173,7 +173,7 @@ export default function AdminDashboardPage() {
                                         </TableRow>
                                     ) : (
                                         users.map((user) => {
-                                            const isOnline = user.isRunning && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
+                                            const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
                                             const timeLeftStr = formatRemainingTime(user);
                                             return (
                                                 <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
