@@ -314,39 +314,29 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
+    const userBeforeUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!userBeforeUpdate) return false;
 
     const updateData: any = {};
-    if (updates.name !== undefined) {
-        updateData.name = updates.name;
-    }
-     if (updates.isBlocked !== undefined) {
-        updateData.isBlocked = updates.isBlocked;
-    }
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.isBlocked !== undefined) updateData.isBlocked = updates.isBlocked;
+    if (updates.selectedRobotId !== undefined) updateData.selectedRobotId = updates.selectedRobotId;
+    if (updates.comment !== undefined) updateData.comment = updates.comment;
+
     if (updates.balance !== undefined) {
-      updateData.balance = updates.balance;
-      // Recalculate PnL based on the new balance and the initial balance
-      updateData.totalPnl = updates.balance - INITIAL_BALANCE;
+        updateData.balance = updates.balance;
+        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
     }
-    if (updates.selectedRobotId !== undefined) {
-        updateData.selectedRobotId = updates.selectedRobotId;
-    }
+
     if (updates.isRunning !== undefined) {
         updateData.isRunning = updates.isRunning;
-        // If starting and no session start time, set it.
-        if (updates.isRunning) {
-             const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-             if(user && !user.sessionStartTime) {
-                updateData.sessionStartTime = Date.now();
-             }
+        if (updates.isRunning && !userBeforeUpdate.sessionStartTime) {
+            updateData.sessionStartTime = Date.now();
         }
     }
-    if (updates.comment !== undefined) {
-        updateData.comment = updates.comment;
-    }
-
-
+    
     if (Object.keys(updateData).length === 0) {
-        return true; // Nothing to update, but not an error
+        return true; 
     }
     
     updateData.lastActive = new Date();
@@ -358,6 +348,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
 
     return result.modifiedCount > 0;
 }
+
 
 export async function deleteUser(userId: string): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
@@ -451,6 +442,33 @@ export async function markChatMessagesAsRead(userId: string): Promise<boolean> {
         { _id: new ObjectId(userId) },
         { $set: { "chatMessages.$[elem].read": true } },
         { arrayFilters: [{ "elem.sender": "admin" }] }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+
+export async function deleteChatMessage(userId: string, messageId: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || !messageId) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $pull: { chatMessages: { id: messageId } } as any }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+export async function clearChatHistory(userId: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { chatMessages: [] } }
     );
 
     return result.modifiedCount > 0;

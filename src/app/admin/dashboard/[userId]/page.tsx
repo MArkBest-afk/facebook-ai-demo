@@ -499,6 +499,7 @@ export default function UserDetailPage() {
                         sender="admin"
                         title="Чат с клиентом"
                         onNewMessage={fetchDynamicUserData}
+                        isAdmin
                     />
                     <Card className="flex-grow">
                         <CardHeader>
