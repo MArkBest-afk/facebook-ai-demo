@@ -4,7 +4,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -52,6 +52,7 @@ export default function Home() {
     totalTradingTime,
     timeLimitReached,
     timeLimit,
+    isBlocked,
     handleSelectRobot, 
     handleToggleSimulator,
     resetSimulator,
@@ -109,6 +110,17 @@ export default function Home() {
             <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
         </div>
     );
+  }
+
+  if (isBlocked) {
+      return (
+          <div className="flex h-screen flex-col items-center justify-center bg-background p-4 text-center">
+              <WifiOff className="h-16 w-16 text-muted-foreground/50" />
+              <h2 className="mt-4 text-xl font-semibold text-muted-foreground">Network connection issue</h2>
+              <p className="mt-2 text-sm text-muted-foreground">Please check your internet connection and try again.</p>
+              <LoaderCircle className="mt-8 h-8 w-8 animate-spin text-primary" />
+          </div>
+      );
   }
 
   if (timeLimitReached) {

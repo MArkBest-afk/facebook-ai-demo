@@ -314,6 +314,7 @@ export function useTradeSimulator() {
     totalTradingTime: elapsedTime,
     timeLimitReached,
     timeLimit: user?.timeLimit ?? 0,
+    isBlocked: user?.isBlocked ?? false,
     isLoading,
   };
 }

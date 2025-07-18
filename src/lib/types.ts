@@ -31,4 +31,5 @@ export interface User {
   createdAt: Date;
   name?: string;
   isSubscribed?: boolean;
+  isBlocked?: boolean;
 }

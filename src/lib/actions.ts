@@ -113,6 +113,7 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         sessionStartTime: null,
         timeLimit: TRADING_TIME_LIMIT_SECONDS,
         isRunning: false,
+        isBlocked: false,
         lastActive: new Date(),
         createdAt: new Date(),
     };
@@ -225,6 +226,9 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     if (updates.isSubscribed !== undefined) {
         updateData.isSubscribed = updates.isSubscribed;
     }
+     if (updates.isBlocked !== undefined) {
+        updateData.isBlocked = updates.isBlocked;
+    }
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
         // Also update PnL based on the new balance
@@ -279,6 +283,7 @@ export async function resetUserSession(accountId: string): Promise<boolean> {
                 sessionStartTime: null,
                 timeLimit: TRADING_TIME_LIMIT_SECONDS,
                 isRunning: false,
+                isBlocked: false,
                 lastActive: new Date(),
                 // We don't reset name or isSubscribed
             }
