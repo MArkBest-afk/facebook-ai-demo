@@ -6,7 +6,7 @@ import type { Robot, Trade, User, ChatMessage } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead } from '@/lib/actions';
+import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead, requestAiChatResponse } from '@/lib/actions';
 import { ObjectId } from 'mongodb';
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
@@ -215,6 +215,39 @@ useEffect(() => {
 
     return () => clearInterval(intervalId);
   }, [isLoading, user, initializeUser, toast]);
+
+    // AI Chat Assistant Trigger
+    useEffect(() => {
+        const checkAiResponse = async () => {
+            const currentUser = userRef.current;
+            if (!currentUser || !currentUser.chatMessages || currentUser.chatMessages.length === 0) {
+                return;
+            }
+
+            const lastMessage = currentUser.chatMessages[currentUser.chatMessages.length - 1];
+            
+            // Only trigger if the last message was from the user
+            if (lastMessage.sender === 'user') {
+                const threeMinutesAgo = Date.now() - 3 * 60 * 1000;
+                // And if the message is older than 3 minutes
+                if (new Date(lastMessage.timestamp).getTime() < threeMinutesAgo) {
+                    const replied = await requestAiChatResponse(currentUser._id.toString());
+                    if (replied) {
+                        // Manually fetch updates to show the AI's reply
+                        const updatedUser = await getUserById(currentUser._id.toString());
+                        if (updatedUser) {
+                            setUser(updatedUser);
+                        }
+                    }
+                }
+            }
+        };
+
+        const intervalId = setInterval(checkAiResponse, 30000); // Check every 30 seconds
+
+        return () => clearInterval(intervalId);
+    }, []);
+
 
   // Timer logic
   useEffect(() => {
