@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -31,13 +32,15 @@ export function BalanceCard({ accountId, balance, pnl, onWithdraw }: BalanceCard
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wallet className="w-6 h-6" />
-          <span>{t('accountBalance')}</span>
-        </CardTitle>
-        <CardDescription>{t('accountBalanceDescription')} <span className="font-mono text-foreground">{accountId}</span></CardDescription>
+        <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+            <Wallet className="w-6 h-6" />
+            <span>{t('accountBalance')}</span>
+            </CardTitle>
+            <span className="font-mono text-sm text-muted-foreground">{accountId}</span>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-2">
         <div 
           className={cn(
             "text-4xl font-bold font-headline transition-transform duration-500",

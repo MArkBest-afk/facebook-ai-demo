@@ -243,7 +243,7 @@ export default function UserDetailPage() {
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="userId">User ID</Label>
-                                <Input id="userId" value={user._id.toString()} readOnly />
+                                <Input id="userId" value={user._id.toString()} readOnly className="font-mono text-xs" />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="userName">Name</Label>
@@ -451,7 +451,3 @@ export default function UserDetailPage() {
         </div>
     );
 }
-
-    
-
-    
