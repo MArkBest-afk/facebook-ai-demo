@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,16 +26,18 @@ const formatTimeAgo = (date: Date | null): string => {
     return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export default function UserDetailPage({ params }: { params: { userId: string } }) {
+export default function UserDetailPage() {
     const router = useRouter();
+    const params = useParams();
     const { toast } = useToast();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const [name, setName] = useState('');
-    const userId = params.userId;
+    const userId = params.userId as string;
 
     const fetchUser = useCallback(async () => {
+        if (!userId) return;
         setIsLoading(true);
         try {
             const userData = await getUserById(userId);
@@ -55,10 +57,8 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     }, [userId, router, toast]);
 
     useEffect(() => {
-        if (userId) {
-            fetchUser();
-        }
-    }, [userId, fetchUser]);
+        fetchUser();
+    }, [fetchUser]);
 
     const handleUpdateProfile = async (updates: Partial<User>) => {
         if (!user) return;
