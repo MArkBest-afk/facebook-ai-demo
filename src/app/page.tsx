@@ -4,7 +4,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -57,6 +57,7 @@ export default function Home() {
     resetSimulator,
     tutorialCompleted,
     completeTutorial,
+    isLoading,
   } = useTradeSimulator();
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -64,47 +65,17 @@ export default function Home() {
   const [resetPassword, setResetPassword] = useState('');
 
   useEffect(() => {
-    // This logic handles the initial undefined state to prevent flicker.
-    // The tutorial only opens when the state is explicitly false.
     setIsTutorialOpen(tutorialCompleted === false);
   }, [tutorialCompleted]);
 
   const tutorialSteps = [
-    {
-      icon: PartyPopper,
-      title: t('tutorial.step1.title'),
-      content: t('tutorial.step1.content'),
-    },
-    {
-      icon: CandlestickChart,
-      title: t('tutorial.step2.title'),
-      content: t('tutorial.step2.content'),
-    },
-    {
-      icon: BrainCircuit,
-      title: t('tutorial.step3.title'),
-      content: t('tutorial.step3.content'),
-    },
-    {
-      icon: Bot,
-      title: t('tutorial.step4.title'),
-      content: t('tutorial.step4.content'),
-    },
-    {
-      icon: PlayCircle,
-      title: t('tutorial.step5.title'),
-      content: t('tutorial.step5.content'),
-    },
-    {
-      icon: Hourglass,
-      title: t('tutorial.step6.title'),
-      content: t('tutorial.step6.content'),
-    },
-    {
-      icon: CheckCircle,
-      title: t('tutorial.step7.title'),
-      content: t('tutorial.step7.content'),
-    },
+    { icon: PartyPopper, title: t('tutorial.step1.title'), content: t('tutorial.step1.content') },
+    { icon: CandlestickChart, title: t('tutorial.step2.title'), content: t('tutorial.step2.content') },
+    { icon: BrainCircuit, title: t('tutorial.step3.title'), content: t('tutorial.step3.content') },
+    { icon: Bot, title: t('tutorial.step4.title'), content: t('tutorial.step4.content') },
+    { icon: PlayCircle, title: t('tutorial.step5.title'), content: t('tutorial.step5.content') },
+    { icon: Hourglass, title: t('tutorial.step6.title'), content: t('tutorial.step6.content') },
+    { icon: CheckCircle, title: t('tutorial.step7.title'), content: t('tutorial.step7.content') },
   ];
 
   const handleTutorialClose = () => {
@@ -128,12 +99,17 @@ export default function Home() {
       resetSimulator('demo');
     } else {
       e.preventDefault();
-      toast({
-        variant: 'destructive',
-        titleKey: 'incorrectPassword',
-      });
+      toast({ variant: 'destructive', titleKey: 'incorrectPassword' });
     }
   };
+
+  if (isLoading) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   if (timeLimitReached) {
     return (

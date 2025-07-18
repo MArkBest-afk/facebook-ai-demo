@@ -58,7 +58,7 @@ export function TradeHistory({ trades, isRunning }: TradeHistoryProps) {
                 )}
                 {trades.map((trade, index) => (
                   <TableRow key={trade.id} className={cn(index === 0 && trades.length > 0 && "new-trade-animation")}>
-                    <TableCell className="font-medium text-muted-foreground whitespace-nowrap">{trade.timestamp.toLocaleTimeString()}</TableCell>
+                    <TableCell className="font-medium text-muted-foreground whitespace-nowrap">{new Date(trade.timestamp).toLocaleTimeString()}</TableCell>
                     <TableCell className="whitespace-nowrap">{trade.symbol}</TableCell>
                     <TableCell
                       className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive', 'whitespace-nowrap')}

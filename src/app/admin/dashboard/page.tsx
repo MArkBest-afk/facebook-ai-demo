@@ -5,72 +5,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2 } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { INITIAL_BALANCE } from "@/lib/constants";
+import type { User } from '@/lib/types';
+import { getAllUsers } from '@/lib/actions';
+import { WithId } from "mongodb";
 
-type UserSession = {
-    accountId: string;
-    status: 'Online' | 'Offline';
-    lastSeen: string;
-    initialBalance: number;
-    currentBalance: number;
-    pnl: number;
-    isRunning: boolean;
-};
-
-const STATE_STORAGE_KEY_PREFIX = 'tradeSimulatorState_';
 const SESSION_TIMEOUT_MS = 60 * 1000; // 1 minute
 
-const formatTimeAgo = (timestamp: number | null): string => {
-    if (timestamp === null) return 'Never';
+const formatTimeAgo = (date: Date | null): string => {
+    if (!date) return 'Never';
     const now = Date.now();
-    const seconds = Math.floor((now - timestamp) / 1000);
+    const seconds = Math.floor((now - new Date(date).getTime()) / 1000);
 
     if (seconds < 5) return 'Just now';
-    if (seconds < 60) return `${seconds} seconds ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    return `${Math.floor(seconds / 86400)} days ago`;
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const [users, setUsers] = useState<UserSession[]>([]);
+    const [users, setUsers] = useState<WithId<User>[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchUsers = async () => {
+        setIsLoading(true);
+        try {
+            const userList = await getAllUsers();
+            setUsers(userList);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchUserSessions = () => {
-            if (typeof window === 'undefined') return;
-            
-            const sessions: UserSession[] = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(STATE_STORAGE_KEY_PREFIX)) {
-                    try {
-                        const savedState = JSON.parse(localStorage.getItem(key)!);
-                        const isTimedOut = (Date.now() - (savedState.lastActive || 0)) > SESSION_TIMEOUT_MS;
-                        
-                        sessions.push({
-                            accountId: savedState.accountId,
-                            status: savedState.isRunning && !isTimedOut ? 'Online' : 'Offline',
-                            lastSeen: formatTimeAgo(savedState.lastActive),
-                            initialBalance: INITIAL_BALANCE,
-                            currentBalance: savedState.balance,
-                            pnl: savedState.totalPnl,
-                            isRunning: savedState.isRunning,
-                        });
-                    } catch (e) {
-                        console.error(`Failed to parse session data for key ${key}:`, e);
-                    }
-                }
-            }
-            setUsers(sessions);
-        };
-
-        fetchUserSessions();
-        const interval = setInterval(fetchUserSessions, 5000); // Poll every 5 seconds
-
+        fetchUsers();
+        const interval = setInterval(fetchUsers, 15000); // Poll every 15 seconds
         return () => clearInterval(interval);
     }, []);
 
@@ -87,9 +62,9 @@ export default function AdminDashboardPage() {
         router.push('/');
     }
 
-    const onlineUsers = users.filter(u => u.status === 'Online').length;
+    const onlineUsers = users.filter(u => u.isRunning && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
     const totalUsers = users.length;
-    const totalPnl = users.reduce((acc, user) => acc + user.pnl, 0);
+    const totalPnl = users.reduce((acc, user) => acc + user.totalPnl, 0);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -97,6 +72,9 @@ export default function AdminDashboardPage() {
                 <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-xl font-headline text-primary">Admin Dashboard</h1>
                     <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={isLoading}>
+                            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        </Button>
                          <Button variant="outline" size="sm" onClick={handleGoHome}>
                             <Home className="mr-2 h-4 w-4" />
                             Main App
@@ -111,7 +89,6 @@ export default function AdminDashboardPage() {
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-4">User Statistics</h2>
-                    <p className="text-muted-foreground mb-4">Displaying live sessions from this browser. No central backend is used.</p>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -158,34 +135,45 @@ export default function AdminDashboardPage() {
                                         <TableHead>User ID</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Last Seen</TableHead>
+                                        <TableHead>Created</TableHead>
                                         <TableHead className="text-right">Current Balance</TableHead>
                                         <TableHead className="text-right">P/L</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.length === 0 ? (
+                                    {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                                No active user sessions found in this browser. Open the main app in another tab to see data here.
+                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                                Loading user data...
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : users.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                                No users found.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        users.map((user) => (
-                                            <TableRow key={user.accountId}>
-                                                <TableCell className="font-mono">{user.accountId}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={user.status === 'Online' ? 'default' : 'secondary'} className={cn(user.status === 'Online' ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
-                                                        <span className={cn("mr-2 h-2 w-2 rounded-full", user.status === 'Online' ? 'bg-success' : 'bg-muted-foreground')}></span>
-                                                        {user.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">{user.lastSeen}</TableCell>
-                                                <TableCell className="text-right">${user.currentBalance.toFixed(2)}</TableCell>
-                                                <TableCell className={cn("text-right font-medium", user.pnl >= 0 ? "text-success" : "text-destructive")}>
-                                                    {user.pnl >= 0 ? '+' : ''}${user.pnl.toFixed(2)}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        users.map((user) => {
+                                            const isOnline = user.isRunning && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
+                                            return (
+                                                <TableRow key={user._id.toString()}>
+                                                    <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
+                                                            <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
+                                                            {isOnline ? 'Online' : 'Offline'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">{formatTimeAgo(user.lastActive)}</TableCell>
+                                                     <TableCell className="text-muted-foreground">{formatTimeAgo(user.createdAt)}</TableCell>
+                                                    <TableCell className="text-right">${user.balance.toFixed(2)}</TableCell>
+                                                    <TableCell className={cn("text-right font-medium", user.totalPnl >= 0 ? "text-success" : "text-destructive")}>
+                                                        {user.totalPnl >= 0 ? '+' : ''}${user.totalPnl.toFixed(2)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
                                     )}
                                 </TableBody>
                             </Table>

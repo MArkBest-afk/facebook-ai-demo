@@ -1,3 +1,5 @@
+import type { ObjectId } from 'mongodb';
+
 export interface Robot {
   id: 'risk-averse' | 'balanced' | 'high-growth';
   name: string;
@@ -14,4 +16,17 @@ export interface Trade {
   exitPrice: number;
   pnl: number;
   timestamp: Date;
+}
+
+export interface User {
+  _id: ObjectId;
+  balance: number;
+  trades: Trade[];
+  selectedRobotId: string | null;
+  totalPnl: number;
+  sessionStartTime: number | null;
+  timeLimit: number;
+  isRunning: boolean;
+  lastActive: Date;
+  createdAt: Date;
 }
