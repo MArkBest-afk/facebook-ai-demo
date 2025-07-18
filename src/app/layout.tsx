@@ -2,10 +2,13 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { I18nProvider } from '@/hooks/use-i18n';
+import { ServiceWorkerRegistrar } from '@/components/service-worker-registrar';
+
 
 export const metadata: Metadata = {
   title: 'Facebook AI',
   description: 'Trade on real markets in real-time with demo funds.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -14,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -26,6 +29,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </I18nProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
