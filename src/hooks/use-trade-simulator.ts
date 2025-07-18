@@ -159,7 +159,7 @@ useEffect(() => {
     const unreadCount = user.chatMessages.filter(m => m.sender === 'admin' && !m.read).length;
     setUnreadChatMessages(unreadCount);
 
-    if (isChatOpen && unreadCount > 0) {
+    if (isChatOpen && unreadCount > 0 && user._id) {
         const unreadIds = user.chatMessages.filter(m => m.sender === 'admin' && !m.read).map(m => m.id);
         
         // Mark as read on client
@@ -298,16 +298,19 @@ useEffect(() => {
       timestamp: new Date(),
     };
 
-    const createdTrade = await addTrade(currentUser._id.toString(), newTradeData);
-    if (createdTrade) {
-      setUser(prevUser => {
-        if (!prevUser) return null;
-        const newPnl = prevUser.totalPnl + createdTrade.pnl;
-        const newBalance = prevUser.balance + createdTrade.pnl;
-        const newTrades = [createdTrade, ...(prevUser.trades || [])];
-        return { ...prevUser, trades: newTrades, totalPnl: newPnl, balance: newBalance };
-      });
+    if (currentUser._id) {
+        const createdTrade = await addTrade(currentUser._id.toString(), newTradeData);
+        if (createdTrade) {
+        setUser(prevUser => {
+            if (!prevUser) return null;
+            const newPnl = prevUser.totalPnl + createdTrade.pnl;
+            const newBalance = prevUser.balance + createdTrade.pnl;
+            const newTrades = [createdTrade, ...(prevUser.trades || [])];
+            return { ...prevUser, trades: newTrades, totalPnl: newPnl, balance: newBalance };
+        });
+        }
     }
+
 
     if (userRef.current?.isRunning) {
         const nextInterval = Math.random() * (60000 - 5000) + 5000;
@@ -362,7 +365,7 @@ useEffect(() => {
 
 
   const handleSelectRobot = useCallback(async (robot: Robot) => {
-    if (!user) return;
+    if (!user || !user._id) return;
     setSelectedRobot(robot);
     const updatedUser = { ...user, selectedRobotId: robot.id };
     setUser(updatedUser);
@@ -370,7 +373,7 @@ useEffect(() => {
   }, [user]);
 
   const resetSimulator = useCallback(async (mode: 'normal' | 'demo' = 'normal') => {
-    if (!user) return;
+    if (!user || !user._id) return;
     const updatedUser = await resetUser(user._id.toString(), mode);
     if (updatedUser) {
         setUser(updatedUser);
@@ -400,7 +403,7 @@ useEffect(() => {
   }, []);
 
   const handleNewChatMessage = useCallback(async () => {
-    if (!userRef.current) return;
+    if (!userRef.current || !userRef.current._id) return;
     const latestUserData = await getUserById(userRef.current._id.toString());
     if (latestUserData) {
         latestUserData.chatMessages = latestUserData.chatMessages || [];

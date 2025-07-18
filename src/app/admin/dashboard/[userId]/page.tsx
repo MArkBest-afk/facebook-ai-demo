@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade, ChatMessage } from '@/lib/types';
-import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription } from '@/lib/actions';
+import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -59,6 +59,15 @@ export default function UserDetailPage() {
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
 
+    const markMessagesAsRead = useCallback(async () => {
+        if (!userId) return;
+        try {
+            await markAdminChatMessagesAsRead(userId);
+        } catch (error) {
+            console.error("Failed to mark messages as read:", error);
+        }
+    }, [userId]);
+
     // This function fetches all user data and sets the state.
     // It's called once on load and after major updates.
     const fetchAndSetFullUserData = useCallback(async () => {
@@ -73,6 +82,9 @@ export default function UserDetailPage() {
                 setBalanceInput(userData.balance.toFixed(2));
                 setComment(userData.comment || '');
                 setChatMessages(userData.chatMessages || []);
+                if (userData.hasUnreadAdminMessages) {
+                    markMessagesAsRead();
+                }
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -83,7 +95,7 @@ export default function UserDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, router, toast]);
+    }, [userId, router, toast, markMessagesAsRead]);
 
     // This function fetches only the data that changes frequently
     // to avoid resetting the whole page and losing input focus.
@@ -108,14 +120,18 @@ export default function UserDetailPage() {
                         timeLimit: userData.timeLimit,
                         balance: userData.balance, // Also update balance in case of manual trades
                         isAiChatEnabled: userData.isAiChatEnabled,
+                        hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                     };
                 });
                 setChatMessages(userData.chatMessages || []);
+                if (userData.hasUnreadAdminMessages) {
+                    markMessagesAsRead();
+                }
             }
         } catch (error) {
             console.error("Failed to fetch dynamic user data:", error);
         }
-    }, [userId]);
+    }, [userId, markMessagesAsRead]);
     
     // Initial data load
     useEffect(() => {

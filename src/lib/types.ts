@@ -31,7 +31,8 @@ export interface ChatMessage {
   senderName?: string;
   text: string;
   timestamp: Date;
-  read: boolean;
+  read: boolean; // Read by user
+  readByAdmin: boolean; // Read by admin
 }
 
 export interface User {
@@ -54,4 +55,5 @@ export interface User {
   notifications?: Notification[];
   chatMessages?: ChatMessage[];
   isAiChatEnabled?: boolean;
+  hasUnreadAdminMessages?: boolean; // Unread messages for admin
 }

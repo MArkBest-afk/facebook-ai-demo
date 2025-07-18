@@ -181,6 +181,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         notifications: [],
         chatMessages: [],
         isAiChatEnabled: false,
+        hasUnreadAdminMessages: false,
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -425,16 +426,24 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
         senderName: senderName,
         text,
         timestamp: new Date(),
-        read: sender === 'admin', // Messages from admin are "read" by admin
+        read: sender === 'admin', // Messages from admin are "read" by default for the user
+        readByAdmin: sender === 'admin', // Messages from admin are "read" by admin
     };
 
-    // Push the new message and update the lastActive timestamp.
+    const updateQuery: any = {
+        $push: { chatMessages: newChatMessage as any },
+        $set: { lastActive: new Date() }
+    };
+    
+    // If the message is from a user, mark it as unread for the admin.
+    if (sender === 'user') {
+        updateQuery.$set.hasUnreadAdminMessages = true;
+    }
+
+
     const updateResult = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        {
-            $push: { chatMessages: newChatMessage as any },
-            $set: { lastActive: new Date() }
-        }
+        updateQuery
     );
 
     // After the message is saved, check if the AI needs to respond.
@@ -447,20 +456,12 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
                 // Ensure chat history is not empty
                 const chatHistory = updatedUser.chatMessages || [];
                 if (chatHistory.length > 0) {
-                     // The AI flow expects a stringified version of the chat history.
-                     // The Date objects must be converted to strings for proper serialization.
-                     const serializableChatHistory = JSON.stringify(
-                        chatHistory.map(msg => ({
-                            ...msg,
-                            id: msg.id.toString(), // Ensure IDs are strings
-                            timestamp: msg.timestamp.toISOString(),
-                        }))
-                     );
+                     const serializableChatHistory = JSON.stringify(chatHistory);
 
                      const aiResponse = await assistChat({ chatHistory: serializableChatHistory });
 
                     if (aiResponse && aiResponse.answer) {
-                        // Send AI's response as admin
+                        // Send AI's response as admin. This will mark the AI message as readByAdmin.
                         await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
                     }
                 }
@@ -488,6 +489,25 @@ export async function markChatMessagesAsRead(userId: string): Promise<boolean> {
     return result.modifiedCount > 0;
 }
 
+export async function markAdminChatMessagesAsRead(userId: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        {
+            $set: {
+                hasUnreadAdminMessages: false,
+                "chatMessages.$[elem].readByAdmin": true
+            }
+        },
+        { arrayFilters: [{ "elem.sender": "user" }] }
+    );
+
+    return result.modifiedCount > 0;
+}
+
 
 export async function deleteChatMessage(userId: string, messageId: string): Promise<boolean> {
     if (!ObjectId.isValid(userId) || !messageId) return false;
@@ -509,7 +529,7 @@ export async function clearChatHistory(userId: string): Promise<boolean> {
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $set: { chatMessages: [] } }
+        { $set: { chatMessages: [], hasUnreadAdminMessages: false } }
     );
 
     return result.modifiedCount > 0;

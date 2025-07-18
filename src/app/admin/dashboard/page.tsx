@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
@@ -49,6 +49,24 @@ const formatRemainingTime = (user: WithId<User>): string => {
     return `Осталось ${h}ч ${m}м`;
 };
 
+const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' | 'destructive' | 'outline' } => {
+    const hasMessages = user.chatMessages && user.chatMessages.length > 0;
+    if (!hasMessages) {
+        return { text: 'Нет чата', variant: 'outline' };
+    }
+    
+    const lastMessage = user.chatMessages[user.chatMessages.length - 1];
+    if (lastMessage.sender === 'user') {
+        return { text: 'Ответ клиента', variant: 'default' };
+    }
+
+    if (lastMessage.sender === 'admin' && lastMessage.senderName === 'Поддержка') {
+        return { text: 'AI отвечает', variant: 'destructive' };
+    }
+
+    return { text: 'Вы ответили', variant: 'outline' };
+}
+
 export default function AdminDashboardPage() {
     const router = useRouter();
     const { toast } = useToast();
@@ -72,7 +90,7 @@ export default function AdminDashboardPage() {
 
     useEffect(() => {
         fetchUsers();
-        const interval = setInterval(fetchUsers, 15000); // Опрос каждые 15 секунд
+        const interval = setInterval(fetchUsers, 5000); // Опрос каждые 5 секунд для чата
         return () => clearInterval(interval);
     }, []);
 
@@ -237,6 +255,7 @@ export default function AdminDashboardPage() {
                                         <TableHead>ID Пользователя</TableHead>
                                         <TableHead>Имя</TableHead>
                                         <TableHead>Статус</TableHead>
+                                        <TableHead>Чат</TableHead>
                                         <TableHead>Подписан</TableHead>
                                         <TableHead>Последняя активность</TableHead>
                                         <TableHead>Осталось времени</TableHead>
@@ -247,13 +266,13 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                                 Загрузка данных пользователей...
                                             </TableCell>
                                         </TableRow>
                                     ) : users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                                 Пользователи не найдены.
                                             </TableCell>
                                         </TableRow>
@@ -261,14 +280,33 @@ export default function AdminDashboardPage() {
                                         users.map((user) => {
                                             const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
                                             const timeLeftStr = formatRemainingTime(user);
+                                            const chatStatus = getChatStatus(user);
                                             return (
                                                 <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
                                                     <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
-                                                    <TableCell>{user.name || 'N/A'}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            {user.hasUnreadAdminMessages && (
+                                                                <span className="relative flex h-3 w-3">
+                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                                                </span>
+                                                            )}
+                                                            <span>{user.name || 'N/A'}</span>
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell>
                                                         <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
                                                             <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
                                                             {isOnline ? 'Онлайн' : 'Оффлайн'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={chatStatus.variant} className={cn(
+                                                             chatStatus.variant === 'default' && 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+                                                             chatStatus.variant === 'destructive' && 'bg-amber-500/20 text-amber-700 border-amber-500/30'
+                                                        )}>
+                                                           {chatStatus.text}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
