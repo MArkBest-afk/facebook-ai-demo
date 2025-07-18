@@ -33,11 +33,12 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const [name, setName] = useState('');
+    const { userId } = params;
 
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async () => {
         setIsLoading(true);
         try {
-            const userData = await getUserById(params.userId);
+            const userData = await getUserById(userId);
             if (userData) {
                 setUser(userData);
                 setName(userData.name || '');
@@ -51,11 +52,11 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [userId, router, toast]);
 
     useEffect(() => {
         fetchUser();
-    }, [params.userId]);
+    }, [fetchUser]);
 
     const handleUpdateProfile = async (updates: Partial<User>) => {
         if (!user) return;
@@ -96,7 +97,7 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
         );
     }
 
-    const isOnline = user.isRunning && (Date.now() - new Date(user.lastActive).getTime()) < 60000;
+    const isOnline = user.isRunning && (user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < 60000);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
