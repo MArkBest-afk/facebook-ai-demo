@@ -25,6 +25,14 @@ export interface Notification {
   read: boolean;
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'admin';
+  text: string;
+  timestamp: Date;
+  read: boolean;
+}
+
 export interface User {
   _id: ObjectId | string; // Allow string for client-side representation
   balance: number;
@@ -43,8 +51,5 @@ export interface User {
   location?: string;
   comment?: string;
   notifications?: Notification[];
+  chatMessages?: ChatMessage[];
 }
-
-    
-
-

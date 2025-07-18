@@ -5,7 +5,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { Chat } from '@/components/chat';
 
 
 export default function Home() {
@@ -55,12 +56,17 @@ export default function Home() {
     timeLimitReached,
     timeLimit,
     isBlocked,
+    chatMessages,
+    isChatOpen,
+    unreadChatMessages,
     handleSelectRobot, 
     handleToggleSimulator,
     resetSimulator,
     tutorialCompleted,
     completeTutorial,
     isLoading,
+    setIsChatOpen,
+    handleNewChatMessage,
   } = useTradeSimulator();
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -308,6 +314,29 @@ export default function Home() {
           </main>
         </div>
       </div>
+       <div className="fixed bottom-6 right-6 z-50">
+          <Button size="icon" className="rounded-full w-16 h-16 shadow-lg relative" onClick={() => setIsChatOpen(true)}>
+              <MessageSquare className="w-8 h-8" />
+              {unreadChatMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+                      {unreadChatMessages}
+                  </span>
+              )}
+          </Button>
+      </div>
+
+      {isChatOpen && accountId && (
+           <div className="fixed bottom-24 right-6 z-50">
+              <Chat 
+                  userId={accountId}
+                  messages={chatMessages}
+                  sender="user"
+                  onClose={() => setIsChatOpen(false)}
+                  onNewMessage={handleNewChatMessage}
+                  title={t('chatWithSupport')}
+              />
+          </div>
+      )}
     </>
   );
 }

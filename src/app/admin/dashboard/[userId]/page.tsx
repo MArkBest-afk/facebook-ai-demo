@@ -13,13 +13,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
-import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, sendNotificationToUser } from '@/lib/actions';
+import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { Chat } from '@/components/chat';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -51,7 +52,6 @@ export default function UserDetailPage() {
     const [name, setName] = useState('');
     const [balanceInput, setBalanceInput] = useState('');
     const [comment, setComment] = useState('');
-    const [notificationMessage, setNotificationMessage] = useState('');
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
 
@@ -79,6 +79,8 @@ export default function UserDetailPage() {
 
     useEffect(() => {
         fetchUser();
+        const interval = setInterval(fetchUser, 5000); // Poll for updates every 5 seconds
+        return () => clearInterval(interval);
     }, [fetchUser]);
 
     useEffect(() => {
@@ -166,26 +168,6 @@ export default function UserDetailPage() {
             }
         } catch (error) {
             console.error("Subscription update error:", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-
-    const handleSendNotification = async () => {
-        if (!user || !notificationMessage.trim()) return;
-        setIsUpdating(true);
-        try {
-            const success = await sendNotificationToUser(user._id.toString(), notificationMessage.trim());
-            if (success) {
-                toast({ title: 'Успех', description: 'Уведомление отправлено пользователю.' });
-                setNotificationMessage('');
-                await fetchUser();
-            } else {
-                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить уведомление.' });
-            }
-        } catch (error) {
-            console.error("Notification send error:", error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
         } finally {
             setIsUpdating(false);
@@ -462,27 +444,13 @@ export default function UserDetailPage() {
                     </Card>
                 </div>
                 <div className="lg:col-span-2 flex flex-col gap-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Send className="w-6 h-6" />
-                                <span>Отправить уведомление</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Textarea 
-                                value={notificationMessage}
-                                onChange={(e) => setNotificationMessage(e.target.value)}
-                                placeholder="Введите сообщение для пользователя..."
-                                rows={3}
-                                disabled={isUpdating}
-                            />
-                            <Button onClick={handleSendNotification} disabled={isUpdating || !notificationMessage.trim()}>
-                                <Send className="mr-2 h-4 w-4" />
-                                Отправить
-                            </Button>
-                        </CardContent>
-                    </Card>
+                     <Chat 
+                        userId={user._id.toString()} 
+                        messages={user.chatMessages || []}
+                        sender="admin"
+                        title="Чат с клиентом"
+                        onNewMessage={fetchUser}
+                    />
                     <Card className="flex-grow">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -550,4 +518,3 @@ export default function UserDetailPage() {
         </div>
     );
 }
-

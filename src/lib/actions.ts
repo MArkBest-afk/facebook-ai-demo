@@ -3,7 +3,7 @@
 
 import { WithId, ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import type { Robot, Trade, User, Notification } from './types';
+import type { Robot, Trade, User, Notification, ChatMessage } from './types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
 import { headers } from 'next/headers';
 
@@ -33,6 +33,15 @@ function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
                 return { ...notification, id: notification.id.toString() };
             }
             return notification;
+        });
+    }
+    
+    if ('chatMessages' in plainDoc && Array.isArray(plainDoc.chatMessages)) {
+        plainDoc.chatMessages = plainDoc.chatMessages.map((msg: any) => {
+            if (msg.id && typeof msg.id !== 'string') {
+                return { ...msg, id: msg.id.toString() };
+            }
+            return msg;
         });
     }
     return plainDoc as any;
@@ -109,20 +118,21 @@ async function getGeoLocation(ip: string | null): Promise<{ ipAddress?: string; 
     if (!ip || ip === '::1' || ip.startsWith('127.0.0.1')) {
         return { ipAddress: 'localhost', location: 'N/A' };
     }
+    const clientIp = ip.split(',')[0].trim();
     try {
-        const response = await fetch(`http://ip-api.com/json/${ip}`, { cache: 'no-store' });
+        const response = await fetch(`http://ip-api.com/json/${clientIp}`, { cache: 'no-store' });
         if (!response.ok) {
-            return { ipAddress: ip, location: 'N/A' };
+            return { ipAddress: clientIp, location: 'N/A' };
         }
         const data = await response.json();
         if (data.status === 'success') {
             const location = [data.city, data.country].filter(Boolean).join(', ');
-            return { ipAddress: ip, location: location || 'N/A' };
+            return { ipAddress: clientIp, location: location || 'N/A' };
         }
-        return { ipAddress: ip, location: 'N/A' };
+        return { ipAddress: clientIp, location: 'N/A' };
     } catch (error) {
         console.error("Geolocation fetch error:", error);
-        return { ipAddress: ip, location: 'N/A' };
+        return { ipAddress: clientIp, location: 'N/A' };
     }
 }
 
@@ -167,6 +177,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         location: geoLocation.location,
         comment: '',
         notifications: [],
+        chatMessages: [],
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -274,6 +285,7 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
                 isRunning: false,
                 lastActive: new Date(),
                 notifications: [],
+                chatMessages: [],
             }
         },
         { returnDocument: 'after' }
@@ -405,6 +417,45 @@ export async function markNotificationsAsRead(userId: string, notificationIds: s
         { _id: new ObjectId(userId), "notifications.id": { $in: notificationIds } },
         { $set: { "notifications.$[elem].read": true } },
         { arrayFilters: [{ "elem.id": { $in: notificationIds } }] }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+export async function sendChatMessage(userId: string, sender: 'user' | 'admin', text: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || !text) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const newChatMessage: ChatMessage = {
+        id: new ObjectId().toHexString(),
+        sender,
+        text,
+        timestamp: new Date(),
+        read: false,
+    };
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { 
+            $push: { chatMessages: newChatMessage as any },
+            $set: { lastActive: new Date() }
+        }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+export async function markChatMessagesAsRead(userId: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    // Mark all admin messages as read for this user
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { "chatMessages.$[elem].read": true } },
+        { arrayFilters: [{ "elem.sender": "admin" }] }
     );
 
     return result.modifiedCount > 0;

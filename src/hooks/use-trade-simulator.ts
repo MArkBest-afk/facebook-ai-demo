@@ -2,11 +2,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Robot, Trade, User } from '@/lib/types';
+import type { Robot, Trade, User, ChatMessage } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead } from '@/lib/actions';
+import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead } from '@/lib/actions';
 import { ObjectId } from 'mongodb';
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
@@ -28,6 +28,9 @@ export function useTradeSimulator() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const [sessionResetFlag, setSessionResetFlag] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadChatMessages, setUnreadChatMessages] = useState(0);
+
 
   const { toast } = useToast();
   const { t } = useI18n();
@@ -74,6 +77,7 @@ export function useTradeSimulator() {
 
       userData.trades = userData.trades || [];
       userData.notifications = userData.notifications || [];
+      userData.chatMessages = userData.chatMessages || [];
       
       setUser(userData);
       prevIsRunning.current = userData.isRunning;
@@ -145,6 +149,35 @@ export function useTradeSimulator() {
     }
 }, [user, toast]);
 
+// Chat message handler
+useEffect(() => {
+    if (!user || !user.chatMessages) {
+        setUnreadChatMessages(0);
+        return;
+    };
+
+    const unreadCount = user.chatMessages.filter(m => m.sender === 'admin' && !m.read).length;
+    setUnreadChatMessages(unreadCount);
+
+    if (isChatOpen && unreadCount > 0) {
+        const unreadIds = user.chatMessages.filter(m => m.sender === 'admin' && !m.read).map(m => m.id);
+        
+        // Mark as read on client
+        setUser(prevUser => {
+            if (!prevUser || !prevUser.chatMessages) return prevUser;
+            return {
+                ...prevUser,
+                chatMessages: prevUser.chatMessages.map(m => 
+                    unreadIds.includes(m.id) ? { ...m, read: true } : m
+                ),
+            };
+        });
+
+        // Mark as read on server
+        markChatMessagesAsRead(user._id.toString());
+    }
+}, [user, isChatOpen]);
+
 
   // Polling for remote updates
   useEffect(() => {
@@ -164,6 +197,7 @@ export function useTradeSimulator() {
 
              // Only update if there are meaningful changes to avoid unnecessary re-renders
             if (JSON.stringify(currentUser) !== JSON.stringify(latestUserData)) {
+              latestUserData.chatMessages = latestUserData.chatMessages || [];
               setUser(latestUserData);
               if (latestUserData.selectedRobotId) {
                   setSelectedRobot(ROBOTS.find(r => r.id === latestUserData.selectedRobotId) || null);
@@ -177,7 +211,7 @@ export function useTradeSimulator() {
     // Don't poll while loading or if there's no user
     if (isLoading || !user) return;
 
-    const intervalId = setInterval(pollForUpdates, 15000);
+    const intervalId = setInterval(pollForUpdates, 5000); // Poll every 5 seconds for chat responsiveness
 
     return () => clearInterval(intervalId);
   }, [isLoading, user, initializeUser, toast]);
@@ -364,6 +398,16 @@ export function useTradeSimulator() {
       }
   }, []);
 
+  const handleNewChatMessage = useCallback(async () => {
+    if (!userRef.current) return;
+    const latestUserData = await getUserById(userRef.current._id.toString());
+    if (latestUserData) {
+        latestUserData.chatMessages = latestUserData.chatMessages || [];
+        setUser(latestUserData);
+    }
+  }, []);
+
+
   return {
     accountId: user?._id.toString() ?? '',
     balance: user?.balance ?? 0,
@@ -381,5 +425,10 @@ export function useTradeSimulator() {
     timeLimit: user?.timeLimit ?? 0,
     isBlocked: user?.isBlocked ?? false,
     isLoading,
+    chatMessages: user?.chatMessages ?? [],
+    isChatOpen,
+    unreadChatMessages,
+    setIsChatOpen,
+    handleNewChatMessage,
   };
 }
