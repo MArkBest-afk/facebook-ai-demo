@@ -256,9 +256,6 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     if (updates.name !== undefined) {
         updateData.name = updates.name;
     }
-    if (updates.isSubscribed !== undefined) {
-        updateData.isSubscribed = updates.isSubscribed;
-    }
      if (updates.isBlocked !== undefined) {
         updateData.isBlocked = updates.isBlocked;
     }

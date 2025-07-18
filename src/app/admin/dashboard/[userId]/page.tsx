@@ -133,7 +133,6 @@ export default function UserDetailPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Invalid balance amount.' });
         }
     };
-    const handleSubscribeUser = () => handleUpdateProfile({ isSubscribed: true });
     const handleRobotSelect = (robotId: string) => handleUpdateProfile({ selectedRobotId: robotId });
     const handleToggleRunning = (isRunning: boolean) => {
         const updates: Partial<User> = { isRunning };
@@ -227,19 +226,6 @@ export default function UserDetailPage() {
                                         <Save className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label>Subscription</Label>
-                                {user.isSubscribed ? (
-                                    <div className="flex items-center gap-2 p-2 rounded-md bg-green-500/10 text-green-500">
-                                        <CheckCircle className="h-5 w-5" />
-                                        <span className="font-medium">Subscribed</span>
-                                    </div>
-                                ) : (
-                                     <Button onClick={handleSubscribeUser} disabled={isUpdating} className="w-full">
-                                        Subscribe User
-                                    </Button>
-                                )}
                             </div>
                         </CardContent>
                     </Card>
