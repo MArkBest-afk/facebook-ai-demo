@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
-import { getUserById, updateUserProfile, resetUserSession } from '@/lib/actions';
+import { getUserById, updateUserProfile, resetUserSession, addManualTrade } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -100,6 +100,25 @@ export default function UserDetailPage() {
         } catch (error) {
             console.error("Reset error:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred during reset.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleManualTrade = async (tradeType: 'profitable' | 'losing') => {
+        if (!user) return;
+        setIsUpdating(true);
+        try {
+            const success = await addManualTrade(user._id.toString(), tradeType);
+            if (success) {
+                toast({ title: 'Success', description: `Manual ${tradeType} trade added.` });
+                await fetchUser();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to add manual trade.' });
+            }
+        } catch (error) {
+            console.error("Manual trade error:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
         } finally {
             setIsUpdating(false);
         }
@@ -290,6 +309,16 @@ export default function UserDetailPage() {
                                     disabled={isUpdating || !user.selectedRobotId}
                                     aria-readonly
                                 />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                                <Button variant="outline" onClick={() => handleManualTrade('profitable')} disabled={isUpdating}>
+                                    <TrendingUp className="mr-2 h-4 w-4 text-success" />
+                                    <span>Profit</span>
+                                </Button>
+                                <Button variant="outline" onClick={() => handleManualTrade('losing')} disabled={isUpdating}>
+                                    <TrendingDown className="mr-2 h-4 w-4 text-destructive" />
+                                    <span>Loss</span>
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

@@ -3,7 +3,7 @@
 import { WithId, ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
 import type { Robot, Trade, User } from './types';
-import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS } from './constants';
+import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
 import { headers } from 'next/headers';
 
 // Helper function to get the database instance
@@ -169,6 +169,37 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
     }
     return null;
 }
+
+export async function addManualTrade(accountId: string, tradeType: 'profitable' | 'losing'): Promise<boolean> {
+    if (!ObjectId.isValid(accountId)) return false;
+
+    const tradeAmount = Math.random() * (100 - 50) + 50; // Random trade amount between 50 and 100
+    const pnlPercentage = (Math.random() * (0.15 - 0.05) + 0.05); // Random P/L between 5% and 15%
+    let pnl = tradeAmount * pnlPercentage;
+    
+    if (tradeType === 'losing') {
+        pnl = -pnl;
+    }
+
+    const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
+    const entryPrice = Math.random() * 100 + 100;
+    const quantity = tradeAmount / entryPrice;
+    const exitPrice = entryPrice + (pnl / quantity);
+    
+    const tradeData = {
+        symbol,
+        type: pnl > 0 ? 'BUY' : 'SELL',
+        quantity: parseFloat(quantity.toFixed(4)),
+        entryPrice: parseFloat(entryPrice.toFixed(2)),
+        exitPrice: parseFloat(exitPrice.toFixed(2)),
+        pnl: parseFloat(pnl.toFixed(2)),
+        timestamp: new Date(),
+    };
+
+    const createdTrade = await addTrade(accountId, tradeData);
+    return !!createdTrade;
+}
+
 
 export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Promise<User | null> {
     if (!ObjectId.isValid(accountId)) return null;
