@@ -1,11 +1,10 @@
 
 'use client';
 import React from 'react';
-import Image from 'next/image';
+import Logo from '@/../public/logo.svg';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
-import { TradeHistory } from '@/components/trade-history';
 import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
@@ -248,7 +247,7 @@ export default function Home() {
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <Image src="/logo.svg" alt="Facebook AI Logo" width={40} height={40} className="rounded-full" />
+                <Logo className="h-10 w-10 text-primary" />
                 <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('appName')}</h1>
               </div>
               <p className="text-muted-foreground sm:ml-[52px]">
