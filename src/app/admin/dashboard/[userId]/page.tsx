@@ -55,8 +55,10 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     }, [userId, router, toast]);
 
     useEffect(() => {
-        fetchUser();
-    }, [fetchUser]);
+        if (userId) {
+            fetchUser();
+        }
+    }, [userId, fetchUser]);
 
     const handleUpdateProfile = async (updates: Partial<User>) => {
         if (!user) return;
