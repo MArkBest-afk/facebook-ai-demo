@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { User, Trade } from '@/lib/types';
+import type { User, Trade, ChatMessage } from '@/lib/types';
 import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,22 +49,30 @@ export default function UserDetailPage() {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
+    
+    // State for controlled inputs to prevent reset on re-render
     const [name, setName] = useState('');
     const [balanceInput, setBalanceInput] = useState('');
     const [comment, setComment] = useState('');
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
 
-    const fetchUser = useCallback(async () => {
+    // This function fetches all user data and sets the state.
+    // It's called once on load and after major updates.
+    const fetchAndSetFullUserData = useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
         try {
             const userData = await getUserById(userId);
             if (userData) {
                 setUser(userData);
+                // Set controlled input state only on full fetch
                 setName(userData.name || '');
                 setBalanceInput(userData.balance.toFixed(2));
                 setComment(userData.comment || '');
+                setChatMessages(userData.chatMessages || []);
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -77,34 +85,75 @@ export default function UserDetailPage() {
         }
     }, [userId, router, toast]);
 
+    // This function fetches only the data that changes frequently
+    // to avoid resetting the whole page and losing input focus.
+    const fetchDynamicUserData = useCallback(async () => {
+        if (!userId) return;
+        try {
+            const userData = await getUserById(userId);
+            if (userData) {
+                // Update only the non-input parts of the user state
+                setUser(currentUser => {
+                    if (!currentUser) return userData;
+                    return {
+                        ...currentUser,
+                        lastActive: userData.lastActive,
+                        isRunning: userData.isRunning,
+                        isBlocked: userData.isBlocked,
+                        isSubscribed: userData.isSubscribed,
+                        selectedRobotId: userData.selectedRobotId,
+                        trades: userData.trades,
+                        totalPnl: userData.totalPnl,
+                        sessionStartTime: userData.sessionStartTime,
+                        timeLimit: userData.timeLimit,
+                        balance: userData.balance, // Also update balance in case of manual trades
+                    };
+                });
+                setChatMessages(userData.chatMessages || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch dynamic user data:", error);
+        }
+    }, [userId]);
+    
+    // Initial data load
     useEffect(() => {
-        fetchUser();
-        const interval = setInterval(fetchUser, 5000); // Poll for updates every 5 seconds
+        fetchAndSetFullUserData();
+    }, [fetchAndSetFullUserData]);
+
+    // Polling for dynamic data
+    useEffect(() => {
+        const interval = setInterval(fetchDynamicUserData, 5000); // Poll for updates every 5 seconds
         return () => clearInterval(interval);
-    }, [fetchUser]);
+    }, [fetchDynamicUserData]);
 
     useEffect(() => {
-        if (!user || !user.sessionStartTime) {
-            setRemainingTime(user?.timeLimit || 0);
+        if (!user) return;
+    
+        if (!user.sessionStartTime) {
+            setRemainingTime(user.timeLimit || 0);
             return;
         }
 
         const intervalId = setInterval(() => {
-            const elapsedTime = Math.floor((Date.now() - (user.sessionStartTime || 0)) / 1000);
+            const now = Date.now();
+            const sessionStart = user.sessionStartTime || now;
+            const elapsedTime = Math.floor((now - sessionStart) / 1000);
             const timeLeft = Math.max(0, user.timeLimit - elapsedTime);
             setRemainingTime(timeLeft);
         }, 1000);
 
         return () => clearInterval(intervalId);
-    }, [user]);
-
+    }, [user?.sessionStartTime, user?.timeLimit]);
+    
     const handleUpdateProfile = async (updates: Partial<User>) => {
         if (!user) return;
         setIsUpdating(true);
         try {
             const success = await updateUserProfile(user._id.toString(), updates);
             if (success) {
-                await fetchUser(); // Refetch user data to get the latest state
+                // After an update, refetch everything to ensure consistency
+                await fetchAndSetFullUserData();
                 toast({ title: 'Успех', description: 'Профиль пользователя обновлен.' });
             } else {
                 // toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
@@ -143,7 +192,7 @@ export default function UserDetailPage() {
             const success = await addManualTrade(user._id.toString(), tradeType);
             if (success) {
                 toast({ title: 'Успех', description: `Ручная ${tradeType === 'profitable' ? 'прибыльная' : 'убыточная'} сделка добавлена.` });
-                await fetchUser();
+                await fetchAndSetFullUserData();
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось добавить ручную сделку.' });
             }
@@ -162,7 +211,7 @@ export default function UserDetailPage() {
             const success = await updateUserSubscription(user._id.toString(), isSubscribed);
             if (success) {
                 toast({ title: 'Успех', description: 'Статус подписки обновлен.' });
-                await fetchUser();
+                await fetchAndSetFullUserData();
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить подписку.' });
             }
@@ -248,8 +297,8 @@ export default function UserDetailPage() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        <Button variant="ghost" size="icon" onClick={fetchUser} disabled={isLoading}>
-                            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        <Button variant="ghost" size="icon" onClick={fetchDynamicUserData} disabled={isUpdating}>
+                            <RefreshCw className={cn("h-4 w-4", isUpdating && "animate-spin")} />
                         </Button>
                     </div>
                 </div>
@@ -288,7 +337,7 @@ export default function UserDetailPage() {
                                     </p>
                                 </div>
                                 <Switch
-                                    checked={user.isSubscribed}
+                                    checked={!!user.isSubscribed}
                                     onCheckedChange={handleToggleSubscription}
                                     disabled={isUpdating}
                                     aria-readonly
@@ -446,10 +495,10 @@ export default function UserDetailPage() {
                 <div className="lg:col-span-2 flex flex-col gap-8">
                      <Chat 
                         userId={user._id.toString()} 
-                        messages={user.chatMessages || []}
+                        messages={chatMessages}
                         sender="admin"
                         title="Чат с клиентом"
-                        onNewMessage={fetchUser}
+                        onNewMessage={fetchDynamicUserData}
                     />
                     <Card className="flex-grow">
                         <CardHeader>
