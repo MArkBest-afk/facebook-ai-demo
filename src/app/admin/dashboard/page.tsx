@@ -6,12 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
 import { WithId } from "mongodb";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const SESSION_TIMEOUT_MS = 60 * 1000; // 1 minute
 
@@ -45,8 +49,12 @@ const formatRemainingTime = (user: WithId<User>): string => {
 
 export default function AdminDashboardPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const [users, setUsers] = useState<WithId<User>[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [leadSignature, setLeadSignature] = useState('');
+    const [generatedLink, setGeneratedLink] = useState('');
+
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -79,9 +87,28 @@ export default function AdminDashboardPage() {
         router.push('/');
     }
 
+    const handleGenerateLink = () => {
+        if (!leadSignature) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a name for the lead.' });
+            return;
+        }
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
+        setGeneratedLink(link);
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(generatedLink).then(() => {
+            toast({ title: 'Success', description: 'Link copied to clipboard!' });
+        }, () => {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to copy link.' });
+        });
+    };
+
     const onlineUsers = users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
     const totalUsers = users.length;
     const totalPnl = users.reduce((acc, user) => acc + (user.totalPnl || 0), 0);
+    const subscribedUsers = users.filter(u => u.isSubscribed).length;
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -89,6 +116,52 @@ export default function AdminDashboardPage() {
                 <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-xl font-headline text-primary">Admin Dashboard</h1>
                     <div className="flex items-center gap-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <Link2 className="mr-2 h-4 w-4" />
+                                    Generate Link
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Generate Lead Link</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Enter a unique name or ID for the lead. A special link will be generated to track them.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lead-sig">Lead Name/ID</Label>
+                                        <Input
+                                            id="lead-sig"
+                                            value={leadSignature}
+                                            onChange={(e) => {
+                                                setLeadSignature(e.target.value);
+                                                setGeneratedLink('');
+                                            }}
+                                            placeholder="e.g., John_Doe_123"
+                                        />
+                                    </div>
+                                    {generatedLink && (
+                                        <div className="space-y-2">
+                                            <Label>Generated Link</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input value={generatedLink} readOnly />
+                                                <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => { setLeadSignature(''); setGeneratedLink(''); }}>Close</AlertDialogCancel>
+                                    <Button onClick={handleGenerateLink}>Generate</Button>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
                         <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={isLoading}>
                             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                         </Button>
@@ -106,7 +179,7 @@ export default function AdminDashboardPage() {
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-4">User Statistics</h2>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -125,6 +198,16 @@ export default function AdminDashboardPage() {
                             <CardContent>
                                 <div className="text-2xl font-bold">{onlineUsers}</div>
                                 <p className="text-xs text-muted-foreground">currently active</p>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Subscribed Leads</CardTitle>
+                                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{subscribedUsers}</div>
+                                <p className="text-xs text-muted-foreground">from generated links</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -152,6 +235,7 @@ export default function AdminDashboardPage() {
                                         <TableHead>User ID</TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Subscribed</TableHead>
                                         <TableHead>Last Seen</TableHead>
                                         <TableHead>Time Left</TableHead>
                                         <TableHead className="text-right">Balance</TableHead>
@@ -161,13 +245,13 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {isLoading ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                                 Loading user data...
                                             </TableCell>
                                         </TableRow>
                                     ) : users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                                 No users found.
                                             </TableCell>
                                         </TableRow>
@@ -183,6 +267,11 @@ export default function AdminDashboardPage() {
                                                         <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
                                                             <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
                                                             {isOnline ? 'Online' : 'Offline'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                         <Badge variant={user.isSubscribed ? 'success' : 'outline'}>
+                                                            {user.isSubscribed ? 'Yes' : 'No'}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">{formatTimeAgo(user.lastActive)}</TableCell>
@@ -206,5 +295,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    

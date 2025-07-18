@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
-import { getUserById, updateUserProfile, resetUserSession, addManualTrade } from '@/lib/actions';
+import { getUserById, updateUserProfile, resetUserSession, addManualTrade, updateUserSubscription } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -101,7 +101,7 @@ export default function UserDetailPage() {
                 await fetchUser(); // Refetch user data to get the latest state
                 toast({ title: 'Success', description: 'User profile updated.' });
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
+                // toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
             }
         } catch (error) {
             console.error("Update error:", error);
@@ -143,6 +143,25 @@ export default function UserDetailPage() {
             }
         } catch (error) {
             console.error("Manual trade error:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleToggleSubscription = async (isSubscribed: boolean) => {
+        if (!user) return;
+        setIsUpdating(true);
+        try {
+            const success = await updateUserSubscription(user._id.toString(), isSubscribed);
+            if (success) {
+                toast({ title: 'Success', description: 'Subscription status updated.' });
+                await fetchUser();
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to update subscription.' });
+            }
+        } catch (error) {
+            console.error("Subscription update error:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
         } finally {
             setIsUpdating(false);
@@ -254,6 +273,20 @@ export default function UserDetailPage() {
                                     </Button>
                                 </div>
                             </div>
+                             <div className="flex items-center justify-between rounded-lg border p-3">
+                                <div className="space-y-0.5">
+                                    <Label>Subscribed</Label>
+                                    <p className={cn("text-sm", user.isSubscribed ? "text-success" : "text-muted-foreground")}>
+                                        {user.isSubscribed ? "User is subscribed" : "Not subscribed"}
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={user.isSubscribed}
+                                    onCheckedChange={handleToggleSubscription}
+                                    disabled={isUpdating}
+                                    aria-readonly
+                                />
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -294,7 +327,7 @@ export default function UserDetailPage() {
                                     </p>
                                 </div>
                                 <Switch
-                                    checked={user.isBlocked}
+                                    checked={!!user.isBlocked}
                                     onCheckedChange={handleToggleBlocked}
                                     disabled={isUpdating}
                                     aria-readonly

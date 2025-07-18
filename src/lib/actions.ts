@@ -35,7 +35,7 @@ function escapeMarkdownV2(text: string): string {
     return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
-export async function sendTelegramNotification(accountId: string) {
+export async function sendTelegramNotification(accountId: string, leadName?: string | null) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatIdsEnv = process.env.TELEGRAM_CHAT_ID;
 
@@ -54,9 +54,9 @@ export async function sendTelegramNotification(accountId: string) {
   const platform = headersList.get('sec-ch-ua-platform')?.replace(/"/g, '') ?? 'N/A';
 
   const messageLines = [
-    'FB1',
-    '🚀 *New Session Started* 🚀',
+    leadName ? '👨‍💻 *New Lead* 👨‍💻' : '🚀 *New Session Started* 🚀',
     `*Account ID:* \`${accountId}\``,
+    ...(leadName ? [`*Lead Name:* ${escapeMarkdownV2(leadName)}`] : []),
     '',
     '*Client Details*',
     `• *IP Address:* ${escapeMarkdownV2(ip)}`,
@@ -116,13 +116,21 @@ async function getGeoLocation(ip: string | null): Promise<{ ipAddress?: string; 
     }
 }
 
-export async function getOrCreateUser(accountId: string | null): Promise<User> {
+export async function getOrCreateUser(accountId: string | null, leadSignature: string | null): Promise<User> {
     const db = await getDb();
     const usersCollection = db.collection<Omit<User, '_id'>>('users');
+    
+    // If a user comes from a lead link, we always create a new user session for them.
+    // We ignore any existing accountId to ensure the lead is tracked as a new, unique session.
+    if (leadSignature) {
+        accountId = null;
+    }
 
     if (accountId && ObjectId.isValid(accountId)) {
         const user = await usersCollection.findOne({ _id: new ObjectId(accountId) });
         if (user) {
+            // Update last active time for existing users
+            await usersCollection.updateOne({ _id: new ObjectId(accountId) }, { $set: { lastActive: new Date() } });
             return toPlainObject(user) as unknown as User;
         }
     }
@@ -131,7 +139,8 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
     const ip = headersList.get('x-forwarded-for') ?? null;
     const geoLocation = await getGeoLocation(ip);
 
-    const newUser: Omit<User, '_id' | 'name'> = {
+    const newUser: Omit<User, '_id'> = {
+        name: leadSignature || undefined,
         balance: INITIAL_BALANCE,
         trades: [],
         selectedRobotId: null,
@@ -140,6 +149,7 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         timeLimit: TRADING_TIME_LIMIT_SECONDS,
         isRunning: false,
         isBlocked: false,
+        isSubscribed: !!leadSignature,
         lastActive: new Date(),
         createdAt: new Date(),
         ipAddress: geoLocation.ipAddress,
@@ -149,7 +159,7 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
     const result = await usersCollection.insertOne(newUser as any);
     const createdUser = { ...newUser, _id: result.insertedId };
     
-    await sendTelegramNotification(result.insertedId.toHexString());
+    await sendTelegramNotification(result.insertedId.toHexString(), leadSignature);
 
     return toPlainObject(createdUser) as unknown as User;
 }
@@ -342,7 +352,8 @@ export async function resetUserSession(accountId: string): Promise<boolean> {
                 isRunning: false,
                 isBlocked: false,
                 lastActive: new Date(),
-                // We don't reset name
+                // We don't reset name, but we do reset subscription status from links
+                isSubscribed: false,
             }
         }
     );
@@ -350,4 +361,15 @@ export async function resetUserSession(accountId: string): Promise<boolean> {
     return result.modifiedCount > 0;
 }
 
+export async function updateUserSubscription(userId: string, isSubscribed: boolean): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
     
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { isSubscribed: isSubscribed, lastActive: new Date() } }
+    );
+
+    return result.modifiedCount > 0;
+}

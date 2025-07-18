@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -10,6 +11,14 @@ import { ObjectId } from 'mongodb';
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
+
+function getLeadSignatureFromURL(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('lead_sig');
+}
 
 export function useTradeSimulator() {
   const [user, setUser] = useState<User | null>(null);
@@ -46,7 +55,8 @@ export function useTradeSimulator() {
           savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
       }
       
-      const userData = await getOrCreateUser(savedAccountId);
+      const leadSignature = getLeadSignatureFromURL();
+      const userData = await getOrCreateUser(savedAccountId, leadSignature);
 
       userData.trades = userData.trades || [];
       
@@ -57,6 +67,12 @@ export function useTradeSimulator() {
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
+        // Clear the URL parameter after use
+        if (leadSignature) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('lead_sig');
+            window.history.replaceState({}, document.title, url.toString());
+        }
       }
 
       const robot = ROBOTS.find(r => r.id === userData.selectedRobotId) || null;
