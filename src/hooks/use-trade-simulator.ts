@@ -6,7 +6,7 @@ import type { Robot, Trade, User } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById } from '@/lib/actions';
+import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead } from '@/lib/actions';
 import { ObjectId } from 'mongodb';
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
@@ -73,6 +73,7 @@ export function useTradeSimulator() {
       const userData = await getOrCreateUser(savedAccountId, leadSignature);
 
       userData.trades = userData.trades || [];
+      userData.notifications = userData.notifications || [];
       
       setUser(userData);
       prevIsRunning.current = userData.isRunning;
@@ -110,6 +111,40 @@ export function useTradeSimulator() {
   useEffect(() => {
     initializeUser();
   }, [sessionResetFlag, initializeUser]);
+
+  // Notification handler
+  useEffect(() => {
+    const currentUser = userRef.current;
+    if (!currentUser || !currentUser.notifications || currentUser.notifications.length === 0) return;
+
+    const unreadNotifications = currentUser.notifications.filter(n => !n.read);
+    if (unreadNotifications.length > 0) {
+        const unreadIds = unreadNotifications.map(n => n.id);
+        
+        unreadNotifications.forEach(n => {
+            toast({
+                title: "Сообщение от администратора",
+                description: n.message,
+                duration: 10000,
+            });
+        });
+
+        // Mark as read on client
+        setUser(prevUser => {
+            if (!prevUser || !prevUser.notifications) return prevUser;
+            return {
+                ...prevUser,
+                notifications: prevUser.notifications.map(n => 
+                    unreadIds.includes(n.id) ? { ...n, read: true } : n
+                ),
+            };
+        });
+
+        // Mark as read on server
+        markNotificationsAsRead(currentUser._id.toString(), unreadIds);
+    }
+}, [user, toast]);
+
 
   // Polling for remote updates
   useEffect(() => {

@@ -18,6 +18,13 @@ export interface Trade {
   timestamp: Date;
 }
 
+export interface Notification {
+  id: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
 export interface User {
   _id: ObjectId | string; // Allow string for client-side representation
   balance: number;
@@ -35,7 +42,9 @@ export interface User {
   ipAddress?: string;
   location?: string;
   comment?: string;
+  notifications?: Notification[];
 }
 
     
+
 

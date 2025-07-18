@@ -3,7 +3,7 @@
 
 import { WithId, ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import type { Robot, Trade, User } from './types';
+import type { Robot, Trade, User, Notification } from './types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
 import { headers } from 'next/headers';
 
@@ -24,6 +24,15 @@ function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
                 return { ...trade, id: trade.id.toString() };
             }
             return trade;
+        });
+    }
+
+    if ('notifications' in plainDoc && Array.isArray(plainDoc.notifications)) {
+        plainDoc.notifications = plainDoc.notifications.map((notification: any) => {
+            if (notification.id && typeof notification.id !== 'string') {
+                return { ...notification, id: notification.id.toString() };
+            }
+            return notification;
         });
     }
     return plainDoc as any;
@@ -157,6 +166,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         ipAddress: geoLocation.ipAddress,
         location: geoLocation.location,
         comment: '',
+        notifications: [],
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -263,6 +273,7 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
                 timeLimit: newTimeLimit,
                 isRunning: false,
                 lastActive: new Date(),
+                notifications: [],
             }
         },
         { returnDocument: 'after' }
@@ -300,8 +311,14 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
         updateData.isBlocked = updates.isBlocked;
     }
     if (updates.balance !== undefined) {
-        updateData.balance = updates.balance;
-        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      if (user) {
+          const oldPnl = user.totalPnl || 0;
+          const oldBalance = user.balance || 0;
+          const balanceDifference = updates.balance - oldBalance;
+          updateData.balance = updates.balance;
+          updateData.totalPnl = oldPnl + balanceDifference;
+      }
     }
     if (updates.selectedRobotId !== undefined) {
         updateData.selectedRobotId = updates.selectedRobotId;
@@ -353,6 +370,41 @@ export async function updateUserSubscription(userId: string, isSubscribed: boole
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         { $set: { isSubscribed: isSubscribed, lastActive: new Date() } }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+
+export async function sendNotificationToUser(userId: string, message: string): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || !message) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const newNotification: Notification = {
+        id: new ObjectId().toHexString(),
+        message,
+        timestamp: new Date(),
+        read: false,
+    };
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $push: { notifications: { $each: [newNotification], $position: 0 } as any } }
+    );
+
+    return result.modifiedCount > 0;
+}
+
+export async function markNotificationsAsRead(userId: string, notificationIds: string[]): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || notificationIds.length === 0) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId), "notifications.id": { $in: notificationIds } },
+        { $set: { "notifications.$[elem].read": true } },
+        { arrayFilters: [{ "elem.id": { $in: notificationIds } }] }
     );
 
     return result.modifiedCount > 0;
