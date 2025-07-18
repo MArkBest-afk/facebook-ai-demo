@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X, Trash2 } from 'lucide-react';
+import { Send, X, Trash2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
@@ -110,33 +110,41 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             <CardContent className="flex-grow p-0 overflow-hidden">
                 <ScrollArea className="h-full" ref={scrollAreaRef}>
                     <div className="p-4 space-y-4">
-                        {messages.map((msg) => (
-                             <div key={msg.id} className={cn("flex items-end gap-2 group", msg.sender === sender ? "justify-end" : "justify-start")}>
-                                {isAdmin && msg.sender !== sender && (
-                                     <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
-                                        <Trash2 className="h-3 w-3" />
-                                     </Button>
-                                )}
-                                <div
-                                    className={cn(
-                                        "flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm",
-                                        msg.sender === sender
-                                            ? "ml-auto bg-primary text-primary-foreground"
-                                            : "bg-muted"
-                                    )}
-                                >
-                                    <p>{msg.text}</p>
-                                    <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
-                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                                {isAdmin && msg.sender === sender && (
-                                     <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
-                                        <Trash2 className="h-3 w-3" />
-                                     </Button>
-                                )}
+                        {messages.length === 0 ? (
+                             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
+                                <MessageSquare className="w-10 h-10 mb-4" />
+                                <h3 className="font-semibold text-lg">Чат со службой поддержки</h3>
+                                <p className="text-sm">Задавайте свои вопросы в любое время. Мы здесь, чтобы помочь!</p>
                             </div>
-                        ))}
+                        ) : (
+                            messages.map((msg) => (
+                                <div key={msg.id} className={cn("flex items-end gap-2 group", msg.sender === sender ? "justify-end" : "justify-start")}>
+                                    {isAdmin && msg.sender !== sender && (
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    )}
+                                    <div
+                                        className={cn(
+                                            "flex w-max max-w-[75%] flex-col gap-2 rounded-lg px-3 py-2 text-sm",
+                                            msg.sender === sender
+                                                ? "ml-auto bg-primary text-primary-foreground"
+                                                : "bg-muted"
+                                        )}
+                                    >
+                                        <p>{msg.text}</p>
+                                        <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    {isAdmin && msg.sender === sender && (
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </ScrollArea>
             </CardContent>
