@@ -97,3 +97,12 @@
 .new-trade-animation {
   animation: highlight-new-row 1.5s ease-out;
 }
+
+/* 
+  This is a hack to recolor the SVG logo to the primary color.
+  It generates a color filter based on the target color.
+  Credits to https://codepen.io/sosuke/pen/Pjoqqp
+*/
+.text-primary {
+  filter: invert(38%) sepia(99%) saturate(1637%) hue-rotate(196deg) brightness(98%) contrast(98%);
+}

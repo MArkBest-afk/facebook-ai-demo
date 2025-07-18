@@ -1,7 +1,6 @@
 
 'use client';
 import React from 'react';
-import Logo from '@/../public/logo.svg';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
@@ -39,6 +38,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 
 export default function Home() {
@@ -248,7 +248,7 @@ export default function Home() {
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <Logo className="h-10 w-10 text-primary" />
+                <Image src="/logo.svg" alt="logo" width={40} height={40} className="text-primary" />
                 <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('appName')}</h1>
               </div>
               <p className="text-muted-foreground sm:ml-[52px]">
