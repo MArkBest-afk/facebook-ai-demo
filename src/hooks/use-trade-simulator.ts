@@ -24,20 +24,16 @@ export function useTradeSimulator() {
   const { t } = useI18n();
 
   const tradeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isRunningRef = useRef(false);
+  // Use a ref for the user object to get the latest state in callbacks without causing re-renders.
   const userRef = useRef(user);
+  useEffect(() => {
+      userRef.current = user;
+  }, [user]);
 
   // References to track previous state for useEffect dependencies
   const prevIsRunning = useRef(false);
   const prevSelectedRobotId = useRef<string | null>(null);
 
-
-  useEffect(() => {
-    userRef.current = user;
-    if (user) {
-      isRunningRef.current = user.isRunning;
-    }
-  }, [user]);
 
   const getRobotName = useCallback((robot: Robot): string => {
     const formattedId = robot.id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
@@ -60,6 +56,10 @@ export function useTradeSimulator() {
         userData.trades = userData.trades || [];
         
         setUser(userData);
+        // Initialize refs with the fresh data
+        prevIsRunning.current = userData.isRunning;
+        prevSelectedRobotId.current = userData.selectedRobotId;
+
 
         if (typeof window !== 'undefined') {
           localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
@@ -83,7 +83,7 @@ export function useTradeSimulator() {
     };
 
     initializeUser();
-  }, [sessionResetFlag]); // Re-run on session reset
+  }, [sessionResetFlag, toast]); // Removed `t` and `getRobotName` as they are stable
 
   // Timer logic
   useEffect(() => {
@@ -91,13 +91,16 @@ export function useTradeSimulator() {
 
     if (user?.sessionStartTime && user.timeLimit) {
       const updateElapsedTime = () => {
+        // We need to use userRef here to avoid stale closures in setInterval
+        if (!userRef.current || !userRef.current.sessionStartTime) return;
+
         const now = Date.now();
-        const currentElapsedTime = Math.floor((now - (user.sessionStartTime as number)) / 1000);
+        const currentElapsedTime = Math.floor((now - (userRef.current.sessionStartTime)) / 1000);
         setElapsedTime(currentElapsedTime);
 
-        if (currentElapsedTime >= user.timeLimit) {
+        if (currentElapsedTime >= userRef.current.timeLimit) {
           setTimeLimitReached(true);
-          if (user.isRunning) {
+          if (userRef.current.isRunning) {
             handleToggleSimulator(); // Stop the simulator
           }
           if (clockTimerId) clearInterval(clockTimerId);
@@ -112,12 +115,13 @@ export function useTradeSimulator() {
     return () => {
       if (clockTimerId) clearInterval(clockTimerId);
     };
-  }, [user?.sessionStartTime, user?.timeLimit, user?.isRunning]);
+  }, [user?.sessionStartTime, user?.timeLimit]);
 
 
   const performTrade = useCallback(async () => {
+    // Use the ref to get the latest user state
     const currentUser = userRef.current;
-    if (!currentUser || !isRunningRef.current || !currentUser.selectedRobotId) return;
+    if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId) return;
 
     const currentRobot = ROBOTS.find(r => r.id === currentUser.selectedRobotId);
     if (!currentRobot) return;
@@ -131,9 +135,9 @@ export function useTradeSimulator() {
 
     let pnlFactor;
     switch (currentRobot.riskTolerance) {
-        case 'low': pnlFactor = (Math.random() - 0.40) * 0.05; break;
-        case 'medium': pnlFactor = (Math.random() - 0.38) * 0.08; break;
-        case 'high': pnlFactor = (Math.random() - 0.35) * 0.12; break;
+        case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
+        case 'medium': pnlFactor = (Math.random() - 0.42) * 0.08; break;
+        case 'high': pnlFactor = (Math.random() - 0.40) * 0.12; break;
         default: pnlFactor = (Math.random() - 0.5) * 0.05;
     }
     
@@ -161,9 +165,12 @@ export function useTradeSimulator() {
       });
     }
 
-    const nextInterval = Math.random() * (60000 - 5000) + 5000;
-    tradeTimerRef.current = setTimeout(performTrade, nextInterval);
-  }, []);
+    // Check again if still running before setting next timeout
+    if (userRef.current?.isRunning) {
+        const nextInterval = Math.random() * (60000 - 5000) + 5000;
+        tradeTimerRef.current = setTimeout(performTrade, nextInterval);
+    }
+  }, []); // No dependencies needed as we use userRef
 
   // Effect to start/stop trading loop
   useEffect(() => {
@@ -175,6 +182,13 @@ export function useTradeSimulator() {
       const firstTradeDelay = Math.random() * 4000 + 1000;
       tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
     }
+    
+    // Cleanup timer on component unmount or when user.isRunning becomes false
+    return () => {
+        if (tradeTimerRef.current) {
+            clearTimeout(tradeTimerRef.current);
+        }
+    };
   }, [user?.isRunning, performTrade]);
 
   // Toast notifications for start/stop/robot change
@@ -196,20 +210,21 @@ export function useTradeSimulator() {
 
     if (currentRobotId !== prevSelectedRobotId.current && robotName) {
        if(currentIsRunning) {
-        handleToggleSimulator(); // Pause simulator on robot change
-        toast({ titleKey: "simulatorPaused", descriptionKey: "simulatorPausedDesc" });
+        // Do not pause the simulator automatically, let the user decide.
+        // The UI already prevents changing robots while running.
+        // toast({ titleKey: "simulatorPaused", descriptionKey: "simulatorPausedDesc" });
       }
       toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
       prevSelectedRobotId.current = currentRobotId;
     }
-  }, [user?.isRunning, user?.selectedRobotId, isLoading]);
+  }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast]);
   
   // Toast notification for session reset
   useEffect(() => {
     if (sessionResetFlag > 0) {
       toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
     }
-  }, [sessionResetFlag]);
+  }, [sessionResetFlag, toast]);
 
 
   const handleSelectRobot = useCallback(async (robot: Robot) => {
