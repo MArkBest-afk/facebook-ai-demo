@@ -327,7 +327,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
 
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
-        updateData.totalPnl = userBeforeUpdate.totalPnl + (updates.balance - userBeforeUpdate.balance);
+        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
     }
 
     if (updates.isRunning !== undefined) {
@@ -491,22 +491,20 @@ export async function triggerAiChatResponse(userId: string): Promise<boolean> {
     if (lastMessage.sender === 'admin') {
         return false;
     }
-
+    
     // Check if the last message from the user is older than 3 minutes.
     const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
-    if (new Date(lastMessage.timestamp) > threeMinutesAgo) {
-        return false;
-    }
-
-    // Trigger AI response
-    try {
-        const aiResponse = await assistChat({ chatHistory: user.chatMessages });
-        if (aiResponse && aiResponse.answer) {
-            await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
-            return true;
+    if (new Date(lastMessage.timestamp) < threeMinutesAgo) {
+        // Trigger AI response
+        try {
+            const aiResponse = await assistChat({ chatHistory: user.chatMessages });
+            if (aiResponse && aiResponse.answer) {
+                await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+                return true;
+            }
+        } catch (error) {
+            console.error('Error triggering AI chat response:', error);
         }
-    } catch (error) {
-        console.error('Error triggering AI chat response:', error);
     }
 
     return false;
