@@ -1,6 +1,7 @@
 
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
@@ -247,9 +248,7 @@ export default function Home() {
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">f</span>
-                </div>
+                <Image src="/logo.svg" alt="Facebook AI Logo" width={40} height={40} className="rounded-full" />
                 <h1 className="text-3xl md:text-4xl font-headline text-primary">{t('appName')}</h1>
               </div>
               <p className="text-muted-foreground sm:ml-[52px]">
