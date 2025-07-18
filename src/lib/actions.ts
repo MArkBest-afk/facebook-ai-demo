@@ -323,14 +323,9 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
         updateData.isBlocked = updates.isBlocked;
     }
     if (updates.balance !== undefined) {
-      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-      if (user) {
-          const oldPnl = user.totalPnl || 0;
-          const oldBalance = user.balance || 0;
-          const balanceDifference = updates.balance - oldBalance;
-          updateData.balance = updates.balance;
-          updateData.totalPnl = oldPnl + balanceDifference;
-      }
+      updateData.balance = updates.balance;
+      // Recalculate PnL based on the new balance and the initial balance
+      updateData.totalPnl = updates.balance - INITIAL_BALANCE;
     }
     if (updates.selectedRobotId !== undefined) {
         updateData.selectedRobotId = updates.selectedRobotId;
