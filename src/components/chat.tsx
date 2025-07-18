@@ -77,7 +77,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
 
 
     return (
-        <Card className="w-full h-full max-w-full sm:max-w-3xl sm:h-[80vh] shadow-2xl flex flex-col bg-card">
+        <Card className="w-full h-full sm:max-w-3xl sm:h-[90vh] sm:max-h-[90vh] shadow-2xl flex flex-col bg-card sm:rounded-lg">
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 <div className="flex items-center gap-1">
@@ -138,7 +138,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                                     : "bg-muted"
                                             )}
                                         >
-                                            <p>{msg.text}</p>
+                                            <p className="break-words">{msg.text}</p>
                                             <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
