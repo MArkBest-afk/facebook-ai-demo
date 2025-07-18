@@ -418,9 +418,9 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
     if (!ObjectId.isValid(userId) || !text) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
-    
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    if (!user) return false;
+
+    const userBeforeUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!userBeforeUpdate) return false;
 
     const newChatMessage: ChatMessage = {
         id: new ObjectId().toHexString(),
@@ -433,23 +433,22 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { 
+        {
             $push: { chatMessages: newChatMessage as any },
             $set: { lastActive: new Date() }
         }
     );
 
     // If the message is from a user and AI chat is enabled, trigger the AI response.
-    if (sender === 'user' && user.isAiChatEnabled) {
+    if (sender === 'user' && userBeforeUpdate.isAiChatEnabled) {
         try {
-            // Get the latest chat history after adding the user's message
-            const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
-            if (updatedUser && updatedUser.chatMessages) {
-                const aiResponse = await assistChat({ chatHistory: updatedUser.chatMessages });
-                if (aiResponse && aiResponse.answer) {
-                    // Send AI's response as admin
-                    await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
-                }
+            // Create a temporary history including the new message for the AI
+            const currentChatHistory = [...(userBeforeUpdate.chatMessages || []), newChatMessage];
+            const aiResponse = await assistChat({ chatHistory: currentChatHistory });
+
+            if (aiResponse && aiResponse.answer) {
+                // Send AI's response as admin
+                await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
             }
         } catch (error) {
             console.error('Error triggering AI chat response:', error);
