@@ -47,6 +47,20 @@ export function useTradeSimulator() {
     return t(`robot${formattedId}Name`);
   }, [t]);
 
+  const handleToggleSimulator = useCallback(async () => {
+    if (!userRef.current || timeLimitReached || !userRef.current.selectedRobotId) return;
+  
+    const newIsRunning = !userRef.current.isRunning;
+    const updates: Partial<User> = { isRunning: newIsRunning };
+  
+    if (newIsRunning && !userRef.current.sessionStartTime) {
+      updates.sessionStartTime = Date.now();
+    }
+    
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+    await updateUser(userRef.current._id.toString(), updates);
+  }, [timeLimitReached]);
+
   const initializeUser = useCallback(async (existingId: string | null = null) => {
     setIsLoading(true);
     try {
@@ -90,7 +104,7 @@ export function useTradeSimulator() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   // Load user data on mount
   useEffect(() => {
@@ -162,7 +176,7 @@ export function useTradeSimulator() {
     return () => {
       if (clockTimerId) clearInterval(clockTimerId);
     };
-  }, [user?.sessionStartTime, user?.timeLimit]);
+  }, [user?.sessionStartTime, user?.timeLimit, handleToggleSimulator]);
 
 
   const performTrade = useCallback(async () => {
@@ -179,15 +193,29 @@ export function useTradeSimulator() {
     const entryPrice = Math.random() * 100 + 100;
     const quantity = tradeAmount / entryPrice;
 
-    let pnlFactor;
-    switch (currentRobot.riskTolerance) {
-        case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
-        case 'medium': pnlFactor = (Math.random() - 0.42) * 0.08; break;
-        case 'high': pnlFactor = (Math.random() - 0.40) * 0.12; break;
-        default: pnlFactor = (Math.random() - 0.5) * 0.05;
+    // Custom P/L logic
+    const isFirstTrade = currentUser.trades.length === 0;
+    const lastTwoTrades = currentUser.trades.slice(0, 2);
+    const hasTwoConsecutiveLosses = lastTwoTrades.length === 2 && lastTwoTrades.every(t => t.pnl < 0);
+
+    let pnl;
+
+    if (isFirstTrade || hasTwoConsecutiveLosses) {
+      // Force a profitable trade
+      const pnlFactor = Math.random() * 0.05 + 0.01; // Profitable factor between 1% and 6%
+      pnl = tradeAmount * pnlFactor;
+    } else {
+      // Standard random trade logic
+      let pnlFactor;
+      switch (currentRobot.riskTolerance) {
+          case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
+          case 'medium': pnlFactor = (Math.random() - 0.42) * 0.08; break;
+          case 'high': pnlFactor = (Math.random() - 0.40) * 0.12; break;
+          default: pnlFactor = (Math.random() - 0.5) * 0.05;
+      }
+      pnl = tradeAmount * pnlFactor;
     }
     
-    const pnl = tradeAmount * pnlFactor;
     const exitPrice = entryPrice + (pnl / quantity);
 
     const newTradeData = {
@@ -271,20 +299,6 @@ export function useTradeSimulator() {
     await updateUser(user._id.toString(), { selectedRobotId: robot.id });
   }, [user]);
 
-  const handleToggleSimulator = async () => {
-    if (!user || timeLimitReached || !selectedRobot) return;
-
-    const newIsRunning = !user.isRunning;
-    const updates: Partial<User> = { isRunning: newIsRunning };
-
-    if (newIsRunning && !user.sessionStartTime) {
-      updates.sessionStartTime = Date.now();
-    }
-    
-    setUser(prev => prev ? { ...prev, ...updates } : null);
-    await updateUser(user._id.toString(), updates);
-  };
-  
   const resetSimulator = useCallback(async (mode: 'normal' | 'demo' = 'normal') => {
     if (!user) return;
     const updatedUser = await resetUser(user._id.toString(), mode);
