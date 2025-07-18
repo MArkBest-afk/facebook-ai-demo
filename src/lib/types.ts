@@ -30,6 +30,9 @@ export interface User {
   lastActive: Date;
   createdAt: Date;
   name?: string;
-  isSubscribed?: boolean;
   isBlocked?: boolean;
+  ipAddress?: string;
+  location?: string;
 }
+
+    

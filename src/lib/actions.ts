@@ -95,6 +95,27 @@ export async function sendTelegramNotification(accountId: string) {
   }
 }
 
+async function getGeoLocation(ip: string | null): Promise<{ ipAddress?: string; location?: string }> {
+    if (!ip || ip === '::1' || ip.startsWith('127.0.0.1')) {
+        return { ipAddress: 'localhost', location: 'N/A' };
+    }
+    try {
+        const response = await fetch(`http://ip-api.com/json/${ip}`, { cache: 'no-store' });
+        if (!response.ok) {
+            return { ipAddress: ip, location: 'N/A' };
+        }
+        const data = await response.json();
+        if (data.status === 'success') {
+            const location = [data.city, data.country].filter(Boolean).join(', ');
+            return { ipAddress: ip, location: location || 'N/A' };
+        }
+        return { ipAddress: ip, location: 'N/A' };
+    } catch (error) {
+        console.error("Geolocation fetch error:", error);
+        return { ipAddress: ip, location: 'N/A' };
+    }
+}
+
 export async function getOrCreateUser(accountId: string | null): Promise<User> {
     const db = await getDb();
     const usersCollection = db.collection<Omit<User, '_id'>>('users');
@@ -106,7 +127,11 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         }
     }
 
-    const newUser: Omit<User, '_id' | 'name' | 'isSubscribed'> = {
+    const headersList = headers();
+    const ip = headersList.get('x-forwarded-for') ?? null;
+    const geoLocation = await getGeoLocation(ip);
+
+    const newUser: Omit<User, '_id' | 'name'> = {
         balance: INITIAL_BALANCE,
         trades: [],
         selectedRobotId: null,
@@ -117,6 +142,8 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         isBlocked: false,
         lastActive: new Date(),
         createdAt: new Date(),
+        ipAddress: geoLocation.ipAddress,
+        location: geoLocation.location,
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -315,10 +342,12 @@ export async function resetUserSession(accountId: string): Promise<boolean> {
                 isRunning: false,
                 isBlocked: false,
                 lastActive: new Date(),
-                // We don't reset name or isSubscribed
+                // We don't reset name
             }
         }
     );
 
     return result.modifiedCount > 0;
 }
+
+    

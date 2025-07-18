@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -233,6 +233,27 @@ export default function UserDetailPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
+                                <Globe className="w-6 h-6" />
+                                <span>Client Information</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">IP Address</span>
+                                <span className="font-mono">{user.ipAddress || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Location</span>
+                                <span className="font-medium flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" /> {user.location || 'N/A'}
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
                                 <UserX className="w-6 h-6" />
                                 <span>Access Control</span>
                             </CardTitle>
@@ -394,3 +415,5 @@ export default function UserDetailPage() {
         </div>
     );
 }
+
+    
