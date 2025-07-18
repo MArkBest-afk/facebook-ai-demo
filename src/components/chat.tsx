@@ -77,7 +77,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
 
 
     return (
-        <Card className="w-full max-w-sm shadow-2xl flex flex-col h-[60vh] bg-card">
+        <Card className="w-full h-full max-w-full sm:max-w-3xl sm:h-[80vh] shadow-2xl flex flex-col bg-card">
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 <div className="flex items-center gap-1">
