@@ -213,7 +213,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     return user ? toPlainObject(user) as unknown as User : null;
 }
 
-export async function updateUserProfile(userId: string, updates: { name?: string; isSubscribed?: boolean; balance?: number }): Promise<boolean> {
+export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
@@ -227,8 +227,26 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     }
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
-        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
+        // Also update PnL based on the new balance
+        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        if(user) {
+            updateData.totalPnl = updates.balance - INITIAL_BALANCE;
+        }
     }
+    if (updates.selectedRobotId !== undefined) {
+        updateData.selectedRobotId = updates.selectedRobotId;
+    }
+    if (updates.isRunning !== undefined) {
+        updateData.isRunning = updates.isRunning;
+        // If starting and no session start time, set it.
+        if (updates.isRunning) {
+             const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+             if(user && !user.sessionStartTime) {
+                updateData.sessionStartTime = Date.now();
+             }
+        }
+    }
+
 
     if (Object.keys(updateData).length === 0) {
         return true; // Nothing to update, but not an error

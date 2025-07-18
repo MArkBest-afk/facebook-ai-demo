@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
 import { getUserById, updateUserProfile } from '@/lib/actions';
+import { ROBOTS } from '@/lib/constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+
 
 const formatTimeAgo = (date: Date | null): string => {
     if (!date) return 'Never';
@@ -91,6 +95,14 @@ export default function UserDetailPage() {
         }
     };
     const handleSubscribeUser = () => handleUpdateProfile({ isSubscribed: true });
+    const handleRobotSelect = (robotId: string) => handleUpdateProfile({ selectedRobotId: robotId });
+    const handleToggleRunning = (isRunning: boolean) => {
+        const updates: Partial<User> = { isRunning };
+        if (isRunning && !user?.sessionStartTime) {
+            updates.sessionStartTime = Date.now();
+        }
+        handleUpdateProfile(updates);
+    }
 
 
     if (isLoading) {
@@ -109,7 +121,7 @@ export default function UserDetailPage() {
         );
     }
 
-    const isOnline = user.isRunning && (user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < 60000);
+    const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < 60000;
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -164,6 +176,50 @@ export default function UserDetailPage() {
                                         Subscribe User
                                     </Button>
                                 )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Bot className="w-6 h-6" />
+                                <span>Robot Control</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label htmlFor="robot-select">Selected Robot</Label>
+                                <Select
+                                    value={user.selectedRobotId || ''}
+                                    onValueChange={handleRobotSelect}
+                                    disabled={isUpdating}
+                                >
+                                    <SelectTrigger id="robot-select">
+                                        <SelectValue placeholder="Select a robot" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {ROBOTS.map(robot => (
+                                            <SelectItem key={robot.id} value={robot.id}>
+                                                {robot.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3">
+                                <div className="space-y-0.5">
+                                    <Label>Trading Status</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        {user.isRunning ? "Robot is currently active." : "Robot is stopped."}
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={user.isRunning}
+                                    onCheckedChange={handleToggleRunning}
+                                    disabled={isUpdating || !user.selectedRobotId}
+                                    aria-readonly
+                                />
                             </div>
                         </CardContent>
                     </Card>
