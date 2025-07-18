@@ -261,3 +261,29 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
 
     return result.modifiedCount > 0;
 }
+
+export async function resetUserSession(accountId: string): Promise<boolean> {
+    if (!ObjectId.isValid(accountId)) return false;
+
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+    
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(accountId) },
+        {
+            $set: {
+                balance: INITIAL_BALANCE,
+                trades: [],
+                selectedRobotId: null,
+                totalPnl: 0,
+                sessionStartTime: null,
+                timeLimit: TRADING_TIME_LIMIT_SECONDS,
+                isRunning: false,
+                lastActive: new Date(),
+                // We don't reset name or isSubscribed
+            }
+        }
+    );
+
+    return result.modifiedCount > 0;
+}

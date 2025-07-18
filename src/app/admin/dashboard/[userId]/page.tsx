@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,10 +12,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade } from '@/lib/types';
-import { getUserById, updateUserProfile } from '@/lib/actions';
+import { getUserById, updateUserProfile, resetUserSession } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -84,6 +85,25 @@ export default function UserDetailPage() {
             setIsUpdating(false);
         }
     };
+    
+    const handleResetSession = async () => {
+        if (!user) return;
+        setIsUpdating(true);
+        try {
+            const success = await resetUserSession(user._id.toString());
+            if (success) {
+                toast({ title: 'Success', description: 'User session has been reset.' });
+                await fetchUser(); // Refetch to show the reset state
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to reset session.' });
+            }
+        } catch (error) {
+            console.error("Reset error:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred during reset.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const handleSaveName = () => handleUpdateProfile({ name });
     const handleSaveBalance = () => {
@@ -133,9 +153,33 @@ export default function UserDetailPage() {
                         </Button>
                         <h1 className="text-xl font-headline text-primary truncate">{user.name || `User ${user._id.toString().slice(-6)}`}</h1>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={fetchUser} disabled={isLoading}>
-                        <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon" disabled={isUpdating}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action will reset the user's session, including their balance, trade history, and robot selection. This cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleResetSession}>
+                                        Reset Session
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
+                        <Button variant="ghost" size="icon" onClick={fetchUser} disabled={isLoading}>
+                            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        </Button>
+                    </div>
                 </div>
             </header>
             <main className="container mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
