@@ -301,11 +301,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     }
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
-        // Also update PnL based on the new balance
-        const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-        if(user) {
-            updateData.totalPnl = updates.balance - INITIAL_BALANCE;
-        }
+        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
     }
     if (updates.selectedRobotId !== undefined) {
         updateData.selectedRobotId = updates.selectedRobotId;
