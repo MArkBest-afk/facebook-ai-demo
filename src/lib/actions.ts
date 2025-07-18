@@ -447,7 +447,17 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
                 // Ensure chat history is not empty
                 const chatHistory = updatedUser.chatMessages || [];
                 if (chatHistory.length > 0) {
-                     const aiResponse = await assistChat({ chatHistory: toPlainObject(updatedUser).chatMessages });
+                     // The AI flow expects a stringified version of the chat history.
+                     // The Date objects must be converted to strings for proper serialization.
+                     const serializableChatHistory = JSON.stringify(
+                        chatHistory.map(msg => ({
+                            ...msg,
+                            id: msg.id.toString(), // Ensure IDs are strings
+                            timestamp: msg.timestamp.toISOString(),
+                        }))
+                     );
+
+                     const aiResponse = await assistChat({ chatHistory: serializableChatHistory });
 
                     if (aiResponse && aiResponse.answer) {
                         // Send AI's response as admin

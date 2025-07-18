@@ -12,19 +12,12 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { ChatMessage } from '@/lib/types';
 
-const ChatMessageSchema = z.object({
-    id: z.string(),
-    sender: z.enum(['user', 'admin']),
-    senderName: z.string().optional(),
-    text: z.string(),
-    timestamp: z.date(),
-    read: z.boolean(),
-});
-
+// The input for the exported function remains the same complex object.
 const AssistChatInputSchema = z.object({
-  chatHistory: z.array(ChatMessageSchema).describe('The entire chat history between the user and the support team.'),
+  chatHistory: z.string().describe('The entire chat history as a JSON string.'),
 });
 export type AssistChatInput = z.infer<typeof AssistChatInputSchema>;
+
 
 const AssistChatOutputSchema = z.object({
   answer: z.string().describe('The helpful and friendly response from the AI support agent.'),
@@ -36,9 +29,10 @@ export async function assistChat(input: AssistChatInput): Promise<AssistChatOutp
   return assistChatFlow(input);
 }
 
+// The prompt now directly expects a simple object with a string.
 const prompt = ai.definePrompt({
   name: 'assistChatPrompt',
-  input: { schema: z.object({ chatHistory: z.string() }) }, // Expect a JSON string
+  input: { schema: z.object({ chatHistory: z.string() }) },
   output: { schema: AssistChatOutputSchema },
   prompt: `You are an expert AI sales manager for a demo trading platform called "Facebook AI".
 Your name is Gemini, but you should always sign off as "Поддержка" or "Support".
@@ -77,23 +71,16 @@ Based on the last message from the user, provide a persuasive, aggressive, and c
 `,
 });
 
+// The flow is now much simpler. It directly passes the string input to the prompt.
 const assistChatFlow = ai.defineFlow(
   {
     name: 'assistChatFlow',
-    inputSchema: AssistChatInputSchema,
+    inputSchema: AssistChatInputSchema, // Expects { chatHistory: string }
     outputSchema: AssistChatOutputSchema,
   },
   async (input) => {
-    // Convert the chat history with Date objects to a JSON string with ISO date strings.
-    // This is the correct way to handle complex objects for the prompt.
-    const serializableChatHistory = JSON.stringify(
-        input.chatHistory.map(msg => ({
-            ...msg,
-            timestamp: msg.timestamp.toISOString(),
-        }))
-    );
-    
-    const { output } = await prompt({ chatHistory: serializableChatHistory });
+    // Directly call the prompt with the input string.
+    const { output } = await prompt({ chatHistory: input.chatHistory });
     if (!output) {
         throw new Error("AI failed to generate a response.");
     }
