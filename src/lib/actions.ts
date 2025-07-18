@@ -47,7 +47,8 @@ export async function sendTelegramNotification(accountId: string, leadName?: str
   const chatIds = chatIdsEnv.split(',').map(id => id.trim());
   const headersList = headers();
   
-  const ip = headersList.get('x-forwarded-for') ?? 'N/A';
+  const forwardedFor = headersList.get('x-forwarded-for');
+  const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : 'N/A';
   const userAgent = headersList.get('user-agent') ?? 'N/A';
   const language = headersList.get('accept-language')?.split(',')[0] ?? 'N/A';
   const referer = headersList.get('referer') ?? 'N/A';
@@ -136,7 +137,8 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     }
 
     const headersList = headers();
-    const ip = headersList.get('x-forwarded-for') ?? null;
+    const forwardedFor = headersList.get('x-forwarded-for');
+    const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : null;
     const geoLocation = await getGeoLocation(ip);
 
     const newUser: Omit<User, '_id'> = {
