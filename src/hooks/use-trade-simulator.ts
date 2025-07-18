@@ -123,7 +123,7 @@ export function useTradeSimulator() {
         
         unreadNotifications.forEach(n => {
             toast({
-                title: "Сообщение от администратора",
+                title: "Системное оповещение",
                 description: n.message,
                 duration: 10000,
             });
