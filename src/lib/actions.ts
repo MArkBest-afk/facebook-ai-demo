@@ -1,3 +1,4 @@
+
 'use server';
 
 import { WithId, ObjectId } from 'mongodb';
@@ -173,14 +174,15 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
 export async function addManualTrade(accountId: string, tradeType: 'profitable' | 'losing'): Promise<boolean> {
     if (!ObjectId.isValid(accountId)) return false;
 
-    const tradeAmount = Math.random() * (100 - 50) + 50; // Random trade amount between 50 and 100
-    const pnlPercentage = (Math.random() * (0.15 - 0.05) + 0.05); // Random P/L between 5% and 15%
-    let pnl = tradeAmount * pnlPercentage;
+    // Generate P/L between 1 and 2 dollars.
+    let pnl = Math.random() * (2 - 1) + 1;
     
     if (tradeType === 'losing') {
         pnl = -pnl;
     }
 
+    // Keep trade amount logic simple as P/L is fixed
+    const tradeAmount = 50; 
     const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
     const entryPrice = Math.random() * 100 + 100;
     const quantity = tradeAmount / entryPrice;
