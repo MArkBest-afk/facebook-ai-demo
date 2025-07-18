@@ -5,7 +5,7 @@ import type { Robot, Trade, User } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { getOrCreateUser, updateUser, addTrade, resetUser } from '@/lib/actions';
+import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById } from '@/lib/actions';
 import { ObjectId } from 'mongodb';
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
@@ -24,13 +24,11 @@ export function useTradeSimulator() {
   const { t } = useI18n();
 
   const tradeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  // Use a ref for the user object to get the latest state in callbacks without causing re-renders.
   const userRef = useRef(user);
   useEffect(() => {
       userRef.current = user;
   }, [user]);
 
-  // References to track previous state for useEffect dependencies
   const prevIsRunning = useRef(false);
   const prevSelectedRobotId = useRef<string | null>(null);
 
@@ -40,50 +38,84 @@ export function useTradeSimulator() {
     return t(`robot${formattedId}Name`);
   }, [t]);
 
+  const initializeUser = useCallback(async (existingId: string | null = null) => {
+    setIsLoading(true);
+    try {
+      let savedAccountId: string | null = existingId;
+      if (!savedAccountId && typeof window !== 'undefined') {
+          savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
+      }
+      
+      const userData = await getOrCreateUser(savedAccountId);
+
+      userData.trades = userData.trades || [];
+      
+      setUser(userData);
+      prevIsRunning.current = userData.isRunning;
+      prevSelectedRobotId.current = userData.selectedRobotId;
+
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
+      }
+
+      const robot = ROBOTS.find(r => r.id === userData.selectedRobotId) || null;
+      setSelectedRobot(robot);
+
+      if (typeof window !== 'undefined') {
+        const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+        setTutorialCompleted(savedTutorial === 'true');
+      } else {
+        setTutorialCompleted(false);
+      }
+    } catch (error) {
+      console.error("Failed to initialize user:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load user data.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   // Load user data on mount
   useEffect(() => {
-    const initializeUser = async () => {
-      setIsLoading(true);
-      try {
-        let savedAccountId: string | null = null;
-        if (typeof window !== 'undefined') {
-            savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
-        }
-        
-        const userData = await getOrCreateUser(savedAccountId);
-
-        // Ensure trades is always an array
-        userData.trades = userData.trades || [];
-        
-        setUser(userData);
-        // Initialize refs with the fresh data
-        prevIsRunning.current = userData.isRunning;
-        prevSelectedRobotId.current = userData.selectedRobotId;
-
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
-        }
-
-        const robot = ROBOTS.find(r => r.id === userData.selectedRobotId) || null;
-        setSelectedRobot(robot);
-
-        if (typeof window !== 'undefined') {
-          const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
-          setTutorialCompleted(savedTutorial === 'true');
-        } else {
-          setTutorialCompleted(false);
-        }
-      } catch (error) {
-        console.error("Failed to initialize user:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load user data.' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     initializeUser();
-  }, [sessionResetFlag, toast]); // Removed `t` and `getRobotName` as they are stable
+  }, [sessionResetFlag, initializeUser]);
+
+  // Polling for remote updates
+  useEffect(() => {
+    const pollForUpdates = async () => {
+        const currentUser = userRef.current;
+        if (!currentUser || !currentUser._id) return;
+
+        const latestUserData = await getUserById(currentUser._id.toString());
+        if (latestUserData) {
+            // Check for session reset from admin
+            if (currentUser.sessionStartTime && !latestUserData.sessionStartTime) {
+                // Session has been reset remotely
+                toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
+                initializeUser(currentUser._id.toString());
+                return; // Re-initialization will handle everything
+            }
+
+             // Only update if there are meaningful changes to avoid unnecessary re-renders
+            if (JSON.stringify(currentUser) !== JSON.stringify(latestUserData)) {
+              setUser(latestUserData);
+              if (latestUserData.selectedRobotId) {
+                  setSelectedRobot(ROBOTS.find(r => r.id === latestUserData.selectedRobotId) || null);
+              } else {
+                  setSelectedRobot(null);
+              }
+            }
+        }
+    };
+    
+    // Don't poll while loading or if there's no user
+    if (isLoading || !user) return;
+
+    const intervalId = setInterval(pollForUpdates, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [isLoading, user, initializeUser, toast]);
 
   // Timer logic
   useEffect(() => {
@@ -91,7 +123,6 @@ export function useTradeSimulator() {
 
     if (user?.sessionStartTime && user.timeLimit) {
       const updateElapsedTime = () => {
-        // We need to use userRef here to avoid stale closures in setInterval
         if (!userRef.current || !userRef.current.sessionStartTime) return;
 
         const now = Date.now();
@@ -119,7 +150,6 @@ export function useTradeSimulator() {
 
 
   const performTrade = useCallback(async () => {
-    // Use the ref to get the latest user state
     const currentUser = userRef.current;
     if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId) return;
 
@@ -165,14 +195,12 @@ export function useTradeSimulator() {
       });
     }
 
-    // Check again if still running before setting next timeout
     if (userRef.current?.isRunning) {
         const nextInterval = Math.random() * (60000 - 5000) + 5000;
         tradeTimerRef.current = setTimeout(performTrade, nextInterval);
     }
-  }, []); // No dependencies needed as we use userRef
+  }, []);
 
-  // Effect to start/stop trading loop
   useEffect(() => {
     if (tradeTimerRef.current) {
       clearTimeout(tradeTimerRef.current);
@@ -183,7 +211,6 @@ export function useTradeSimulator() {
       tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
     }
     
-    // Cleanup timer on component unmount or when user.isRunning becomes false
     return () => {
         if (tradeTimerRef.current) {
             clearTimeout(tradeTimerRef.current);
@@ -191,7 +218,6 @@ export function useTradeSimulator() {
     };
   }, [user?.isRunning, performTrade]);
 
-  // Toast notifications for start/stop/robot change
   useEffect(() => {
     if (isLoading || !user) return;
 
@@ -209,17 +235,11 @@ export function useTradeSimulator() {
     }
 
     if (currentRobotId !== prevSelectedRobotId.current && robotName) {
-       if(currentIsRunning) {
-        // Do not pause the simulator automatically, let the user decide.
-        // The UI already prevents changing robots while running.
-        // toast({ titleKey: "simulatorPaused", descriptionKey: "simulatorPausedDesc" });
-      }
       toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
       prevSelectedRobotId.current = currentRobotId;
     }
   }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast]);
   
-  // Toast notification for session reset
   useEffect(() => {
     if (sessionResetFlag > 0) {
       toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
