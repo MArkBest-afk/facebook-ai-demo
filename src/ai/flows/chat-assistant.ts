@@ -84,6 +84,9 @@ const assistChatFlow = ai.defineFlow(
     );
     
     const { output } = await prompt({ chatHistory: serializableChatHistory });
-    return output!;
+    if (!output) {
+        throw new Error("AI failed to generate a response.");
+    }
+    return output;
   }
 );
