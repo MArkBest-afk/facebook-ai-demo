@@ -13,9 +13,20 @@ async function getDb() {
     return client.db(dbName);
 }
 
-// Type guard to check if an error has a 'code' property
-function hasCode(error: unknown): error is { code: any } {
-    return typeof error === 'object' && error !== null && 'code' in error;
+// Helper function to convert MongoDB docs to plain objects
+function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
+    const plainDoc = { ...doc, _id: doc._id.toString() };
+    
+    // Convert other potential ObjectIds if needed, e.g., in nested arrays
+    if ('trades' in plainDoc && Array.isArray(plainDoc.trades)) {
+        plainDoc.trades = plainDoc.trades.map((trade: any) => {
+            if (trade.id && typeof trade.id !== 'string') {
+                return { ...trade, id: trade.id.toString() };
+            }
+            return trade;
+        });
+    }
+    return plainDoc;
 }
 
 // Escapes a string for Telegram's MarkdownV2 format.
@@ -85,17 +96,12 @@ export async function sendTelegramNotification(accountId: string) {
 
 export async function getOrCreateUser(accountId: string | null): Promise<User> {
     const db = await getDb();
-    const usersCollection = db.collection<User>('users');
+    const usersCollection = db.collection<Omit<User, '_id'>>('users');
 
-    if (accountId) {
-        try {
-            const user = await usersCollection.findOne({ _id: new ObjectId(accountId) });
-            if (user) {
-                // Return user data, ensuring trades is an array
-                return { ...user, trades: user.trades || [] };
-            }
-        } catch (error) {
-            // Invalid ObjectId, proceed to create new user
+    if (accountId && ObjectId.isValid(accountId)) {
+        const user = await usersCollection.findOne({ _id: new ObjectId(accountId) });
+        if (user) {
+            return toPlainObject(user) as unknown as User;
         }
     }
 
@@ -112,13 +118,13 @@ export async function getOrCreateUser(accountId: string | null): Promise<User> {
         createdAt: new Date(),
     };
 
-    const result = await usersCollection.insertOne(newUser as User);
+    const result = await usersCollection.insertOne(newUser);
     const createdUser = { ...newUser, _id: result.insertedId };
     
     // Send Telegram notification for the new user
     await sendTelegramNotification(result.insertedId.toHexString());
 
-    return createdUser;
+    return toPlainObject(createdUser) as unknown as User;
 }
 
 export async function updateUser(accountId: string, updates: Partial<User>): Promise<boolean> {
@@ -126,7 +132,13 @@ export async function updateUser(accountId: string, updates: Partial<User>): Pro
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
     
-    const updateData = { ...updates, lastActive: new Date() };
+    // Create a new object for updates to avoid mutating the original
+    const updateData: Partial<User> & { lastActive: Date } = { ...updates, lastActive: new Date() };
+    
+    // Remove _id from updates if it exists to prevent errors
+    if ('_id' in updateData) {
+        delete (updateData as any)._id;
+    }
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(accountId) },
@@ -148,7 +160,7 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
     const result = await usersCollection.findOneAndUpdate(
         { _id: new ObjectId(accountId) },
         {
-            $push: { trades: { $each: [newTrade], $position: 0 } },
+            $push: { trades: { $each: [newTrade], $position: 0 } as any },
             $inc: { balance: newTrade.pnl, totalPnl: newTrade.pnl },
             $set: { lastActive: new Date() }
         },
@@ -186,11 +198,12 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
         { returnDocument: 'after' }
     );
 
-    return result;
+    return result ? toPlainObject(result) as unknown as User : null;
 }
 
 export async function getAllUsers(): Promise<WithId<User>[]> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
-    return usersCollection.find({}).sort({ createdAt: -1 }).toArray();
+    const users = await usersCollection.find({}).sort({ createdAt: -1 }).toArray();
+    return users.map(user => toPlainObject(user)) as WithId<User>[];
 }

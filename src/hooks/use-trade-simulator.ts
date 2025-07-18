@@ -25,9 +25,12 @@ export function useTradeSimulator() {
 
   const tradeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
-  const prevIsRunning = useRef(false);
-  const prevSelectedRobot = useRef<Robot | null>(null);
   const userRef = useRef(user);
+
+  // References to track previous state for useEffect dependencies
+  const prevIsRunning = useRef(false);
+  const prevSelectedRobotId = useRef<string | null>(null);
+
 
   useEffect(() => {
     userRef.current = user;
@@ -46,22 +49,31 @@ export function useTradeSimulator() {
     const initializeUser = async () => {
       setIsLoading(true);
       try {
-        const savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
+        let savedAccountId: string | null = null;
+        if (typeof window !== 'undefined') {
+            savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
+        }
+        
         const userData = await getOrCreateUser(savedAccountId);
 
         // Ensure trades is always an array
         userData.trades = userData.trades || [];
         
         setUser(userData);
-        localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
+        }
 
         const robot = ROBOTS.find(r => r.id === userData.selectedRobotId) || null;
         setSelectedRobot(robot);
-        prevSelectedRobot.current = robot;
-        prevIsRunning.current = userData.isRunning;
 
-        const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
-        setTutorialCompleted(savedTutorial === 'true');
+        if (typeof window !== 'undefined') {
+          const savedTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+          setTutorialCompleted(savedTutorial === 'true');
+        } else {
+          setTutorialCompleted(false);
+        }
       } catch (error) {
         console.error("Failed to initialize user:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load user data.' });
@@ -77,7 +89,7 @@ export function useTradeSimulator() {
   useEffect(() => {
     let clockTimerId: NodeJS.Timeout | null = null;
 
-    if (user?.sessionStartTime) {
+    if (user?.sessionStartTime && user.timeLimit) {
       const updateElapsedTime = () => {
         const now = Date.now();
         const currentElapsedTime = Math.floor((now - (user.sessionStartTime as number)) / 1000);
@@ -165,41 +177,46 @@ export function useTradeSimulator() {
     }
   }, [user?.isRunning, performTrade]);
 
-  // Toast notifications
+  // Toast notifications for start/stop/robot change
   useEffect(() => {
-    if (isLoading) return;
-    const currentIsRunning = user?.isRunning ?? false;
-    const robotName = selectedRobot ? getRobotName(selectedRobot) : '';
+    if (isLoading || !user) return;
 
-    if (currentIsRunning && !prevIsRunning.current && robotName) {
-      toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
-    } else if (!currentIsRunning && prevIsRunning.current) {
-      toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
+    const currentIsRunning = user.isRunning;
+    const currentRobotId = user.selectedRobotId;
+    const robotName = currentRobotId ? getRobotName(ROBOTS.find(r => r.id === currentRobotId)!) : '';
+
+    if (currentIsRunning !== prevIsRunning.current) {
+      if (currentIsRunning && robotName) {
+        toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
+      } else if (!currentIsRunning) {
+        toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
+      }
+      prevIsRunning.current = currentIsRunning;
     }
-    prevIsRunning.current = currentIsRunning;
 
-    if (selectedRobot?.id !== prevSelectedRobot.current?.id && robotName) {
-      if(currentIsRunning) {
+    if (currentRobotId !== prevSelectedRobotId.current && robotName) {
+       if(currentIsRunning) {
         handleToggleSimulator(); // Pause simulator on robot change
         toast({ titleKey: "simulatorPaused", descriptionKey: "simulatorPausedDesc" });
       }
       toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
+      prevSelectedRobotId.current = currentRobotId;
     }
-    prevSelectedRobot.current = selectedRobot;
-
-  }, [user?.isRunning, selectedRobot, isLoading, getRobotName, toast]);
+  }, [user?.isRunning, user?.selectedRobotId, isLoading]);
   
+  // Toast notification for session reset
   useEffect(() => {
     if (sessionResetFlag > 0) {
       toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
     }
-  }, [sessionResetFlag, toast]);
+  }, [sessionResetFlag]);
 
 
   const handleSelectRobot = useCallback(async (robot: Robot) => {
     if (!user) return;
     setSelectedRobot(robot);
-    setUser(prev => prev ? { ...prev, selectedRobotId: robot.id } : null);
+    const updatedUser = { ...user, selectedRobotId: robot.id };
+    setUser(updatedUser);
     await updateUser(user._id.toString(), { selectedRobotId: robot.id });
   }, [user]);
 
@@ -226,7 +243,9 @@ export function useTradeSimulator() {
         setTimeLimitReached(false);
         setTutorialCompleted(false);
         try {
-          localStorage.setItem(TUTORIAL_STORAGE_KEY, 'false');
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(TUTORIAL_STORAGE_KEY, 'false');
+          }
         } catch (error) {
           console.error("Failed to clear tutorial state from localStorage", error);
         }
@@ -237,7 +256,9 @@ export function useTradeSimulator() {
   const completeTutorial = useCallback(() => {
     setTutorialCompleted(true);
     try {
-        localStorage.setItem(TUTORIAL_STORAGE_KEY, String(true));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(TUTORIAL_STORAGE_KEY, String(true));
+        }
       } catch (error) {
         console.error("Failed to save tutorial state to localStorage", error);
       }

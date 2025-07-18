@@ -19,7 +19,7 @@ export interface Trade {
 }
 
 export interface User {
-  _id: ObjectId;
+  _id: ObjectId | string; // Allow string for client-side representation
   balance: number;
   trades: Trade[];
   selectedRobotId: string | null;
