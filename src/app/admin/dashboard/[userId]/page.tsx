@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,6 +18,7 @@ import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -31,6 +33,13 @@ const formatTimeAgo = (date: Date | null): string => {
     return `${Math.floor(seconds / 86400)}d ago`;
 }
 
+const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+};
+
 export default function UserDetailPage() {
     const router = useRouter();
     const params = useParams();
@@ -41,6 +50,7 @@ export default function UserDetailPage() {
     const [name, setName] = useState('');
     const [balanceInput, setBalanceInput] = useState('');
     const userId = params.userId as string;
+    const [remainingTime, setRemainingTime] = useState(0);
 
     const fetchUser = useCallback(async () => {
         if (!userId) return;
@@ -66,6 +76,21 @@ export default function UserDetailPage() {
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
+
+    useEffect(() => {
+        if (!user || !user.sessionStartTime) {
+            setRemainingTime(user?.timeLimit || 0);
+            return;
+        }
+
+        const intervalId = setInterval(() => {
+            const elapsedTime = Math.floor((Date.now() - (user.sessionStartTime || 0)) / 1000);
+            const timeLeft = Math.max(0, user.timeLimit - elapsedTime);
+            setRemainingTime(timeLeft);
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [user]);
 
     const handleUpdateProfile = async (updates: Partial<User>) => {
         if (!user) return;
@@ -161,6 +186,8 @@ export default function UserDetailPage() {
     }
 
     const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < 60000;
+    const timeProgress = user.timeLimit > 0 ? (remainingTime / user.timeLimit) * 100 : 0;
+    const timeIsUp = remainingTime <= 0 && !!user.sessionStartTime;
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -284,12 +311,21 @@ export default function UserDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             <div>
+                                <div className="flex justify-between items-center text-sm font-medium mb-2">
+                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Time Remaining</span>
+                                    <span className={cn(timeIsUp && "text-destructive font-bold")}>
+                                        {timeIsUp ? "Time Expired" : formatTime(remainingTime)}
+                                    </span>
+                                </div>
+                                <Progress value={100 - timeProgress} className="h-2" />
+                            </div>
                             <div>
                                 <Label htmlFor="robot-select">Selected Robot</Label>
                                 <Select
                                     value={user.selectedRobotId || ''}
                                     onValueChange={handleRobotSelect}
-                                    disabled={isUpdating}
+                                    disabled={isUpdating || timeIsUp}
                                 >
                                     <SelectTrigger id="robot-select">
                                         <SelectValue placeholder="Select a robot" />
@@ -313,7 +349,7 @@ export default function UserDetailPage() {
                                 <Switch
                                     checked={user.isRunning}
                                     onCheckedChange={handleToggleRunning}
-                                    disabled={isUpdating || !user.selectedRobotId}
+                                    disabled={isUpdating || !user.selectedRobotId || timeIsUp}
                                     aria-readonly
                                 />
                             </div>
@@ -415,5 +451,7 @@ export default function UserDetailPage() {
         </div>
     );
 }
+
+    
 
     

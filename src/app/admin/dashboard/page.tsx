@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,22 @@ const formatTimeAgo = (date: Date | null): string => {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     return `${Math.floor(seconds / 86400)}d ago`;
 }
+
+const formatRemainingTime = (user: WithId<User>): string => {
+    if (!user.sessionStartTime) {
+        return 'Not Started';
+    }
+    const elapsedTime = Math.floor((Date.now() - user.sessionStartTime) / 1000);
+    const timeLeft = user.timeLimit - elapsedTime;
+
+    if (timeLeft <= 0) {
+        return 'Expired';
+    }
+
+    const h = Math.floor(timeLeft / 3600);
+    const m = Math.floor((timeLeft % 3600) / 60);
+    return `${h}h ${m}m left`;
+};
 
 export default function AdminDashboardPage() {
     const router = useRouter();
@@ -136,8 +153,8 @@ export default function AdminDashboardPage() {
                                         <TableHead>Name</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Last Seen</TableHead>
-                                        <TableHead>Created</TableHead>
-                                        <TableHead className="text-right">Current Balance</TableHead>
+                                        <TableHead>Time Left</TableHead>
+                                        <TableHead className="text-right">Balance</TableHead>
                                         <TableHead className="text-right">P/L</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -157,6 +174,7 @@ export default function AdminDashboardPage() {
                                     ) : (
                                         users.map((user) => {
                                             const isOnline = user.isRunning && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
+                                            const timeLeftStr = formatRemainingTime(user);
                                             return (
                                                 <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
                                                     <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
@@ -168,7 +186,9 @@ export default function AdminDashboardPage() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">{formatTimeAgo(user.lastActive)}</TableCell>
-                                                     <TableCell className="text-muted-foreground">{formatTimeAgo(user.createdAt)}</TableCell>
+                                                    <TableCell className={cn("text-muted-foreground", timeLeftStr === 'Expired' && 'text-destructive font-semibold')}>
+                                                        {timeLeftStr}
+                                                    </TableCell>
                                                     <TableCell className="text-right">${user.balance.toFixed(2)}</TableCell>
                                                     <TableCell className={cn("text-right font-medium", user.totalPnl >= 0 ? "text-success" : "text-destructive")}>
                                                         {user.totalPnl >= 0 ? '+' : ''}${user.totalPnl.toFixed(2)}
@@ -186,3 +206,5 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
+
+    
