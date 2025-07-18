@@ -227,6 +227,7 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     }
     if (updates.balance !== undefined) {
         updateData.balance = updates.balance;
+        updateData.totalPnl = updates.balance - INITIAL_BALANCE;
     }
 
     if (Object.keys(updateData).length === 0) {
