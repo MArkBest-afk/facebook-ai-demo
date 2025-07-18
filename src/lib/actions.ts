@@ -419,9 +419,6 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
-    const userBeforeUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    if (!userBeforeUpdate) return false;
-
     const newChatMessage: ChatMessage = {
         id: new ObjectId().toHexString(),
         sender,
@@ -431,7 +428,8 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
         read: sender === 'admin', // Messages from admin are "read" by admin
     };
 
-    const result = await usersCollection.updateOne(
+    // Push the new message and update the lastActive timestamp.
+    const updateResult = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         {
             $push: { chatMessages: newChatMessage as any },
@@ -439,24 +437,30 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
         }
     );
 
-    // If the message is from a user and AI chat is enabled, trigger the AI response.
-    if (sender === 'user' && userBeforeUpdate.isAiChatEnabled) {
-        try {
-            // Create a temporary history including the new message for the AI
-            const currentChatHistory = [...(userBeforeUpdate.chatMessages || []), newChatMessage];
-            const aiResponse = await assistChat({ chatHistory: currentChatHistory });
+    // After the message is saved, check if the AI needs to respond.
+    if (sender === 'user') {
+        // Fetch the most recent user data, which now includes the new message.
+        const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+        
+        if (updatedUser && updatedUser.isAiChatEnabled) {
+            try {
+                // Ensure chat history is not empty
+                const chatHistory = updatedUser.chatMessages || [];
+                if (chatHistory.length > 0) {
+                     const aiResponse = await assistChat({ chatHistory: toPlainObject(updatedUser).chatMessages });
 
-            if (aiResponse && aiResponse.answer) {
-                // Send AI's response as admin
-                await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+                    if (aiResponse && aiResponse.answer) {
+                        // Send AI's response as admin
+                        await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+                    }
+                }
+            } catch (error) {
+                console.error('Error triggering AI chat response:', error);
             }
-        } catch (error) {
-            console.error('Error triggering AI chat response:', error);
-            // Optionally send a fallback message to the user
         }
     }
 
-    return result.modifiedCount > 0;
+    return updateResult.modifiedCount > 0;
 }
 
 export async function markChatMessagesAsRead(userId: string): Promise<boolean> {
