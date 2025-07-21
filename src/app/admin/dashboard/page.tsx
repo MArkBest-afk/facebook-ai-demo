@@ -219,6 +219,8 @@ export default function AdminDashboardPage() {
         const sortedUsers = [...users].sort((a, b) => {
             if (a.isHotLead && !b.isHotLead) return -1;
             if (!a.isHotLead && b.isHotLead) return 1;
+            if (a.hasUnreadAdminMessages && !b.hasUnreadAdminMessages) return -1;
+            if (!a.hasUnreadAdminMessages && b.hasUnreadAdminMessages) return 1;
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
 
@@ -410,3 +412,5 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
+
+    
