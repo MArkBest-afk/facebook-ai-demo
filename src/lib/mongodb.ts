@@ -11,24 +11,45 @@ const options = {}
 let client
 let clientPromise: Promise<MongoClient>
 
-// Function to create TTL index
+// Function to create TTL index for automatic cleanup
 const createTtlIndex = async (client: MongoClient) => {
   try {
     const dbName = process.env.DB_NAME || 'demotrade';
     const db = client.db(dbName);
     const usersCollection = db.collection('users');
     
-    const indexName = 'lastActive_ttl';
+    const indexName = 'inactive_users_ttl';
+    const oldIndexName = 'lastActive_ttl';
     const indexes = await usersCollection.listIndexes().toArray();
+    
     const indexExists = indexes.some(index => index.name === indexName);
+    const oldIndexExists = indexes.some(index => index.name === oldIndexName);
+
+    // Drop the old index if it exists
+    if (oldIndexExists) {
+      await usersCollection.dropIndex(oldIndexName);
+      console.log('Successfully dropped old TTL index.');
+    }
 
     if (!indexExists) {
-      // Expire documents 10 days after the lastActive date
-      await usersCollection.createIndex({ "lastActive": 1 }, { expireAfterSeconds: 864000, name: indexName });
-      console.log('Successfully created TTL index on lastActive field.');
+      // Expire documents 12 hours after the lastActive date, but only if they meet specific criteria
+      await usersCollection.createIndex(
+        { "lastActive": 1 }, 
+        { 
+          expireAfterSeconds: 43200, // 12 hours
+          name: indexName,
+          partialFilterExpression: {
+            isSubscribed: { $ne: true },
+            name: { $exists: false },
+            selectedRobotId: { $eq: null },
+            chatMessages: { $size: 0 }
+          }
+        }
+      );
+      console.log('Successfully created partial TTL index for inactive users.');
     }
   } catch (e) {
-    console.error('Error creating TTL index:', e);
+    console.error('Error managing TTL index:', e);
   }
 };
 
