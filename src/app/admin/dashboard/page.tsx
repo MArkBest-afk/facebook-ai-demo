@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
@@ -55,11 +55,11 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
         return { text: 'Нет чата', variant: 'outline' };
     }
     
-    const lastMessage = user.chatMessages[user.chatMessages.length - 1];
-    if (lastMessage.sender === 'user') {
-        return { text: 'Ответ клиента', variant: 'default' };
+    if (user.hasUnreadAdminMessages) {
+         return { text: 'Ответ клиента', variant: 'default' };
     }
-
+    
+    const lastMessage = user.chatMessages[user.chatMessages.length - 1];
     if (lastMessage.sender === 'admin' && lastMessage.senderName === 'Поддержка') {
         return { text: 'AI отвечает', variant: 'destructive' };
     }
@@ -75,8 +75,9 @@ export default function AdminDashboardPage() {
     const [isPolling, setIsPolling] = useState(false);
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
+    const usersRef = useRef<WithId<User>[]>([]);
 
-    const fetchUsers = async (isInitialLoad = false) => {
+    const fetchUsers = useCallback(async (isInitialLoad = false) => {
         if (isInitialLoad) {
             setIsLoading(true);
         } else {
@@ -84,10 +85,18 @@ export default function AdminDashboardPage() {
         }
         try {
             const userList = await getAllUsers();
-            setUsers(userList);
+            
+            // Only update state if the data has actually changed to prevent re-renders
+            if (JSON.stringify(usersRef.current) !== JSON.stringify(userList)) {
+                setUsers(userList);
+                usersRef.current = userList;
+            }
         } catch (error) {
             console.error("Failed to fetch users:", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить список пользователей.' });
+            // Don't toast on polling errors to avoid spamming
+            if (isInitialLoad) {
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить список пользователей.' });
+            }
         } finally {
             if (isInitialLoad) {
                 setIsLoading(false);
@@ -95,13 +104,13 @@ export default function AdminDashboardPage() {
                 setIsPolling(false);
             }
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         fetchUsers(true); // Initial load with full-screen loader
         const interval = setInterval(() => fetchUsers(false), 5000); // Subsequent polling without full loader
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchUsers]);
 
 
     const handleLogout = () => {
