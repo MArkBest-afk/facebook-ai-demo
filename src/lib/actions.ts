@@ -320,6 +320,14 @@ export async function getUserById(userId: string): Promise<User | null> {
     return user ? toPlainObject(user) as unknown as User : null;
 }
 
+export async function getUsersByName(name: string): Promise<User[]> {
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+    const users = await usersCollection.find({ name }).sort({ createdAt: -1 }).toArray();
+    return users.map(user => toPlainObject(user)) as User[];
+}
+
+
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();

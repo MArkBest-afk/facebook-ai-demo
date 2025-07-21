@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade, ChatMessage } from '@/lib/types';
-import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead } from '@/lib/actions';
+import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead, getUsersByName } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -55,6 +55,7 @@ export default function UserDetailPage() {
     const [balanceInput, setBalanceInput] = useState('');
     const [comment, setComment] = useState('');
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+    const [duplicateUsers, setDuplicateUsers] = useState<User[]>([]);
     
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
@@ -65,6 +66,20 @@ export default function UserDetailPage() {
             await markAdminChatMessagesAsRead(userId);
         } catch (error) {
             console.error("Failed to mark messages as read:", error);
+        }
+    }, [userId]);
+
+    const fetchDuplicates = useCallback(async (userName: string | undefined) => {
+        if (!userName) return;
+        try {
+            const duplicates = await getUsersByName(userName);
+            // Sort by creation date, newest first, and exclude the current user
+            const sortedDuplicates = duplicates
+                .filter(d => d._id.toString() !== userId)
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setDuplicateUsers(sortedDuplicates);
+        } catch (error) {
+            console.error("Failed to fetch duplicate users:", error);
         }
     }, [userId]);
 
@@ -85,6 +100,8 @@ export default function UserDetailPage() {
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
+                // Fetch duplicates after getting user data
+                fetchDuplicates(userData.name);
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -95,7 +112,7 @@ export default function UserDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, router, toast, markMessagesAsRead]);
+    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates]);
 
     // This function fetches only the data that changes frequently
     // to avoid resetting the whole page and losing input focus.
@@ -128,11 +145,12 @@ export default function UserDetailPage() {
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
+                fetchDuplicates(userData.name);
             }
         } catch (error) {
             console.error("Failed to fetch dynamic user data:", error);
         }
-    }, [userId, markMessagesAsRead]);
+    }, [userId, markMessagesAsRead, fetchDuplicates]);
     
     // Initial data load
     useEffect(() => {
@@ -184,14 +202,18 @@ export default function UserDetailPage() {
         }
     };
     
-    const handleDeleteUser = async () => {
-        if (!user) return;
+    const handleDeleteUser = async (idToDelete: string = userId) => {
         setIsUpdating(true);
         try {
-            const success = await deleteUser(user._id.toString());
+            const success = await deleteUser(idToDelete);
             if (success) {
                 toast({ title: 'Успех', description: 'Пользователь был удален.' });
-                router.push('/admin/dashboard');
+                if (idToDelete === userId) {
+                    router.push('/admin/dashboard');
+                } else {
+                    // Refetch data to update the duplicates list
+                    fetchAndSetFullUserData();
+                }
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось удалить пользователя.' });
                  setIsUpdating(false);
@@ -199,6 +221,7 @@ export default function UserDetailPage() {
         } catch (error) {
             console.error("Delete error:", error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка во время удаления.' });
+        } finally {
             setIsUpdating(false);
         }
     };
@@ -309,7 +332,7 @@ export default function UserDetailPage() {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteUser}>
+                                    <AlertDialogAction onClick={() => handleDeleteUser(userId)}>
                                         Удалить пользователя
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -364,6 +387,62 @@ export default function UserDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {duplicateUsers.length > 0 && (
+                        <Card className="border-amber-500/50">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-amber-600">
+                                    <AlertTriangle className="w-6 h-6" />
+                                    <span>Обнаружены дубликаты</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <p className="text-sm text-muted-foreground">
+                                    Найдены другие сессии с таким же именем. Рекомендуется удалить старые сессии, оставив только самую последнюю.
+                                </p>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center bg-green-500/10 p-2 rounded-md">
+                                        <div>
+                                            <p className="font-mono text-xs text-green-700">{user._id.toString()}</p>
+                                            <p className="text-xs text-muted-foreground">{formatTimeAgo(user.createdAt)}</p>
+                                        </div>
+                                        <Badge variant="success">Текущая</Badge>
+                                    </div>
+
+                                    {duplicateUsers.map(dup => (
+                                        <div key={dup._id.toString()} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                                            <div>
+                                                <p className="font-mono text-xs">{dup._id.toString()}</p>
+                                                <p className="text-xs text-muted-foreground">{formatTimeAgo(dup.createdAt)}</p>
+                                            </div>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="icon" className="h-8 w-8">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Удалить дубликат сессии?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Вы уверены, что хотите удалить эту сессию? Это действие нельзя отменить. ID: {dup._id.toString()}
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteUser(dup._id.toString())}>
+                                                            Удалить
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
 
                     <Card>
                         <CardHeader>
