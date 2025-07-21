@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X, Trash2, MessageSquare, CreditCard, Copy, Link as LinkIcon } from 'lucide-react';
+import { Send, X, Trash2, MessageSquare, CreditCard, Copy, Link as LinkIcon, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
@@ -16,12 +16,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
+import { ObjectId } from 'mongodb';
+
 
 interface ChatProps {
     userId: string;
     messages: ChatMessage[];
     sender: 'user' | 'admin';
-    onNewMessage?: () => void;
+    onNewMessage?: (sentMessage?: Partial<ChatMessage>) => void;
     onClose?: () => void;
     title?: string;
     isAdmin?: boolean;
@@ -55,6 +57,8 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         setIsSending(true);
 
         const finalMessage: Partial<ChatMessage> = {
+            id: new ObjectId().toHexString(),
+            timestamp: new Date(),
             sender,
             text,
             senderName: sender === 'admin' ? adminName : undefined,
@@ -64,7 +68,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         try {
             await sendChatMessage(userId, finalMessage);
             setNewMessage('');
-            onNewMessage?.();
+            onNewMessage?.(sender === 'user' ? finalMessage : undefined);
         } catch (error) {
             console.error('Failed to send message:', error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
@@ -134,10 +138,10 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             return (
                  <div className="space-y-2">
                     <p>{msg.text}</p>
-                    <div className="bg-background/50 rounded-md p-2 border border-border/50">
+                    <div className="bg-background/50 rounded-md p-3 border border-border/50">
                         <pre className="text-xs whitespace-pre-wrap font-mono">{msg.paymentInfo.details}</pre>
                     </div>
-                    <Button variant="secondary" size="sm" className="w-full" onClick={() => handleCopyToClipboard(msg.paymentInfo.details)}>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={() => handleCopyToClipboard(msg.paymentInfo!.details)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Копировать реквизиты
                     </Button>
@@ -157,12 +161,12 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                 </div>
             )
         }
-        return <p className="break-all">{msg.text}</p>;
+        return <p className="break-words">{msg.text}</p>;
     }
 
 
     return (
-        <Card className="w-full h-full shadow-2xl flex flex-col bg-card sm:rounded-lg">
+        <Card className="w-full h-full max-w-lg max-h-[700px] shadow-2xl flex flex-col bg-card sm:rounded-lg">
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 <div className="flex items-center gap-1">
@@ -207,17 +211,20 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                             messages.map((msg) => (
                                 <div key={msg.id} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
                                      {msg.sender !== sender && msg.senderName && (
-                                        <div className="text-xs font-medium text-muted-foreground ml-2">{msg.senderName}</div>
+                                        <div className="text-xs font-medium text-muted-foreground ml-2 flex items-center gap-1">
+                                            {msg.senderName === 'Поддержка' && <Bot className="w-3 h-3"/>}
+                                            {msg.senderName}
+                                        </div>
                                     )}
-                                    <div className={cn("flex items-end gap-2", msg.sender === sender ? "justify-end" : "justify-start")}>
-                                        {isAdmin && msg.sender !== sender && (
+                                    <div className={cn("flex items-end gap-2", msg.sender === sender ? "flex-row-reverse" : "flex-row")}>
+                                        {isAdmin && (
                                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
                                                 <Trash2 className="h-3 w-3" />
                                             </Button>
                                         )}
                                         <div
                                             className={cn(
-                                                "flex max-w-[75%] flex-col gap-1 rounded-lg px-3 py-2 text-sm",
+                                                "flex max-w-[85%] flex-col gap-1 rounded-lg px-3 py-2 text-sm",
                                                 msg.sender === sender
                                                     ? "ml-auto bg-primary text-primary-foreground"
                                                     : "bg-muted"
@@ -228,11 +235,6 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
-                                        {isAdmin && msg.sender === sender && (
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteMessage(msg.id)}>
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        )}
                                     </div>
                                 </div>
                             ))

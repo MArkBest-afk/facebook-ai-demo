@@ -402,8 +402,17 @@ useEffect(() => {
       }
   }, []);
 
-  const handleNewChatMessage = useCallback(async () => {
+  const handleNewChatMessage = useCallback(async (sentMessage?: Partial<ChatMessage>) => {
     if (!userRef.current || !userRef.current._id) return;
+
+    if (sentMessage) {
+        setUser(prevUser => {
+            if (!prevUser) return null;
+            const newMessages = [...(prevUser.chatMessages || []), sentMessage as ChatMessage];
+            return { ...prevUser, chatMessages: newMessages };
+        });
+    }
+
     const latestUserData = await getUserById(userRef.current._id.toString());
     if (latestUserData) {
         latestUserData.chatMessages = latestUserData.chatMessages || [];

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { WithId, ObjectId } from 'mongodb';
+import { type WithId, ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
 import type { Robot, Trade, User, Notification, ChatMessage } from './types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
@@ -415,20 +415,6 @@ export async function sendNotificationToUser(userId: string, message: string): P
     return result.modifiedCount > 0;
 }
 
-export async function markNotificationsAsRead(userId: string, notificationIds: string[]): Promise<boolean> {
-    if (!ObjectId.isValid(userId) || notificationIds.length === 0) return false;
-    const db = await getDb();
-    const usersCollection = db.collection<User>('users');
-
-    const result = await usersCollection.updateOne(
-        { _id: new ObjectId(userId), "notifications.id": { $in: notificationIds } },
-        { $set: { "notifications.$[elem].read": true } },
-        { arrayFilters: [{ "elem.id": { $in: notificationIds } }] }
-    );
-
-    return result.modifiedCount > 0;
-}
-
 export async function sendChatMessage(userId: string, message: Partial<Omit<ChatMessage, 'id' | 'timestamp'>>): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();
@@ -441,6 +427,8 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
         timestamp: new Date(),
         read: message.sender === 'admin',
         readByAdmin: message.sender === 'admin',
+        paymentInfo: message.paymentInfo,
+        paymentLink: message.paymentLink,
         ...message,
     };
 
@@ -466,8 +454,9 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
                 const chatHistory = updatedUser.chatMessages || [];
                 if (chatHistory.length > 0) {
                      const serializableChatHistory = JSON.stringify(chatHistory.map(msg => ({
-                         sender: msg.senderName || msg.sender,
+                         sender: msg.sender,
                          text: msg.text,
+                         senderName: msg.senderName
                      })));
 
                      const aiResponse = await assistChat({ userId, chatHistory: serializableChatHistory });
