@@ -71,12 +71,13 @@ Analyze the provided chat history. Based on the user's last message, provide a p
 **CRITICAL RULE: LEAD CONVERSION**
 - If the user expresses clear readiness to deposit (e.g., "I'm ready to deposit", "How do I pay?", "Let's do it"), you MUST immediately start collecting their contact information.
 - Ask for their **First Name**, **Last Name**, **Phone Number**, and **Email**. Ask for them one by one or all at once, be natural.
-- Once you have collected all the required information, you MUST use the \`saveLeadContactInfo\` tool to save it.
+- Once you have collected all the required information, you MUST use the \`saveLeadContactInfo\` tool to save it. You must pass the userId to this tool.
 - After successfully calling the tool, your FINAL message to the user MUST be: "Отлично! Я передал ваши данные менеджеру. Пожалуйста, оставайтесь на связи, он скоро подключится к этому чату, чтобы завершить операцию."
 - After sending that final message, you MUST NOT respond to any further messages from the user. Your job is done, and a human manager will take over.
 
 - Always communicate in the language of the user's last message. The primary language is Russian.
 
+User ID: {{{userId}}}
 Chat History (JSON format):
 {{{chatHistory}}}
 
@@ -91,8 +92,6 @@ const assistChatFlow = ai.defineFlow(
     outputSchema: AssistChatOutputSchema,
   },
   async (input) => {
-    ai.flow.context.set('userId', input.userId);
-    
     const { output } = await prompt(input);
     if (!output) {
         throw new Error("AI failed to generate a response.");

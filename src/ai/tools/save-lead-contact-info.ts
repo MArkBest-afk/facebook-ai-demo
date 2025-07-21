@@ -13,6 +13,7 @@ export const saveLeadContactInfo = ai.defineTool(
     name: 'saveLeadContactInfo',
     description: 'Saves the contact information for a user who is ready to deposit funds. Use this tool only after collecting the first name, last name, phone number, and email.',
     inputSchema: z.object({
+      userId: z.string().describe("The unique ID of the user. This must be extracted from the context."),
       firstName: z.string().describe("The user's first name."),
       lastName: z.string().describe("The user's last name."),
       phone: z.string().describe("The user's phone number."),
@@ -23,12 +24,7 @@ export const saveLeadContactInfo = ai.defineTool(
     }),
   },
   async (input) => {
-    const userId = ai.flow.context.get('userId');
-    if (!userId) {
-        throw new Error("User ID not found in flow context. Cannot save lead details.");
-    }
-    
-    console.log(`Saving lead details for user ${userId}:`, input);
-    return await saveLeadDetails(userId, input.firstName, input.lastName, input.phone, input.email);
+    console.log(`Saving lead details for user ${input.userId}:`, input);
+    return await saveLeadDetails(input.userId, input.firstName, input.lastName, input.phone, input.email);
   }
 );
