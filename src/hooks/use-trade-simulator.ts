@@ -168,7 +168,7 @@ useEffect(() => {
             return {
                 ...prevUser,
                 chatMessages: prevUser.chatMessages.map(m => 
-                    unreadIds.includes(m.id) ? { ...m, read: true } : n
+                    unreadIds.includes(m.id) ? { ...m, read: true } : m
                 ),
             };
         });
@@ -403,17 +403,21 @@ useEffect(() => {
   }, []);
 
   const handleNewChatMessage = useCallback(async (sentMessage?: Partial<ChatMessage>) => {
-    if (!userRef.current || !userRef.current._id) return;
+    const currentUser = userRef.current;
+    if (!currentUser || !currentUser._id) return;
 
     if (sentMessage) {
         setUser(prevUser => {
             if (!prevUser) return null;
+            // Optimistically update the UI with the new message
             const newMessages = [...(prevUser.chatMessages || []), sentMessage as ChatMessage];
             return { ...prevUser, chatMessages: newMessages };
         });
     }
 
-    const latestUserData = await getUserById(userRef.current._id.toString());
+    // Now, fetch the latest state from the server which will include the AI response
+    // The polling mechanism will also catch this, but an immediate fetch provides a better UX
+    const latestUserData = await getUserById(currentUser._id.toString());
     if (latestUserData) {
         latestUserData.chatMessages = latestUserData.chatMessages || [];
         setUser(latestUserData);
