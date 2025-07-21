@@ -33,6 +33,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     const [isSending, setIsSending] = useState(false);
     const [adminName, setAdminName] = useState('Поддержка');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
     // State for payment dialog
@@ -42,13 +43,29 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     const [paymentLinkText, setPaymentLinkText] = useState('Оплатить');
 
     useEffect(() => {
-        if (scrollAreaRef.current) {
-            const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-            if (viewport) {
-                 setTimeout(() => viewport.scrollTop = viewport.scrollHeight, 100);
-            }
-        }
+        const scrollArea = scrollAreaRef.current;
+        const messagesContainer = messagesContainerRef.current;
+        if (!scrollArea || !messagesContainer) return;
+
+        const viewport = scrollArea.querySelector('div[data-radix-scroll-area-viewport]');
+        if (!viewport) return;
+
+        const scrollToBottom = () => {
+            viewport.scrollTop = viewport.scrollHeight;
+        };
+
+        // Scroll to bottom initially
+        scrollToBottom();
+
+        // Use MutationObserver to scroll to bottom when new messages are added
+        const observer = new MutationObserver(scrollToBottom);
+        observer.observe(messagesContainer, { childList: true, subtree: true });
+
+        return () => {
+            observer.disconnect();
+        };
     }, [messages]);
+
 
     const handleSendMessage = async () => {
         const text = newMessage.trim();
@@ -208,7 +225,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             </CardHeader>
             <CardContent className="flex-grow p-0 overflow-hidden">
                 <ScrollArea className="h-full" ref={scrollAreaRef}>
-                    <div className="p-4 space-y-4">
+                    <div className="p-4 space-y-4" ref={messagesContainerRef}>
                         {messages.length === 0 ? (
                              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
                                 <MessageSquare className="w-10 h-10 mb-4" />
