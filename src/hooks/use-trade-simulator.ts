@@ -86,7 +86,6 @@ export function useTradeSimulator() {
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(ACCOUNT_ID_STORAGE_KEY, userData._id.toString());
-        // Clear the URL parameter after use
         if (leadSignature) {
             const url = new URL(window.location.href);
             url.searchParams.delete('lead_sig');
@@ -109,14 +108,12 @@ export function useTradeSimulator() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, t]);
+  }, [toast]);
 
-  // Load user data on mount
   useEffect(() => {
     initializeUser();
   }, [sessionResetFlag, initializeUser]);
 
-  // Notification handler
   useEffect(() => {
     const currentUser = userRef.current;
     if (!currentUser || !currentUser.notifications || currentUser.notifications.length === 0) return;
@@ -133,7 +130,6 @@ export function useTradeSimulator() {
             });
         });
 
-        // Mark as read on client
         setUser(prevUser => {
             if (!prevUser || !prevUser.notifications) return prevUser;
             return {
@@ -144,12 +140,10 @@ export function useTradeSimulator() {
             };
         });
 
-        // Mark as read on server
         markNotificationsAsRead(currentUser._id.toString(), unreadIds);
     }
 }, [user, toast]);
 
-// Chat message handler
 useEffect(() => {
     if (!user || !user.chatMessages) {
         setUnreadChatMessages(0);
@@ -162,7 +156,6 @@ useEffect(() => {
     if (isChatOpen && unreadCount > 0 && user._id) {
         const unreadIds = user.chatMessages.filter(m => m.sender === 'admin' && !m.read).map(m => m.id);
         
-        // Mark as read on client
         setUser(prevUser => {
             if (!prevUser || !prevUser.chatMessages) return prevUser;
             return {
@@ -173,13 +166,11 @@ useEffect(() => {
             };
         });
 
-        // Mark as read on server
         markChatMessagesAsRead(user._id.toString());
     }
 }, [user, isChatOpen]);
 
 
-  // Polling for remote updates
   useEffect(() => {
     const pollForUpdates = async () => {
         const currentUser = userRef.current;
@@ -187,15 +178,12 @@ useEffect(() => {
 
         const latestUserData = await getUserById(currentUser._id.toString());
         if (latestUserData) {
-            // Check for session reset from admin
             if (currentUser.sessionStartTime && !latestUserData.sessionStartTime) {
-                // Session has been reset remotely
                 toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
                 initializeUser(currentUser._id.toString());
-                return; // Re-initialization will handle everything
+                return; 
             }
 
-             // Only update if there are meaningful changes to avoid unnecessary re-renders
             if (JSON.stringify(currentUser) !== JSON.stringify(latestUserData)) {
               latestUserData.chatMessages = latestUserData.chatMessages || [];
               setUser(latestUserData);
@@ -208,16 +196,14 @@ useEffect(() => {
         }
     };
     
-    // Don't poll while loading or if there's no user
     if (isLoading || !user) return;
 
-    const intervalId = setInterval(pollForUpdates, 5000); // Poll every 5 seconds for chat responsiveness
+    const intervalId = setInterval(pollForUpdates, 5000); 
 
     return () => clearInterval(intervalId);
   }, [isLoading, user, initializeUser, toast]);
 
 
-  // Timer logic
   useEffect(() => {
     let clockTimerId: NodeJS.Timeout | null = null;
 
@@ -232,7 +218,7 @@ useEffect(() => {
         if (currentElapsedTime >= userRef.current.timeLimit) {
           setTimeLimitReached(true);
           if (userRef.current.isRunning) {
-            handleToggleSimulator(); // Stop the simulator
+            handleToggleSimulator();
           }
           if (clockTimerId) clearInterval(clockTimerId);
         }
@@ -263,7 +249,6 @@ useEffect(() => {
     const entryPrice = Math.random() * 100 + 100;
     const quantity = tradeAmount / entryPrice;
 
-    // Custom P/L logic
     const isFirstTrade = currentUser.trades.length === 0;
     const lastTwoTrades = currentUser.trades.slice(0, 2);
     const hasTwoConsecutiveLosses = lastTwoTrades.length === 2 && lastTwoTrades.every(t => t.pnl < 0);
@@ -271,11 +256,9 @@ useEffect(() => {
     let pnl;
 
     if (isFirstTrade || hasTwoConsecutiveLosses) {
-      // Force a profitable trade
-      const pnlFactor = Math.random() * 0.05 + 0.01; // Profitable factor between 1% and 6%
+      const pnlFactor = Math.random() * 0.05 + 0.01;
       pnl = tradeAmount * pnlFactor;
     } else {
-      // Standard random trade logic
       let pnlFactor;
       switch (currentRobot.riskTolerance) {
           case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
@@ -290,7 +273,7 @@ useEffect(() => {
 
     const newTradeData = {
       symbol,
-      type: pnl > 0 ? 'BUY' : 'SELL', // simplified logic
+      type: pnl > 0 ? 'BUY' : 'SELL', 
       quantity: parseFloat(quantity.toFixed(4)),
       entryPrice: parseFloat(entryPrice.toFixed(2)),
       exitPrice: parseFloat(exitPrice.toFixed(2)),
@@ -403,32 +386,31 @@ useEffect(() => {
   }, []);
 
   const handleNewChatMessage = useCallback(async (sentMessage: Partial<ChatMessage>) => {
-    if (!userRef.current || !userRef.current._id) return;
-    if (!sentMessage.text) return; // Ignore empty messages
+    const currentUser = userRef.current;
+    if (!currentUser || !currentUser._id) return;
+    if (!sentMessage.text && !sentMessage.paymentInfo && !sentMessage.paymentLink) return;
 
-    const userId = userRef.current._id.toString();
+    const userId = currentUser._id.toString();
 
-    // 1. Optimistically update the UI with the new message
     const tempMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${Date.now()}` as any,
       timestamp: new Date(),
-      read: true, // User's own message is always "read" by them
+      read: true,
       readByAdmin: false,
+      sender: 'user', 
+      text: '',
       ...sentMessage,
-    } as ChatMessage;
-
+    };
+    
     setUser(prevUser => {
       if (!prevUser) return null;
       const newMessages = [...(prevUser.chatMessages || []), tempMessage];
       return { ...prevUser, chatMessages: newMessages };
     });
 
-    // 2. Call the server action
     try {
       await sendChatMessage(userId, tempMessage);
       
-      // 3. Fetch latest state to get AI response and permanent ID
-      // This ensures we get any AI response and sync the state.
       const latestUserData = await getUserById(userId);
       if (latestUserData) {
           latestUserData.chatMessages = latestUserData.chatMessages || [];
@@ -437,7 +419,6 @@ useEffect(() => {
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
-      // Remove the temp message from UI if it fails
       setUser(prevUser => {
         if (!prevUser) return null;
         return {

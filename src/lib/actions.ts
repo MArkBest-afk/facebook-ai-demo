@@ -142,8 +142,6 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     const db = await getDb();
     const usersCollection = db.collection<Omit<User, '_id'>>('users');
     
-    // If a user comes from a lead link, we always create a new user session for them.
-    // We ignore any existing accountId to ensure the lead is tracked as a new, unique session.
     if (leadSignature) {
         accountId = null;
     }
@@ -151,7 +149,6 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     if (accountId && ObjectId.isValid(accountId)) {
         const user = await usersCollection.findOne({ _id: new ObjectId(accountId) });
         if (user) {
-            // Update last active time for existing users
             await usersCollection.updateOne({ _id: new ObjectId(accountId) }, { $set: { lastActive: new Date() } });
             return toPlainObject(user) as unknown as User;
         }
@@ -240,14 +237,12 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
 export async function addManualTrade(accountId: string, tradeType: 'profitable' | 'losing'): Promise<boolean> {
     if (!ObjectId.isValid(accountId)) return false;
 
-    // Generate P/L between 1 and 2 dollars.
     let pnl = Math.random() * (2 - 1) + 1;
     
     if (tradeType === 'losing') {
         pnl = -pnl;
     }
 
-    // Keep trade amount logic simple as P/L is fixed
     const tradeAmount = 50; 
     const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
     const entryPrice = Math.random() * 100 + 100;
@@ -345,7 +340,6 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     if (updates.balance !== undefined) {
         const newBalance = updates.balance;
         updateData.balance = newBalance;
-        // Correctly recalculate PnL based on the initial balance
         updateData.totalPnl = newBalance - INITIAL_BALANCE;
     }
 
@@ -409,7 +403,7 @@ export async function sendNotificationToUser(userId: string, message: string): P
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $push: { notifications: { $each: [newNotification], $position: 0 } } as any }
+        { $push: { notifications: newNotification as any } }
     );
 
     return result.modifiedCount > 0;
@@ -463,7 +457,7 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
         updateQuery
     );
 
-    if (newChatMessage.sender === 'user') {
+    if (updateResult.modifiedCount > 0 && newChatMessage.sender === 'user') {
         const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
         
         if (updatedUser && updatedUser.isAiChatEnabled && !updatedUser.isHotLead) {
@@ -496,7 +490,6 @@ export async function markChatMessagesAsRead(userId: string): Promise<boolean> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
-    // Mark all admin messages as read for this user
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         { $set: { "chatMessages.$[elem].read": true } },
@@ -516,7 +509,7 @@ export async function markAdminChatMessagesAsRead(userId: string): Promise<boole
         {
             $set: {
                 hasUnreadAdminMessages: false,
-                "chatMessages.$[elem].readByAdmin": true
+                "chatMessages.$[].readByAdmin": true
             }
         },
         { arrayFilters: [{ "elem.sender": "user" }] }
@@ -574,7 +567,7 @@ export async function saveLeadDetails(
                 phone,
                 email,
                 isHotLead: true,
-                hasUnreadAdminMessages: true, // Mark as unread to get manager's attention
+                hasUnreadAdminMessages: true, 
                 lastActive: new Date()
             }
         }
