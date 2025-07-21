@@ -123,6 +123,7 @@ export default function UserDetailPage() {
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                     };
                 });
+                setBalanceInput(userData.balance.toFixed(2));
                 setChatMessages(userData.chatMessages || []);
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
@@ -209,7 +210,7 @@ export default function UserDetailPage() {
             const success = await addManualTrade(user._id.toString(), tradeType);
             if (success) {
                 toast({ title: 'Успех', description: `Ручная ${tradeType === 'profitable' ? 'прибыльная' : 'убыточная'} сделка добавлена.` });
-                await fetchAndSetFullUserData();
+                await fetchDynamicUserData(); // Use dynamic fetch to avoid full reload
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось добавить ручную сделку.' });
             }
@@ -228,7 +229,7 @@ export default function UserDetailPage() {
             const success = await updateUserSubscription(user._id.toString(), isSubscribed);
             if (success) {
                 toast({ title: 'Успех', description: 'Статус подписки обновлен.' });
-                await fetchAndSetFullUserData();
+                await fetchDynamicUserData();
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить подписку.' });
             }

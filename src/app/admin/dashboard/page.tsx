@@ -72,27 +72,37 @@ export default function AdminDashboardPage() {
     const { toast } = useToast();
     const [users, setUsers] = useState<WithId<User>[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPolling, setIsPolling] = useState(false);
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
 
-
-    const fetchUsers = async () => {
-        setIsLoading(true);
+    const fetchUsers = async (isInitialLoad = false) => {
+        if (isInitialLoad) {
+            setIsLoading(true);
+        } else {
+            setIsPolling(true);
+        }
         try {
             const userList = await getAllUsers();
             setUsers(userList);
         } catch (error) {
             console.error("Failed to fetch users:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить список пользователей.' });
         } finally {
-            setIsLoading(false);
+            if (isInitialLoad) {
+                setIsLoading(false);
+            } else {
+                setIsPolling(false);
+            }
         }
     };
 
     useEffect(() => {
-        fetchUsers();
-        const interval = setInterval(fetchUsers, 5000); // Опрос каждые 5 секунд для чата
+        fetchUsers(true); // Initial load with full-screen loader
+        const interval = setInterval(() => fetchUsers(false), 5000); // Subsequent polling without full loader
         return () => clearInterval(interval);
     }, []);
+
 
     const handleLogout = () => {
         try {
@@ -182,8 +192,8 @@ export default function AdminDashboardPage() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        <Button variant="ghost" size="icon" onClick={fetchUsers} disabled={isLoading}>
-                            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                        <Button variant="ghost" size="icon" onClick={() => fetchUsers(false)} disabled={isPolling}>
+                            <RefreshCw className={cn("h-4 w-4", isPolling && "animate-spin")} />
                         </Button>
                          <Button variant="outline" size="sm" onClick={handleGoHome}>
                             <Home className="mr-2 h-4 w-4" />
@@ -197,6 +207,12 @@ export default function AdminDashboardPage() {
                 </div>
             </header>
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+                 {isLoading ? (
+                    <div className="flex h-[60vh] items-center justify-center">
+                        <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
+                    </div>
+                ) : (
+                <>
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-4">Статистика пользователей</h2>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -264,13 +280,7 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                                                Загрузка данных пользователей...
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : users.length === 0 ? (
+                                    {users.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                                 Пользователи не найдены.
@@ -331,9 +341,9 @@ export default function AdminDashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
+                </>
+                )}
             </main>
         </div>
     )
 }
-
-    
