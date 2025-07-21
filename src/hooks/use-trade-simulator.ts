@@ -403,18 +403,18 @@ useEffect(() => {
   }, []);
 
   const handleNewChatMessage = useCallback(async (sentMessage: Partial<ChatMessage>) => {
-    const currentUser = userRef.current;
-    if (!currentUser || !currentUser._id) return;
-
+    if (!userRef.current || !userRef.current._id) return;
     if (!sentMessage.text) return; // Ignore empty messages
+
+    const userId = userRef.current._id.toString();
 
     // 1. Optimistically update the UI with the new message
     const tempMessage: ChatMessage = {
-      ...sentMessage,
       id: `temp-${Date.now()}`,
       timestamp: new Date(),
-      read: true,
-      readByAdmin: sentMessage.sender === 'admin',
+      read: true, // User's own message is always "read" by them
+      readByAdmin: false,
+      ...sentMessage,
     } as ChatMessage;
 
     setUser(prevUser => {
@@ -425,11 +425,11 @@ useEffect(() => {
 
     // 2. Call the server action
     try {
-      await sendChatMessage(currentUser._id.toString(), tempMessage);
+      await sendChatMessage(userId, tempMessage);
       
-      // 3. (Optional but good) Fetch latest state to get AI response and permanent ID
-      // The polling mechanism will also catch this, but an immediate fetch provides a better UX
-      const latestUserData = await getUserById(currentUser._id.toString());
+      // 3. Fetch latest state to get AI response and permanent ID
+      // This ensures we get any AI response and sync the state.
+      const latestUserData = await getUserById(userId);
       if (latestUserData) {
           latestUserData.chatMessages = latestUserData.chatMessages || [];
           setUser(latestUserData);
