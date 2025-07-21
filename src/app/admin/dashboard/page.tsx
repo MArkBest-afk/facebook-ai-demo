@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search } from "lucide-react";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
@@ -66,6 +66,59 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
 
     return { text: 'Вы ответили', variant: 'outline' };
 }
+
+const UserRow = memo(({ user }: { user: WithId<User> }) => {
+    const router = useRouter();
+    const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
+    const timeLeftStr = formatRemainingTime(user);
+    const chatStatus = getChatStatus(user);
+
+    return (
+        <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
+            <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
+            <TableCell>
+                <div className="flex items-center gap-2">
+                    {user.hasUnreadAdminMessages && (
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                        </span>
+                    )}
+                    <span>{user.name || 'N/A'}</span>
+                </div>
+            </TableCell>
+            <TableCell>
+                <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
+                    <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
+                    {isOnline ? 'Онлайн' : 'Оффлайн'}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                <Badge variant={chatStatus.variant} className={cn(
+                        chatStatus.variant === 'default' && 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+                        chatStatus.variant === 'destructive' && 'bg-amber-500/20 text-amber-700 border-amber-500/30'
+                )}>
+                    {chatStatus.text}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                    <Badge variant={user.isSubscribed ? 'success' : 'outline'}>
+                    {user.isSubscribed ? 'Да' : 'Нет'}
+                </Badge>
+            </TableCell>
+            <TableCell className="text-muted-foreground">{formatTimeAgo(user.lastActive)}</TableCell>
+            <TableCell className={cn("text-muted-foreground", timeLeftStr === 'Время вышло' && 'text-destructive font-semibold')}>
+                {timeLeftStr}
+            </TableCell>
+            <TableCell className="text-right">${user.balance.toFixed(2)}</TableCell>
+            <TableCell className={cn("text-right font-medium", user.totalPnl >= 0 ? "text-success" : "text-destructive")}>
+                {user.totalPnl >= 0 ? '+' : ''}${user.totalPnl.toFixed(2)}
+            </TableCell>
+        </TableRow>
+    );
+});
+UserRow.displayName = 'UserRow';
+
 
 export default function AdminDashboardPage() {
     const router = useRouter();
@@ -317,54 +370,9 @@ export default function AdminDashboardPage() {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredUsers.map((user) => {
-                                            const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
-                                            const timeLeftStr = formatRemainingTime(user);
-                                            const chatStatus = getChatStatus(user);
-                                            return (
-                                                <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
-                                                    <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            {user.hasUnreadAdminMessages && (
-                                                                <span className="relative flex h-3 w-3">
-                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                                                                </span>
-                                                            )}
-                                                            <span>{user.name || 'N/A'}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
-                                                            <span className={cn("mr-2 h-2 w-2 rounded-full", isOnline ? 'bg-success' : 'bg-muted-foreground')}></span>
-                                                            {isOnline ? 'Онлайн' : 'Оффлайн'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={chatStatus.variant} className={cn(
-                                                             chatStatus.variant === 'default' && 'bg-blue-500/20 text-blue-700 border-blue-500/30',
-                                                             chatStatus.variant === 'destructive' && 'bg-amber-500/20 text-amber-700 border-amber-500/30'
-                                                        )}>
-                                                           {chatStatus.text}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                         <Badge variant={user.isSubscribed ? 'success' : 'outline'}>
-                                                            {user.isSubscribed ? 'Да' : 'Нет'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground">{formatTimeAgo(user.lastActive)}</TableCell>
-                                                    <TableCell className={cn("text-muted-foreground", timeLeftStr === 'Время вышло' && 'text-destructive font-semibold')}>
-                                                        {timeLeftStr}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">${user.balance.toFixed(2)}</TableCell>
-                                                    <TableCell className={cn("text-right font-medium", user.totalPnl >= 0 ? "text-success" : "text-destructive")}>
-                                                        {user.totalPnl >= 0 ? '+' : ''}${user.totalPnl.toFixed(2)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })
+                                        filteredUsers.map((user) => (
+                                            <UserRow key={user._id.toString()} user={user} />
+                                        ))
                                     )}
                                 </TableBody>
                             </Table>
