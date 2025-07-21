@@ -50,32 +50,45 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         }
     }, [messages]);
 
-    const handleSendMessage = async (messageData: Partial<ChatMessage> = {}) => {
-        const text = messageData.text || newMessage.trim();
-        if (!text && !messageData.paymentInfo && !messageData.paymentLink) return;
+    const handleSendMessage = async () => {
+        const text = newMessage.trim();
+        if (!text) return;
         
         setIsSending(true);
 
-        const finalMessage: Partial<ChatMessage> = {
+        const messageData: Partial<ChatMessage> = {
             sender,
             senderName: sender === 'admin' ? adminName : undefined,
-            ...messageData,
-            text, // Ensure text is always included
+            text,
         };
         
         if (onNewMessage) {
-            onNewMessage(finalMessage);
+            onNewMessage(messageData);
         }
 
         setNewMessage('');
         setIsSending(false);
+    };
+
+    const handleSendSpecialMessage = (messageData: Partial<ChatMessage>) => {
+         if (!onNewMessage) return;
+
+         const finalMessage: Partial<ChatMessage> = {
+            sender,
+            senderName: sender === 'admin' ? adminName : undefined,
+            ...messageData,
+        };
+
+        onNewMessage(finalMessage);
+
         // Reset payment dialog fields if they were used
         if(messageData.paymentInfo) setPaymentDetails('');
         if(messageData.paymentLink) {
             setPaymentLink('');
             setPaymentLinkText('Оплатить');
         }
-    };
+        setIsPaymentDialogOpen(false);
+    }
     
     const handleDeleteMessage = async (messageId: string | ObjectId) => {
         try {
@@ -99,11 +112,10 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
 
     const handleSendPaymentDetails = () => {
         if (!paymentDetails.trim()) return;
-        handleSendMessage({
+        handleSendSpecialMessage({
             text: 'Пожалуйста, используйте следующие реквизиты для пополнения счета.',
             paymentInfo: { details: paymentDetails.trim() }
         });
-        setIsPaymentDialogOpen(false);
     };
 
     const handleSendPaymentLink = () => {
@@ -115,11 +127,10 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, введите действительный URL.' });
             return;
         }
-        handleSendMessage({
+        handleSendSpecialMessage({
             text: 'Пожалуйста, используйте кнопку ниже для перехода к оплате.',
             paymentLink: { url: paymentLink.trim(), buttonText: paymentLinkText.trim() }
         });
-        setIsPaymentDialogOpen(false);
     };
 
     const handleCopyToClipboard = (text: string) => {
@@ -320,7 +331,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                             </DialogContent>
                         </Dialog>
                     )}
-                    <Button onClick={() => handleSendMessage()} disabled={isSending || !newMessage.trim()}>
+                    <Button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()}>
                         <Send className="h-4 w-4" />
                     </Button>
                 </div>
@@ -328,3 +339,5 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         </Card>
     );
 }
+
+    

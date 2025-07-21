@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { User, Trade, ChatMessage } from '@/lib/types';
-import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead, getUsersByName } from '@/lib/actions';
+import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead, getUsersByName, sendChatMessage } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -138,6 +138,7 @@ export default function UserDetailPage() {
                         balance: userData.balance, // Also update balance in case of manual trades
                         isAiChatEnabled: userData.isAiChatEnabled,
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
+                        chatMessages: userData.chatMessages || [],
                     };
                 });
                 setBalanceInput(userData.balance.toFixed(2));
@@ -151,6 +152,18 @@ export default function UserDetailPage() {
             console.error("Failed to fetch dynamic user data:", error);
         }
     }, [userId, markMessagesAsRead, fetchDuplicates]);
+
+    const handleAdminSendMessage = async (messageData: Partial<ChatMessage>) => {
+        if (!user || !user._id) return;
+        
+        try {
+            await sendChatMessage(user._id.toString(), messageData);
+            await fetchDynamicUserData(); // Refresh chat after sending
+        } catch (error) {
+            console.error("Failed to send admin message:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
+        }
+    };
     
     // Initial data load
     useEffect(() => {
@@ -222,7 +235,10 @@ export default function UserDetailPage() {
             console.error("Delete error:", error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка во время удаления.' });
         } finally {
-            setIsUpdating(false);
+            // Keep updating false if navigating away
+            if (idToDelete !== userId) {
+                setIsUpdating(false);
+            }
         }
     };
 
@@ -619,7 +635,7 @@ export default function UserDetailPage() {
                                 userId={user._id.toString()} 
                                 messages={chatMessages}
                                 sender="admin"
-                                onNewMessage={fetchDynamicUserData}
+                                onNewMessage={handleAdminSendMessage}
                                 isAdmin
                             />
                         </CardContent>
@@ -691,3 +707,5 @@ export default function UserDetailPage() {
         </div>
     );
 }
+
+    
