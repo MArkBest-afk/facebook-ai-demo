@@ -87,6 +87,7 @@ export default function AdminDashboardPage() {
         try {
             const userList = await getAllUsers();
             
+            // Only update state if data has actually changed, to prevent flickering
             if (JSON.stringify(usersRef.current) !== JSON.stringify(userList)) {
                 setUsers(userList);
                 usersRef.current = userList;
@@ -376,5 +377,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    
