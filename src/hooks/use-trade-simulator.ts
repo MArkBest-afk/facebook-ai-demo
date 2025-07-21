@@ -2,12 +2,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Robot, Trade, User, ChatMessage } from '@/lib/types';
+import type { Robot, Trade, User, ChatMessage, ObjectId } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
 import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead } from '@/lib/actions';
-import { ObjectId } from 'mongodb';
+
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
@@ -168,7 +168,7 @@ useEffect(() => {
             return {
                 ...prevUser,
                 chatMessages: prevUser.chatMessages.map(m => 
-                    unreadIds.includes(m.id) ? { ...m, read: true } : m
+                    unreadIds.includes(m.id) ? { ...m, read: true } : n
                 ),
             };
         });

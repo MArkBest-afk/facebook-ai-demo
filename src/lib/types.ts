@@ -1,4 +1,6 @@
-import type { ObjectId } from 'mongodb';
+import type { ObjectId as MongoObjectId } from 'mongodb';
+
+export type ObjectId = MongoObjectId | string;
 
 export interface Robot {
   id: 'risk-averse' | 'balanced' | 'high-growth';
@@ -8,7 +10,7 @@ export interface Robot {
 }
 
 export interface Trade {
-  id: string;
+  id: ObjectId;
   symbol: string;
   type: 'BUY' | 'SELL';
   quantity: number;
@@ -19,14 +21,14 @@ export interface Trade {
 }
 
 export interface Notification {
-  id: string;
+  id: ObjectId;
   message: string;
   timestamp: Date;
   read: boolean;
 }
 
 export interface ChatMessage {
-  id: string;
+  id: ObjectId;
   sender: 'user' | 'admin';
   senderName?: string;
   text: string;
@@ -43,7 +45,7 @@ export interface ChatMessage {
 }
 
 export interface User {
-  _id: ObjectId | string; // Allow string for client-side representation
+  _id: ObjectId; // Allow string for client-side representation
   balance: number;
   trades: Trade[];
   selectedRobotId: string | null;

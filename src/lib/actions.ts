@@ -17,7 +17,7 @@ async function getDb() {
 }
 
 // Helper function to convert MongoDB docs to plain objects
-function toPlainObject<T>(doc: WithId<T>): T & { _id: string } {
+function toPlainObject<T extends { _id: ObjectId }>(doc: WithId<T>): T {
     const plainDoc = { ...doc, _id: doc._id.toString() };
     
     if ('trades' in plainDoc && Array.isArray(plainDoc.trades)) {
@@ -162,7 +162,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : null;
     const geoLocation = await getGeoLocation(ip);
 
-    const newUser: Omit<User, '_id'> = {
+    const newUser: Omit<User, '_id' | 'duplicates'> = {
         name: leadSignature || undefined,
         balance: INITIAL_BALANCE,
         trades: [],
@@ -218,7 +218,7 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
 
     const newTrade: Trade = {
         ...trade,
-        id: new ObjectId().toHexString(),
+        id: new ObjectId(),
     };
 
     const result = await usersCollection.findOneAndUpdate(
@@ -232,7 +232,7 @@ export async function addTrade(accountId: string, trade: Omit<Trade, 'id' | 'tim
     );
     
     if (result) {
-        return newTrade;
+        return { ...newTrade, id: newTrade.id.toString() };
     }
     return null;
 }
@@ -401,7 +401,7 @@ export async function sendNotificationToUser(userId: string, message: string): P
     const usersCollection = db.collection<User>('users');
 
     const newNotification: Notification = {
-        id: new ObjectId().toHexString(),
+        id: new ObjectId(),
         message,
         timestamp: new Date(),
         read: false,
@@ -409,11 +409,28 @@ export async function sendNotificationToUser(userId: string, message: string): P
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $push: { notifications: { $each: [newNotification], $position: 0 } as any } }
+        { $push: { notifications: { $each: [newNotification], $position: 0 } } as any }
     );
 
     return result.modifiedCount > 0;
 }
+
+export async function markNotificationsAsRead(userId: string, notificationIds: (string | ObjectId)[]): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || notificationIds.length === 0) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const objectIdNotificationIds = notificationIds.map(id => new ObjectId(id));
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { "notifications.$[elem].read": true } },
+        { arrayFilters: [{ "elem.id": { $in: objectIdNotificationIds } }] }
+    );
+
+    return result.modifiedCount > 0;
+}
+
 
 export async function sendChatMessage(userId: string, message: Partial<Omit<ChatMessage, 'id' | 'timestamp'>>): Promise<boolean> {
     if (!ObjectId.isValid(userId)) return false;
@@ -421,7 +438,7 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
     const usersCollection = db.collection<User>('users');
 
     const newChatMessage: ChatMessage = {
-        id: new ObjectId().toHexString(),
+        id: new ObjectId(),
         sender: message.sender || 'user',
         text: message.text || '',
         timestamp: new Date(),
@@ -510,13 +527,13 @@ export async function markAdminChatMessagesAsRead(userId: string): Promise<boole
 
 
 export async function deleteChatMessage(userId: string, messageId: string): Promise<boolean> {
-    if (!ObjectId.isValid(userId) || !messageId) return false;
+    if (!ObjectId.isValid(userId) || !ObjectId.isValid(messageId)) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $pull: { chatMessages: { id: messageId } } as any }
+        { $pull: { chatMessages: { id: new ObjectId(messageId) } } as any }
     );
 
     return result.modifiedCount > 0;

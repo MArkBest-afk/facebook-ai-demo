@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, Trash2, MessageSquare, CreditCard, Copy, Link as LinkIcon, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, ObjectId } from '@/lib/types';
 import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
-import { ObjectId } from 'mongodb';
 
 
 interface ChatProps {
@@ -56,30 +55,35 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         if (!text && !messageData.paymentInfo && !messageData.paymentLink) return;
         setIsSending(true);
 
-        const finalMessage: Partial<ChatMessage> = {
-            id: new ObjectId().toHexString(),
+        const tempId = new Date().toISOString(); // Temporary ID for immediate display
+        const finalMessage: Partial<ChatMessage> & { tempId?: string } = {
+            id: tempId,
             timestamp: new Date(),
             sender,
             text,
             senderName: sender === 'admin' ? adminName : undefined,
             ...messageData,
         };
+        
+        onNewMessage?.(finalMessage);
+        setNewMessage('');
 
         try {
             await sendChatMessage(userId, finalMessage);
-            setNewMessage('');
-            onNewMessage?.(sender === 'user' ? finalMessage : undefined);
         } catch (error) {
             console.error('Failed to send message:', error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
+            // Optionally, remove the message from UI if it fails
         } finally {
             setIsSending(false);
+            // After server confirmation, we might get an update via polling,
+            // which will replace the temp message with the real one.
         }
     };
     
-    const handleDeleteMessage = async (messageId: string) => {
+    const handleDeleteMessage = async (messageId: string | ObjectId) => {
         try {
-            await deleteChatMessage(userId, messageId);
+            await deleteChatMessage(userId, messageId.toString());
             onNewMessage?.();
         } catch (error) {
             console.error('Failed to delete message:', error);
@@ -209,7 +213,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                             </div>
                         ) : (
                             messages.map((msg) => (
-                                <div key={msg.id} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
+                                <div key={msg.id.toString()} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
                                      {msg.sender !== sender && msg.senderName && (
                                         <div className="text-xs font-medium text-muted-foreground ml-2 flex items-center gap-1">
                                             {msg.senderName === 'Поддержка' && <Bot className="w-3 h-3"/>}
