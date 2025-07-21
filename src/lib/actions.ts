@@ -510,7 +510,7 @@ export async function markAdminChatMessagesAsRead(userId: string): Promise<boole
         {
             $set: {
                 hasUnreadAdminMessages: false,
-                "chatMessages.$[].readByAdmin": true
+                "chatMessages.$[elem].readByAdmin": true
             }
         },
         { arrayFilters: [{ "elem.sender": "user" }] }
