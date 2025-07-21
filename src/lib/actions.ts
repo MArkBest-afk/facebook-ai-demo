@@ -182,6 +182,7 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
         chatMessages: [],
         isAiChatEnabled: true,
         hasUnreadAdminMessages: false,
+        isHotLead: false,
     };
 
     const result = await usersCollection.insertOne(newUser as any);
@@ -290,6 +291,11 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
                 lastActive: new Date(),
                 notifications: [],
                 chatMessages: [],
+                isHotLead: false,
+                firstName: undefined,
+                lastName: undefined,
+                phone: undefined,
+                email: undefined,
             }
         },
         { returnDocument: 'after' }
@@ -451,7 +457,7 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
         // Fetch the most recent user data, which now includes the new message.
         const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
         
-        if (updatedUser && updatedUser.isAiChatEnabled) {
+        if (updatedUser && updatedUser.isAiChatEnabled && !updatedUser.isHotLead) {
             try {
                 // Ensure chat history is not empty
                 const chatHistory = updatedUser.chatMessages || [];
@@ -461,7 +467,7 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
                          text: msg.text,
                      })));
 
-                     const aiResponse = await assistChat({ chatHistory: serializableChatHistory });
+                     const aiResponse = await assistChat({ userId, chatHistory: serializableChatHistory });
 
                     if (aiResponse && aiResponse.answer) {
                         // Send AI's response as admin. This will mark the AI message as readByAdmin.
@@ -536,4 +542,35 @@ export async function clearChatHistory(userId: string): Promise<boolean> {
     );
 
     return result.modifiedCount > 0;
+}
+
+export async function saveLeadDetails(
+    userId: string, 
+    firstName: string, 
+    lastName: string, 
+    phone: string, 
+    email: string
+): Promise<{success: boolean}> {
+    if (!ObjectId.isValid(userId)) {
+        return { success: false };
+    }
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { 
+            $set: {
+                firstName,
+                lastName,
+                phone,
+                email,
+                isHotLead: true,
+                hasUnreadAdminMessages: true, // Mark as unread to get manager's attention
+                lastActive: new Date()
+            }
+        }
+    );
+
+    return { success: result.modifiedCount > 0 };
 }

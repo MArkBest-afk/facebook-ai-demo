@@ -9,10 +9,11 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { saveLeadContactInfo } from '@/ai/tools/save-lead-contact-info';
 import { z } from 'zod';
 
-// The input for the exported function remains the same complex object.
 const AssistChatInputSchema = z.object({
+  userId: z.string().describe('The unique ID of the user.'),
   chatHistory: z.string().describe('The entire chat history as a JSON string.'),
 });
 export type AssistChatInput = z.infer<typeof AssistChatInputSchema>;
@@ -28,11 +29,11 @@ export async function assistChat(input: AssistChatInput): Promise<AssistChatOutp
   return assistChatFlow(input);
 }
 
-// The prompt now directly expects a simple object with a string.
 const prompt = ai.definePrompt({
   name: 'assistChatPrompt',
   input: { schema: z.object({ chatHistory: z.string() }) },
   output: { schema: AssistChatOutputSchema },
+  tools: [saveLeadContactInfo],
   prompt: `You are an expert AI sales manager for a demo trading platform called "Facebook AI".
 Your name is Gemini, but you should always sign off as "Поддержка" or "Support".
 You are stepping in because the human manager is currently unavailable.
@@ -63,10 +64,17 @@ HOW TO FUND A REAL ACCOUNT (Your key sales point):
 - IMPORTANT: Do NOT list payment methods unless the user asks how to deposit or directly expresses a desire to do so.
 
 YOUR TASK:
-Analyze the provided chat history. Based on the user's last message, provide a persuasive, aggressive, and closing answer.
+Analyze the provided chat history. Based on the user's last message, provide a persuasive, helpful, and closing answer.
 - If the user asks a specific question (e.g., "how does this work?", "what robot to choose?"), your FIRST priority is to answer it clearly and concisely. After helping them, you can pivot back to the benefits of a real account.
 - Overcome any hesitation or objection by highlighting the profits they are seeing on the demo.
-- If the user expresses readiness to deposit, you MUST ask for their name and phone number so a manager can contact them to complete the payment.
+
+**CRITICAL RULE: LEAD CONVERSION**
+- If the user expresses clear readiness to deposit (e.g., "I'm ready to deposit", "How do I pay?", "Let's do it"), you MUST immediately start collecting their contact information.
+- Ask for their **First Name**, **Last Name**, **Phone Number**, and **Email**. Ask for them one by one or all at once, be natural.
+- Once you have collected all the required information, you MUST use the \`saveLeadContactInfo\` tool to save it.
+- After successfully calling the tool, your FINAL message to the user MUST be: "Отлично! Я передал ваши данные менеджеру. Пожалуйста, оставайтесь на связи, он скоро подключится к этому чату, чтобы завершить операцию."
+- After sending that final message, you MUST NOT respond to any further messages from the user. Your job is done, and a human manager will take over.
+
 - Always communicate in the language of the user's last message. The primary language is Russian.
 
 Chat History (JSON format):
@@ -76,16 +84,16 @@ Based on the last message from the user, provide a persuasive, helpful, and clos
 `,
 });
 
-// The flow is now much simpler. It directly passes the string input to the prompt.
 const assistChatFlow = ai.defineFlow(
   {
     name: 'assistChatFlow',
-    inputSchema: AssistChatInputSchema, // Expects { chatHistory: string }
+    inputSchema: AssistChatInputSchema,
     outputSchema: AssistChatOutputSchema,
   },
-  async (input) => {
-    // Directly call the prompt with the input string.
-    const { output } = await prompt({ chatHistory: input.chatHistory });
+  async ({ userId, chatHistory }) => {
+    ai.flow.context.set('userId', userId);
+    
+    const { output } = await prompt({ chatHistory: chatHistory });
     if (!output) {
         throw new Error("AI failed to generate a response.");
     }

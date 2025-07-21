@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
@@ -74,11 +74,18 @@ const UserRow = memo(({ user }: { user: WithId<User> }) => {
     const chatStatus = getChatStatus(user);
 
     return (
-        <TableRow key={user._id.toString()} onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} className="cursor-pointer">
+        <TableRow 
+            key={user._id.toString()} 
+            onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} 
+            className={cn(
+                "cursor-pointer",
+                user.isHotLead && "bg-amber-500/10 hover:bg-amber-500/20"
+            )}
+        >
             <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
             <TableCell>
                 <div className="flex items-center gap-2">
-                    {user.hasUnreadAdminMessages && (
+                    {user.hasUnreadAdminMessages && !user.isHotLead && (
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
@@ -86,6 +93,17 @@ const UserRow = memo(({ user }: { user: WithId<User> }) => {
                     )}
                     <span>{user.name || 'N/A'}</span>
                 </div>
+            </TableCell>
+            <TableCell>
+                 <Badge variant={user.isHotLead ? 'destructive' : 'outline'} className={cn(user.isHotLead && 'animate-pulse')}>
+                    {user.isHotLead ? (
+                        <>
+                            <Flame className="mr-2 h-4 w-4" /> Горячий лид
+                        </>
+                    ) : (
+                        'Обычный'
+                    )}
+                </Badge>
             </TableCell>
             <TableCell>
                 <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
@@ -198,11 +216,17 @@ export default function AdminDashboardPage() {
     };
 
     const filteredUsers = useMemo(() => {
+        const sortedUsers = [...users].sort((a, b) => {
+            if (a.isHotLead && !b.isHotLead) return -1;
+            if (!a.isHotLead && b.isHotLead) return 1;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
         if (!searchQuery) {
-            return users;
+            return sortedUsers;
         }
         const lowercasedQuery = searchQuery.toLowerCase();
-        return users.filter(user => {
+        return sortedUsers.filter(user => {
             const idMatch = user._id.toString().toLowerCase().includes(lowercasedQuery);
             const nameMatch = user.name?.toLowerCase().includes(lowercasedQuery);
             return idMatch || nameMatch;
@@ -353,6 +377,7 @@ export default function AdminDashboardPage() {
                                     <TableRow>
                                         <TableHead>ID Пользователя</TableHead>
                                         <TableHead>Имя</TableHead>
+                                        <TableHead>Статус лида</TableHead>
                                         <TableHead>Статус</TableHead>
                                         <TableHead>Чат</TableHead>
                                         <TableHead>Подписан</TableHead>
@@ -365,7 +390,7 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {filteredUsers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                                                 Пользователи не найдены.
                                             </TableCell>
                                         </TableRow>

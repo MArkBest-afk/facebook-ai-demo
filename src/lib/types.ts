@@ -56,4 +56,9 @@ export interface User {
   chatMessages?: ChatMessage[];
   isAiChatEnabled?: boolean;
   hasUnreadAdminMessages?: boolean; // Unread messages for admin
+  isHotLead?: boolean;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
 }
