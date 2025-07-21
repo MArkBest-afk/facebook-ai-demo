@@ -431,20 +431,21 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
-    const newChatMessage: ChatMessage = {
-        id: new ObjectId(),
+    const newChatMessage: Omit<ChatMessage, 'id'> = {
         sender: message.sender || 'user',
+        senderName: message.senderName,
         text: message.text || '',
         timestamp: new Date(),
         read: message.sender === 'admin',
         readByAdmin: message.sender === 'admin',
         paymentInfo: message.paymentInfo,
         paymentLink: message.paymentLink,
-        ...message,
-    } as ChatMessage;
+    };
+    
+    const dbChatMessage = { ...newChatMessage, id: new ObjectId() };
 
     const updateQuery: any = {
-        $push: { chatMessages: newChatMessage as any },
+        $push: { chatMessages: dbChatMessage as any },
         $set: { lastActive: new Date() }
     };
     

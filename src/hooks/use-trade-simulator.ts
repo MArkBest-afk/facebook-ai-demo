@@ -386,19 +386,19 @@ useEffect(() => {
   }, []);
 
   const handleNewChatMessage = useCallback(async (sentMessage: Partial<ChatMessage>) => {
-    const currentUser = userRef.current;
-    if (!currentUser || !currentUser._id) return;
+    if (!userRef.current || !userRef.current._id) return;
     if (!sentMessage.text && !sentMessage.paymentInfo && !sentMessage.paymentLink) return;
 
-    const userId = currentUser._id.toString();
+    const userId = userRef.current._id.toString();
 
+    // Optimistic update
     const tempMessage: ChatMessage = {
       id: `temp-${Date.now()}` as any,
       timestamp: new Date(),
       read: true,
       readByAdmin: false,
-      sender: 'user', 
-      text: '',
+      sender: sentMessage.sender || 'user',
+      text: sentMessage.text || '',
       ...sentMessage,
     };
     
@@ -409,8 +409,10 @@ useEffect(() => {
     });
 
     try {
+      // Server action
       await sendChatMessage(userId, tempMessage);
       
+      // Re-fetch user data to get the real message from server and AI response
       const latestUserData = await getUserById(userId);
       if (latestUserData) {
           latestUserData.chatMessages = latestUserData.chatMessages || [];
@@ -419,11 +421,12 @@ useEffect(() => {
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
+      // Revert optimistic update on failure
       setUser(prevUser => {
         if (!prevUser) return null;
         return {
           ...prevUser,
-          chatMessages: prevUser.chatMessages.filter(m => m.id !== tempMessage.id),
+          chatMessages: prevUser.chatMessages?.filter(m => m.id !== tempMessage.id),
         }
       });
     }

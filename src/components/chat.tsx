@@ -58,9 +58,9 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
 
         const finalMessage: Partial<ChatMessage> = {
             sender,
-            text,
             senderName: sender === 'admin' ? adminName : undefined,
             ...messageData,
+            text, // Ensure text is always included
         };
         
         if (onNewMessage) {
@@ -158,7 +158,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                 </div>
             )
         }
-        return <p className="break-words">{msg.text}</p>;
+        return msg.text && <p className="break-words">{msg.text}</p>;
     }
 
 
@@ -255,7 +255,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                     <Input
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
                         placeholder="Введите сообщение..."
                         disabled={isSending}
                     />
