@@ -31,7 +31,7 @@ export async function assistChat(input: AssistChatInput): Promise<AssistChatOutp
 
 const prompt = ai.definePrompt({
   name: 'assistChatPrompt',
-  input: { schema: z.object({ chatHistory: z.string() }) },
+  input: { schema: AssistChatInputSchema },
   output: { schema: AssistChatOutputSchema },
   tools: [saveLeadContactInfo],
   prompt: `You are an expert AI sales manager for a demo trading platform called "Facebook AI".
@@ -90,10 +90,10 @@ const assistChatFlow = ai.defineFlow(
     inputSchema: AssistChatInputSchema,
     outputSchema: AssistChatOutputSchema,
   },
-  async ({ userId, chatHistory }) => {
-    ai.flow.context.set('userId', userId);
+  async (input) => {
+    ai.flow.context.set('userId', input.userId);
     
-    const { output } = await prompt({ chatHistory: chatHistory });
+    const { output } = await prompt(input);
     if (!output) {
         throw new Error("AI failed to generate a response.");
     }
