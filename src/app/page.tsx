@@ -157,8 +157,12 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
-          
-          <div>
+           
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button onClick={() => setIsChatOpen(true)}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t('chatWithSupport')}
+            </Button>
             <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
               <AlertDialogTrigger asChild>
                 <Button variant="link">
