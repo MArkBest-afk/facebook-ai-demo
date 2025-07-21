@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
@@ -75,6 +75,7 @@ export default function AdminDashboardPage() {
     const [isPolling, setIsPolling] = useState(false);
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const usersRef = useRef<WithId<User>[]>([]);
 
     const fetchUsers = useCallback(async (isInitialLoad = false) => {
@@ -143,6 +144,18 @@ export default function AdminDashboardPage() {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось скопировать ссылку.' });
         });
     };
+
+    const filteredUsers = useMemo(() => {
+        if (!searchQuery) {
+            return users;
+        }
+        const lowercasedQuery = searchQuery.toLowerCase();
+        return users.filter(user => {
+            const idMatch = user._id.toString().toLowerCase().includes(lowercasedQuery);
+            const nameMatch = user.name?.toLowerCase().includes(lowercasedQuery);
+            return idMatch || nameMatch;
+        });
+    }, [searchQuery, users]);
 
     const onlineUsers = users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
     const totalUsers = users.length;
@@ -272,6 +285,15 @@ export default function AdminDashboardPage() {
 
                 <div>
                     <h2 className="text-2xl font-semibold mb-4">Данные пользователей</h2>
+                     <div className="mb-4 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Поиск по ID или имени..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
                     <Card>
                         <CardContent className="p-0">
                             <Table>
@@ -289,14 +311,14 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.length === 0 ? (
+                                    {filteredUsers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                                 Пользователи не найдены.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        users.map((user) => {
+                                        filteredUsers.map((user) => {
                                             const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
                                             const timeLeftStr = formatRemainingTime(user);
                                             const chatStatus = getChatStatus(user);
