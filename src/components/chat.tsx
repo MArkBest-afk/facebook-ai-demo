@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, Trash2, MessageSquare, CreditCard, Copy, Link as LinkIcon, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage, ObjectId } from '@/lib/types';
-import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
+import { deleteChatMessage, clearChatHistory } from '@/lib/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,7 +22,7 @@ interface ChatProps {
     userId: string;
     messages: ChatMessage[];
     sender: 'user' | 'admin';
-    onNewMessage?: (sentMessage?: Partial<ChatMessage>) => void;
+    onNewMessage?: (sentMessage: Partial<ChatMessage>) => void;
     onClose?: () => void;
     title?: string;
     isAdmin?: boolean;
@@ -53,38 +53,34 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     const handleSendMessage = async (messageData: Partial<ChatMessage> = {}) => {
         const text = messageData.text || newMessage.trim();
         if (!text && !messageData.paymentInfo && !messageData.paymentLink) return;
+        
         setIsSending(true);
 
-        const tempId = new Date().toISOString(); // Temporary ID for immediate display
-        const finalMessage: Partial<ChatMessage> & { tempId?: string } = {
-            id: tempId,
-            timestamp: new Date(),
+        const finalMessage: Partial<ChatMessage> = {
             sender,
             text,
             senderName: sender === 'admin' ? adminName : undefined,
             ...messageData,
         };
         
-        onNewMessage?.(finalMessage);
-        setNewMessage('');
+        if (onNewMessage) {
+            onNewMessage(finalMessage);
+        }
 
-        try {
-            await sendChatMessage(userId, finalMessage);
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
-            // Optionally, remove the message from UI if it fails
-        } finally {
-            setIsSending(false);
-            // After server confirmation, we might get an update via polling,
-            // which will replace the temp message with the real one.
+        setNewMessage('');
+        setIsSending(false);
+        // Reset payment dialog fields if they were used
+        if(messageData.paymentInfo) setPaymentDetails('');
+        if(messageData.paymentLink) {
+            setPaymentLink('');
+            setPaymentLinkText('Оплатить');
         }
     };
     
     const handleDeleteMessage = async (messageId: string | ObjectId) => {
         try {
             await deleteChatMessage(userId, messageId.toString());
-            onNewMessage?.();
+            onNewMessage?.({}); // Trigger a refresh
         } catch (error) {
             console.error('Failed to delete message:', error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось удалить сообщение.' });
@@ -94,7 +90,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     const handleClearHistory = async () => {
         try {
             await clearChatHistory(userId);
-            onNewMessage?.();
+            onNewMessage?.({}); // Trigger a refresh
         } catch (error) {
             console.error('Failed to clear chat history:', error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось очистить историю чата.' });
@@ -108,7 +104,6 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             paymentInfo: { details: paymentDetails.trim() }
         });
         setIsPaymentDialogOpen(false);
-        setPaymentDetails('');
     };
 
     const handleSendPaymentLink = () => {
@@ -125,8 +120,6 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             paymentLink: { url: paymentLink.trim(), buttonText: paymentLinkText.trim() }
         });
         setIsPaymentDialogOpen(false);
-        setPaymentLink('');
-        setPaymentLinkText('Оплатить');
     };
 
     const handleCopyToClipboard = (text: string) => {
@@ -212,8 +205,8 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                 <p className="text-sm">Задавайте свои вопросы в любое время. Мы здесь, чтобы помочь!</p>
                             </div>
                         ) : (
-                            messages.map((msg) => (
-                                <div key={msg.id.toString()} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
+                            messages.map((msg, index) => (
+                                <div key={msg.id?.toString() || `temp-${index}`} className={cn("flex flex-col items-start gap-2 group", msg.sender === sender ? "items-end" : "items-start")}>
                                      {msg.sender !== sender && msg.senderName && (
                                         <div className="text-xs font-medium text-muted-foreground ml-2 flex items-center gap-1">
                                             {msg.senderName === 'Поддержка' && <Bot className="w-3 h-3"/>}

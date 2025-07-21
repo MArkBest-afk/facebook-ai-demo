@@ -6,7 +6,7 @@ import type { Robot, Trade, User, ChatMessage, ObjectId } from '@/lib/types';
 import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
-import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead } from '@/lib/actions';
+import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead, sendChatMessage } from '@/lib/actions';
 
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
@@ -402,27 +402,51 @@ useEffect(() => {
       }
   }, []);
 
-  const handleNewChatMessage = useCallback(async (sentMessage?: Partial<ChatMessage>) => {
+  const handleNewChatMessage = useCallback(async (sentMessage: Partial<ChatMessage>) => {
     const currentUser = userRef.current;
     if (!currentUser || !currentUser._id) return;
 
-    if (sentMessage) {
-        setUser(prevUser => {
-            if (!prevUser) return null;
-            // Optimistically update the UI with the new message
-            const newMessages = [...(prevUser.chatMessages || []), sentMessage as ChatMessage];
-            return { ...prevUser, chatMessages: newMessages };
-        });
-    }
+    if (!sentMessage.text) return; // Ignore empty messages
 
-    // Now, fetch the latest state from the server which will include the AI response
-    // The polling mechanism will also catch this, but an immediate fetch provides a better UX
-    const latestUserData = await getUserById(currentUser._id.toString());
-    if (latestUserData) {
-        latestUserData.chatMessages = latestUserData.chatMessages || [];
-        setUser(latestUserData);
+    // 1. Optimistically update the UI with the new message
+    const tempMessage: ChatMessage = {
+      ...sentMessage,
+      id: `temp-${Date.now()}`,
+      timestamp: new Date(),
+      read: true,
+      readByAdmin: sentMessage.sender === 'admin',
+    } as ChatMessage;
+
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      const newMessages = [...(prevUser.chatMessages || []), tempMessage];
+      return { ...prevUser, chatMessages: newMessages };
+    });
+
+    // 2. Call the server action
+    try {
+      await sendChatMessage(currentUser._id.toString(), tempMessage);
+      
+      // 3. (Optional but good) Fetch latest state to get AI response and permanent ID
+      // The polling mechanism will also catch this, but an immediate fetch provides a better UX
+      const latestUserData = await getUserById(currentUser._id.toString());
+      if (latestUserData) {
+          latestUserData.chatMessages = latestUserData.chatMessages || [];
+          setUser(latestUserData);
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
+      // Remove the temp message from UI if it fails
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          chatMessages: prevUser.chatMessages.filter(m => m.id !== tempMessage.id),
+        }
+      });
     }
-  }, []);
+  }, [toast]);
 
 
   return {

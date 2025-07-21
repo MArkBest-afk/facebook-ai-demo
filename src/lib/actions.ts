@@ -420,7 +420,7 @@ export async function markNotificationsAsRead(userId: string, notificationIds: (
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
-    const objectIdNotificationIds = notificationIds.map(id => new ObjectId(id));
+    const objectIdNotificationIds = notificationIds.map(id => new ObjectId(id.toString()));
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
@@ -447,7 +447,7 @@ export async function sendChatMessage(userId: string, message: Partial<Omit<Chat
         paymentInfo: message.paymentInfo,
         paymentLink: message.paymentLink,
         ...message,
-    };
+    } as ChatMessage;
 
     const updateQuery: any = {
         $push: { chatMessages: newChatMessage as any },
@@ -526,14 +526,14 @@ export async function markAdminChatMessagesAsRead(userId: string): Promise<boole
 }
 
 
-export async function deleteChatMessage(userId: string, messageId: string): Promise<boolean> {
-    if (!ObjectId.isValid(userId) || !ObjectId.isValid(messageId)) return false;
+export async function deleteChatMessage(userId: string, messageId: string | ObjectId): Promise<boolean> {
+    if (!ObjectId.isValid(userId) || !ObjectId.isValid(messageId.toString())) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $pull: { chatMessages: { id: new ObjectId(messageId) } } as any }
+        { $pull: { chatMessages: { id: new ObjectId(messageId.toString()) } } as any }
     );
 
     return result.modifiedCount > 0;
