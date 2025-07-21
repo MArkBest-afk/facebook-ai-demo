@@ -87,14 +87,12 @@ export default function AdminDashboardPage() {
         try {
             const userList = await getAllUsers();
             
-            // Only update state if the data has actually changed to prevent re-renders
             if (JSON.stringify(usersRef.current) !== JSON.stringify(userList)) {
                 setUsers(userList);
                 usersRef.current = userList;
             }
         } catch (error) {
             console.error("Failed to fetch users:", error);
-            // Don't toast on polling errors to avoid spamming
             if (isInitialLoad) {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить список пользователей.' });
             }
@@ -108,8 +106,8 @@ export default function AdminDashboardPage() {
     }, [toast]);
 
     useEffect(() => {
-        fetchUsers(true); // Initial load with full-screen loader
-        const interval = setInterval(() => fetchUsers(false), 5000); // Subsequent polling without full loader
+        fetchUsers(true);
+        const interval = setInterval(() => fetchUsers(false), 5000);
         return () => clearInterval(interval);
     }, [fetchUsers]);
 
@@ -377,4 +375,5 @@ export default function AdminDashboardPage() {
             </main>
         </div>
     )
-}
+
+    
