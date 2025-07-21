@@ -33,6 +33,13 @@ export interface ChatMessage {
   timestamp: Date;
   read: boolean; // Read by user
   readByAdmin: boolean; // Read by admin
+  paymentInfo?: { // For sending raw bank details etc.
+    details: string;
+  };
+  paymentLink?: { // For sending a clickable payment link
+    url: string;
+    buttonText: string;
+  };
 }
 
 export interface User {

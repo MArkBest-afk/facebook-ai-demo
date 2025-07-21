@@ -1,16 +1,19 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, X, Trash2, MessageSquare } from 'lucide-react';
+import { Send, X, Trash2, MessageSquare, CreditCard, Copy, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
 import { sendChatMessage, deleteChatMessage, clearChatHistory } from '@/lib/actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from './ui/label';
 
@@ -31,6 +34,12 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
+    // State for payment dialog
+    const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+    const [paymentDetails, setPaymentDetails] = useState('');
+    const [paymentLink, setPaymentLink] = useState('');
+    const [paymentLinkText, setPaymentLinkText] = useState('Оплатить');
+
     useEffect(() => {
         if (scrollAreaRef.current) {
             const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
@@ -40,11 +49,20 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
         }
     }, [messages]);
 
-    const handleSendMessage = async () => {
-        if (!newMessage.trim() || isSending) return;
+    const handleSendMessage = async (messageData: Partial<ChatMessage> = {}) => {
+        const text = messageData.text || newMessage.trim();
+        if (!text && !messageData.paymentInfo && !messageData.paymentLink) return;
         setIsSending(true);
+
+        const finalMessage: Partial<ChatMessage> = {
+            sender,
+            text,
+            senderName: sender === 'admin' ? adminName : undefined,
+            ...messageData,
+        };
+
         try {
-            await sendChatMessage(userId, sender, newMessage.trim(), sender === 'admin' ? adminName : undefined);
+            await sendChatMessage(userId, finalMessage);
             setNewMessage('');
             onNewMessage?.();
         } catch (error) {
@@ -74,6 +92,73 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось очистить историю чата.' });
         }
     };
+
+    const handleSendPaymentDetails = () => {
+        if (!paymentDetails.trim()) return;
+        handleSendMessage({
+            text: 'Пожалуйста, используйте следующие реквизиты для пополнения счета.',
+            paymentInfo: { details: paymentDetails.trim() }
+        });
+        setIsPaymentDialogOpen(false);
+        setPaymentDetails('');
+    };
+
+    const handleSendPaymentLink = () => {
+        if (!paymentLink.trim() || !paymentLinkText.trim()) return;
+         try {
+            // Validate URL
+            new URL(paymentLink);
+        } catch (_) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, введите действительный URL.' });
+            return;
+        }
+        handleSendMessage({
+            text: 'Пожалуйста, используйте кнопку ниже для перехода к оплате.',
+            paymentLink: { url: paymentLink.trim(), buttonText: paymentLinkText.trim() }
+        });
+        setIsPaymentDialogOpen(false);
+        setPaymentLink('');
+        setPaymentLinkText('Оплатить');
+    };
+
+    const handleCopyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            toast({ title: 'Успех', description: 'Реквизиты скопированы в буфер обмена.' });
+        }, () => {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось скопировать реквизиты.' });
+        });
+    };
+
+    const renderMessageContent = (msg: ChatMessage) => {
+        if (msg.paymentInfo) {
+            return (
+                 <div className="space-y-2">
+                    <p>{msg.text}</p>
+                    <div className="bg-background/50 rounded-md p-2 border border-border/50">
+                        <pre className="text-xs whitespace-pre-wrap font-mono">{msg.paymentInfo.details}</pre>
+                    </div>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={() => handleCopyToClipboard(msg.paymentInfo.details)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Копировать реквизиты
+                    </Button>
+                </div>
+            );
+        }
+        if (msg.paymentLink) {
+            return (
+                <div className="space-y-3">
+                    <p>{msg.text}</p>
+                    <a href={msg.paymentLink.url} target="_blank" rel="noopener noreferrer">
+                        <Button className="w-full">
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            {msg.paymentLink.buttonText}
+                        </Button>
+                    </a>
+                </div>
+            )
+        }
+        return <p className="break-all">{msg.text}</p>;
+    }
 
 
     return (
@@ -138,7 +223,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                                                     : "bg-muted"
                                             )}
                                         >
-                                            <p className="break-all">{msg.text}</p>
+                                            {renderMessageContent(msg)}
                                             <span className={cn("text-xs opacity-70", msg.sender === sender ? 'text-right' : 'text-left')}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
@@ -175,7 +260,68 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
                         placeholder="Введите сообщение..."
                         disabled={isSending}
                     />
-                    <Button onClick={handleSendMessage} disabled={isSending || !newMessage.trim()}>
+                     {isAdmin && (
+                        <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                            <DialogTrigger asChild>
+                                 <Button variant="outline" size="icon" disabled={isSending}>
+                                    <CreditCard className="h-4 w-4" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Создать платеж</DialogTitle>
+                                    <DialogDescription>
+                                        Отправьте клиенту реквизиты для оплаты или платежную ссылку.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <Tabs defaultValue="details">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="details">Реквизиты</TabsTrigger>
+                                        <TabsTrigger value="link">Ссылка</TabsTrigger>
+                                    </TabsList>
+                                    <TabsContent value="details" className="space-y-4 pt-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="payment-details">Реквизиты для оплаты</Label>
+                                            <Textarea 
+                                                id="payment-details" 
+                                                placeholder="Введите реквизиты (номер карты, счета и т.д.)" 
+                                                rows={5}
+                                                value={paymentDetails}
+                                                onChange={(e) => setPaymentDetails(e.target.value)}
+                                            />
+                                        </div>
+                                        <Button onClick={handleSendPaymentDetails} disabled={isSending || !paymentDetails.trim()} className="w-full">
+                                            Отправить реквизиты
+                                        </Button>
+                                    </TabsContent>
+                                    <TabsContent value="link" className="space-y-4 pt-4">
+                                         <div className="space-y-2">
+                                            <Label htmlFor="payment-link-url">URL платежной ссылки</Label>
+                                            <Input 
+                                                id="payment-link-url" 
+                                                placeholder="https://stripe.com/..." 
+                                                value={paymentLink}
+                                                onChange={(e) => setPaymentLink(e.target.value)}
+                                            />
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="payment-link-text">Текст на кнопке</Label>
+                                            <Input 
+                                                id="payment-link-text" 
+                                                placeholder="Оплатить"
+                                                value={paymentLinkText}
+                                                onChange={(e) => setPaymentLinkText(e.target.value)}
+                                            />
+                                        </div>
+                                        <Button onClick={handleSendPaymentLink} disabled={isSending || !paymentLink.trim() || !paymentLinkText.trim()} className="w-full">
+                                            Отправить ссылку
+                                        </Button>
+                                    </TabsContent>
+                                </Tabs>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                    <Button onClick={() => handleSendMessage()} disabled={isSending || !newMessage.trim()}>
                         <Send className="h-4 w-4" />
                     </Button>
                 </div>

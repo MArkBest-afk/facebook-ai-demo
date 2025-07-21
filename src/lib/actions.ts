@@ -429,19 +429,19 @@ export async function markNotificationsAsRead(userId: string, notificationIds: s
     return result.modifiedCount > 0;
 }
 
-export async function sendChatMessage(userId: string, sender: 'user' | 'admin', text: string, senderName?: string): Promise<boolean> {
-    if (!ObjectId.isValid(userId) || !text) return false;
+export async function sendChatMessage(userId: string, message: Partial<Omit<ChatMessage, 'id' | 'timestamp'>>): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
 
     const newChatMessage: ChatMessage = {
         id: new ObjectId().toHexString(),
-        sender,
-        senderName: senderName,
-        text,
+        sender: message.sender || 'user',
+        text: message.text || '',
         timestamp: new Date(),
-        read: sender === 'admin', // Messages from admin are "read" by default for the user
-        readByAdmin: sender === 'admin', // Messages from admin are "read" by admin
+        read: message.sender === 'admin',
+        readByAdmin: message.sender === 'admin',
+        ...message,
     };
 
     const updateQuery: any = {
@@ -449,25 +449,20 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
         $set: { lastActive: new Date() }
     };
     
-    // If the message is from a user, mark it as unread for the admin.
-    if (sender === 'user') {
+    if (newChatMessage.sender === 'user') {
         updateQuery.$set.hasUnreadAdminMessages = true;
     }
-
 
     const updateResult = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         updateQuery
     );
 
-    // After the message is saved, check if the AI needs to respond.
-    if (sender === 'user') {
-        // Fetch the most recent user data, which now includes the new message.
+    if (newChatMessage.sender === 'user') {
         const updatedUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
         
         if (updatedUser && updatedUser.isAiChatEnabled && !updatedUser.isHotLead) {
             try {
-                // Ensure chat history is not empty
                 const chatHistory = updatedUser.chatMessages || [];
                 if (chatHistory.length > 0) {
                      const serializableChatHistory = JSON.stringify(chatHistory.map(msg => ({
@@ -478,8 +473,7 @@ export async function sendChatMessage(userId: string, sender: 'user' | 'admin', 
                      const aiResponse = await assistChat({ userId, chatHistory: serializableChatHistory });
 
                     if (aiResponse && aiResponse.answer) {
-                        // Send AI's response as admin. This will mark the AI message as readByAdmin.
-                        await sendChatMessage(userId, 'admin', aiResponse.answer, 'Поддержка');
+                        await sendChatMessage(userId, { sender: 'admin', text: aiResponse.answer, senderName: 'Поддержка' });
                     }
                 }
             } catch (error) {
