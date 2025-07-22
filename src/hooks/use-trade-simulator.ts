@@ -20,7 +20,7 @@ function getLeadSignatureFromURL(): string | null {
     return urlParams.get('lead_sig');
 }
 
-export function useTradeSimulator() {
+export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
   const [user, setUser] = useState<User | null>(null);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [tutorialCompleted, setTutorialCompleted] = useState<boolean>();
@@ -28,7 +28,6 @@ export function useTradeSimulator() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const [sessionResetFlag, setSessionResetFlag] = useState(0);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadChatMessages, setUnreadChatMessages] = useState(0);
 
 
@@ -451,9 +450,7 @@ useEffect(() => {
     isBlocked: user?.isBlocked ?? false,
     isLoading,
     chatMessages: user?.chatMessages ?? [],
-    isChatOpen,
     unreadChatMessages,
-    setIsChatOpen,
     handleNewChatMessage,
   };
 }

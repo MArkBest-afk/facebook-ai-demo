@@ -45,6 +45,8 @@ import { Chat } from '@/components/chat';
 export default function Home() {
   const { t } = useI18n();
   const { toast } = useToast();
+  const [isChatVisible, setIsChatVisible] = useState(false);
+
   const { 
     accountId,
     balance, 
@@ -57,7 +59,6 @@ export default function Home() {
     timeLimit,
     isBlocked,
     chatMessages,
-    isChatOpen,
     unreadChatMessages,
     handleSelectRobot, 
     handleToggleSimulator,
@@ -65,9 +66,8 @@ export default function Home() {
     tutorialCompleted,
     completeTutorial,
     isLoading,
-    setIsChatOpen,
     handleNewChatMessage,
-  } = useTradeSimulator();
+  } = useTradeSimulator({isChatOpen: isChatVisible});
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
@@ -159,7 +159,7 @@ export default function Home() {
           </Card>
            
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button onClick={() => setIsChatOpen(true)}>
+            <Button onClick={() => setIsChatVisible(true)}>
               <MessageSquare className="mr-2 h-4 w-4" />
               {t('chatWithSupport')}
             </Button>
@@ -319,7 +319,7 @@ export default function Home() {
         </div>
       </div>
        <div className="fixed bottom-6 right-6 z-50">
-          <Button size="icon" className="rounded-full w-16 h-16 shadow-lg relative" onClick={() => setIsChatOpen(true)}>
+          <Button size="icon" className="rounded-full w-16 h-16 shadow-lg relative" onClick={() => setIsChatVisible(true)}>
               <MessageSquare className="w-8 h-8" />
               {unreadChatMessages > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
@@ -329,13 +329,13 @@ export default function Home() {
           </Button>
       </div>
 
-      {isChatOpen && accountId && (
+      {isChatVisible && accountId && (
            <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
               <Chat 
                   userId={accountId}
                   messages={chatMessages}
                   sender="user"
-                  onClose={() => setIsChatOpen(false)}
+                  onClose={() => setIsChatVisible(false)}
                   onNewMessage={handleNewChatMessage}
                   title={t('chatWithSupport')}
               />
