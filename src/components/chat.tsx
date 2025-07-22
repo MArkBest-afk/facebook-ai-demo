@@ -191,7 +191,12 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
 
 
     return (
-        <Card className="w-full h-full sm:h-auto max-w-lg max-h-[90vh] sm:max-h-[700px] shadow-2xl flex flex-col bg-card sm:rounded-lg">
+        <Card className={cn(
+            "shadow-2xl flex flex-col bg-card",
+            isAdmin 
+                ? "h-[70vh] max-h-[700px] w-full"
+                : "w-full h-full sm:h-auto max-w-lg max-h-[90vh] sm:max-h-[700px] sm:rounded-lg"
+        )}>
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
                 <CardTitle className="text-lg">{title}</CardTitle>
                 <div className="flex items-center gap-1">
