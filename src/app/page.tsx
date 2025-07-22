@@ -330,7 +330,7 @@ export default function Home() {
       </div>
 
       {isChatOpen && accountId && (
-           <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4">
+           <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
               <Chat 
                   userId={accountId}
                   messages={chatMessages}
