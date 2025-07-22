@@ -195,7 +195,7 @@ export function Chat({ userId, messages, sender, onNewMessage, onClose, title = 
             "shadow-2xl flex flex-col bg-card",
             isAdmin 
                 ? "h-[70vh] w-full"
-                : "w-full h-full sm:max-h-[80vh] max-w-lg sm:rounded-lg"
+                : "w-full h-full sm:h-[80vh] max-w-lg sm:rounded-lg"
         )}>
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
                 <CardTitle className="text-lg">{title}</CardTitle>
