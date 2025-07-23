@@ -133,70 +133,84 @@ export default function Home() {
 
   if (timeLimitReached) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm p-4 text-center overflow-y-auto">
-        <div className="w-full max-w-md mx-auto space-y-6">
-          
-          <div className="space-y-4">
-            <Trophy className="w-16 h-16 text-primary mx-auto" />
-            <h1 className="text-3xl font-headline text-primary">{t('timeLimitReachedTitle')}</h1>
-            <p className="text-base text-muted-foreground max-w-lg mx-auto">
-              {t('timeLimitReachedDesc')}
-            </p>
-          </div>
+      <>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm p-4 text-center overflow-y-auto">
+          <div className="w-full max-w-md mx-auto space-y-6">
+            
+            <div className="space-y-4">
+              <Trophy className="w-16 h-16 text-primary mx-auto" />
+              <h1 className="text-3xl font-headline text-primary">{t('timeLimitReachedTitle')}</h1>
+              <p className="text-base text-muted-foreground max-w-lg mx-auto">
+                {t('timeLimitReachedDesc')}
+              </p>
+            </div>
 
-          <Card className="w-full text-center shadow-lg bg-card border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{t('finalResultTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                'text-5xl font-bold font-headline',
-                totalPnl >= 0 ? 'text-success' : 'text-destructive'
-              )}>
-                {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-            </CardContent>
-          </Card>
-           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button onClick={() => setIsChatVisible(true)}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              {t('chatWithSupport')}
-            </Button>
-            <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
-              <AlertDialogTrigger asChild>
-                <Button variant="link">
-                  <Repeat className="mr-2 h-4 w-4" />
-                  {t('resetSession')}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('resetDialogTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('resetDialogDescription')}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {t('resetDialogPasswordPrompt')}
-                  </p>
-                  <Input
-                    type="password"
-                    value={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.value)}
-                    placeholder="****"
-                  />
+            <Card className="w-full text-center shadow-lg bg-card border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t('finalResultTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={cn(
+                  'text-5xl font-bold font-headline',
+                  totalPnl >= 0 ? 'text-success' : 'text-destructive'
+                )}>
+                  {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('resetDialogCancel')}</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetConfirm}>{t('resetDialogConfirm')}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </CardContent>
+            </Card>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button onClick={() => setIsChatVisible(true)}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                {t('chatWithSupport')}
+              </Button>
+              <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="link">
+                    <Repeat className="mr-2 h-4 w-4" />
+                    {t('resetSession')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('resetDialogTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('resetDialogDescription')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {t('resetDialogPasswordPrompt')}
+                    </p>
+                    <Input
+                      type="password"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      placeholder="****"
+                    />
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('resetDialogCancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetConfirm}>{t('resetDialogConfirm')}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
-      </div>
+        {isChatVisible && accountId && (
+            <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <Chat 
+                    userId={accountId}
+                    messages={chatMessages}
+                    sender="user"
+                    onClose={() => setIsChatVisible(false)}
+                    onNewMessage={handleNewChatMessage}
+                    title={t('chatWithSupport')}
+                />
+            </div>
+        )}
+      </>
     );
   }
 
