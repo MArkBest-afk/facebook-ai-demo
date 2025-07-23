@@ -66,12 +66,13 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
   const initializeUser = useCallback(async (existingId: string | null = null) => {
     setIsLoading(true);
     try {
-      let savedAccountId: string | null = existingId;
-      if (!savedAccountId && typeof window !== 'undefined') {
-          savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
-      }
+        let savedAccountId: string | null = existingId;
+        const leadSignature = getLeadSignatureFromURL();
+
+        if (!leadSignature && typeof window !== 'undefined') {
+            savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
+        }
       
-      const leadSignature = getLeadSignatureFromURL();
       const userData = await getOrCreateUser(savedAccountId, leadSignature);
 
       userData.trades = userData.trades || [];

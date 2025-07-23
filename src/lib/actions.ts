@@ -142,8 +142,13 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     const db = await getDb();
     const usersCollection = db.collection<Omit<User, '_id'>>('users');
     
+    // If a lead signature is provided, try to find the user by name first
     if (leadSignature) {
-        accountId = null;
+        const existingUser = await usersCollection.findOne({ name: leadSignature });
+        if (existingUser) {
+            await usersCollection.updateOne({ _id: existingUser._id }, { $set: { lastActive: new Date() } });
+            return toPlainObject(existingUser) as unknown as User;
+        }
     }
 
     if (accountId && ObjectId.isValid(accountId)) {
@@ -307,11 +312,17 @@ export async function getAllUsers(): Promise<WithId<User>[]> {
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
-    if (!ObjectId.isValid(userId)) return null;
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
+    let user;
+    if (ObjectId.isValid(userId)) {
+        user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    } else {
+        // Fallback for lead_sig which might not be an ObjectId
+        user = await usersCollection.findOne({ name: userId });
+    }
+    
     return user ? toPlainObject(user) as unknown as User : null;
 }
 
