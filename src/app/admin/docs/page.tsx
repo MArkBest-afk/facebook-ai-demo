@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, BarChart2, Users, User, Bot, Clock, MessageSquare, Flame, AlertTriangle, Link2, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, BarChart2, Users, User, Bot, Clock, MessageSquare, Flame, AlertTriangle, Link2, Trash2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -155,5 +155,7 @@ export default function DocsPage() {
     );
 }
 
+
+    
 
     
