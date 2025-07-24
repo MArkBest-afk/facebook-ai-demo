@@ -59,9 +59,16 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
       updates.sessionStartTime = Date.now();
     }
     
-    setUser(prev => prev ? { ...prev, ...updates } : null);
+    // Optimistically update the user state
+    const currentLocalUser = userRef.current;
+    const updatedLocalUser = { ...currentLocalUser, ...updates };
+    setUser(updatedLocalUser);
+    
+    // Then, send the update to the server
     await updateUser(userRef.current._id.toString(), updates);
+    
   }, [timeLimitReached]);
+
 
   const initializeUser = useCallback(async (existingId: string | null = null) => {
     setIsLoading(true);
@@ -176,32 +183,36 @@ useEffect(() => {
         const currentUser = userRef.current;
         if (!currentUser || !currentUser._id) return;
 
-        const latestUserData = await getUserById(currentUser._id.toString());
-        if (latestUserData) {
-            if (currentUser.sessionStartTime && !latestUserData.sessionStartTime) {
-                toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
-                initializeUser(currentUser._id.toString());
-                return; 
-            }
+        try {
+            const latestUserData = await getUserById(currentUser._id.toString());
+            if (latestUserData) {
+                if (currentUser.sessionStartTime && !latestUserData.sessionStartTime) {
+                    toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
+                    initializeUser(currentUser._id.toString());
+                    return; 
+                }
 
-            if (JSON.stringify(currentUser) !== JSON.stringify(latestUserData)) {
-              latestUserData.chatMessages = latestUserData.chatMessages || [];
-              setUser(latestUserData);
-              if (latestUserData.selectedRobotId) {
-                  setSelectedRobot(ROBOTS.find(r => r.id === latestUserData.selectedRobotId) || null);
-              } else {
-                  setSelectedRobot(null);
-              }
+                if (JSON.stringify(currentUser) !== JSON.stringify(latestUserData)) {
+                  latestUserData.chatMessages = latestUserData.chatMessages || [];
+                  setUser(latestUserData);
+                  if (latestUserData.selectedRobotId) {
+                      setSelectedRobot(ROBOTS.find(r => r.id === latestUserData.selectedRobotId) || null);
+                  } else {
+                      setSelectedRobot(null);
+                  }
+                }
             }
+        } catch (error) {
+            console.error("Polling error:", error);
         }
     };
     
-    if (isLoading || !user) return;
+    if (isLoading) return;
 
     const intervalId = setInterval(pollForUpdates, 5000); 
 
     return () => clearInterval(intervalId);
-  }, [isLoading, user, initializeUser, toast]);
+  }, [isLoading, initializeUser, toast]);
 
 
   useEffect(() => {
@@ -234,29 +245,32 @@ useEffect(() => {
     };
   }, [user?.sessionStartTime, user?.timeLimit, handleToggleSimulator]);
 
-
   const performTrade = useCallback(async () => {
     const currentUser = userRef.current;
-    if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId) return;
+    if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId) {
+        if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
+        return;
+    }
 
     const currentRobot = ROBOTS.find(r => r.id === currentUser.selectedRobotId);
-    if (!currentRobot) return;
-
-    if (currentUser.balance < 10) return;
+    if (!currentRobot || currentUser.balance < 10) {
+        if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
+        return;
+    }
 
     const tradeAmount = Math.random() * (10 - 5) + 5;
     const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
     const entryPrice = Math.random() * 100 + 100;
     const quantity = tradeAmount / entryPrice;
 
-    const isFirstTrade = currentUser.trades.length === 0;
-    const lastTwoTrades = currentUser.trades.slice(0, 2);
+    const isFirstTrade = !currentUser.trades || currentUser.trades.length === 0;
+    const lastTwoTrades = (currentUser.trades || []).slice(0, 2);
     const hasTwoConsecutiveLosses = lastTwoTrades.length === 2 && lastTwoTrades.every(t => t.pnl < 0);
 
     let pnl;
 
     if (isFirstTrade || hasTwoConsecutiveLosses) {
-      const pnlFactor = Math.random() * 0.05 + 0.01;
+      const pnlFactor = Math.random() * 0.05 + 0.01; // Guaranteed profit
       pnl = tradeAmount * pnlFactor;
     } else {
       let pnlFactor;
@@ -284,62 +298,63 @@ useEffect(() => {
     if (currentUser._id) {
         const createdTrade = await addTrade(currentUser._id.toString(), newTradeData);
         if (createdTrade) {
-        setUser(prevUser => {
-            if (!prevUser) return null;
-            const newPnl = prevUser.totalPnl + createdTrade.pnl;
-            const newBalance = prevUser.balance + createdTrade.pnl;
-            const newTrades = [createdTrade, ...(prevUser.trades || [])];
-            return { ...prevUser, trades: newTrades, totalPnl: newPnl, balance: newBalance };
-        });
+            // Re-fetch user instead of optimistic update to guarantee consistency
+            const latestUser = await getUserById(currentUser._id.toString());
+            if (latestUser) {
+                setUser(latestUser);
+            }
         }
     }
 
-
+    // Schedule next trade only if still running
     if (userRef.current?.isRunning) {
         const nextInterval = Math.random() * (60000 - 5000) + 5000;
         tradeTimerRef.current = setTimeout(performTrade, nextInterval);
     }
-  }, []);
+  }, []); // Empty dependency array, function is self-contained via userRef
 
   useEffect(() => {
-    if (tradeTimerRef.current) {
-      clearTimeout(tradeTimerRef.current);
-      tradeTimerRef.current = null;
-    }
-    if (user?.isRunning) {
-      const firstTradeDelay = Math.random() * 4000 + 1000;
-      tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
-    }
-    
-    return () => {
-        if (tradeTimerRef.current) {
-            clearTimeout(tradeTimerRef.current);
-        }
-    };
-  }, [user?.isRunning, performTrade]);
-
-  useEffect(() => {
-    if (isLoading || !user) return;
-
-    const currentIsRunning = user.isRunning;
-    const currentRobotId = user.selectedRobotId;
-    const robotName = currentRobotId ? getRobotName(ROBOTS.find(r => r.id === currentRobotId)!) : '';
-
-    if (currentIsRunning !== prevIsRunning.current) {
-      if (currentIsRunning && robotName) {
-        toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
-      } else if (!currentIsRunning) {
-        toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
+      if (user?.isRunning) {
+          // If was not running before and now is, start the timer loop
+          if (!prevIsRunning.current) {
+              if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
+              const firstTradeDelay = Math.random() * 4000 + 1000;
+              tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
+          }
+      } else {
+          // If was running and now is not, clear the timer
+          if (tradeTimerRef.current) {
+              clearTimeout(tradeTimerRef.current);
+              tradeTimerRef.current = null;
+          }
       }
-      prevIsRunning.current = currentIsRunning;
-    }
 
-    if (currentRobotId !== prevSelectedRobotId.current && robotName) {
-      toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
+      // Toast notifications logic remains the same
+      if (isLoading) return;
+
+      const currentIsRunning = user?.isRunning ?? false;
+      const currentRobotId = user?.selectedRobotId;
+      const robot = currentRobotId ? ROBOTS.find(r => r.id === currentRobotId) : null;
+      const robotName = robot ? getRobotName(robot) : '';
+
+      if (currentIsRunning !== prevIsRunning.current) {
+        if (currentIsRunning && robotName) {
+          toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
+        } else if (!currentIsRunning) {
+          toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
+        }
+      }
+
+      if (currentRobotId !== prevSelectedRobotId.current && robotName) {
+        toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
+      }
+
+      // Update refs for next render
+      prevIsRunning.current = currentIsRunning;
       prevSelectedRobotId.current = currentRobotId;
-    }
-  }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast]);
-  
+
+  }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast, performTrade]);
+
   useEffect(() => {
     if (sessionResetFlag > 0) {
       toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
@@ -455,3 +470,5 @@ useEffect(() => {
     handleNewChatMessage,
   };
 }
+
+    
