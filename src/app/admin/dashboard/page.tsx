@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
@@ -291,6 +291,11 @@ export default function AdminDashboardPage() {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        
+                        <Button variant="outline" size="sm" onClick={() => router.push('/admin/docs')}>
+                            <BookOpen className="mr-2 h-4 w-4" />
+                            Документация
+                        </Button>
 
                         <Button variant="ghost" size="icon" onClick={() => fetchUsers(false)} disabled={isPolling}>
                             <RefreshCw className={cn("h-4 w-4", isPolling && "animate-spin")} />
@@ -412,5 +417,7 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
+
+    
 
     
