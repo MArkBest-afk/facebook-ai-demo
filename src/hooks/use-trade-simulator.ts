@@ -34,7 +34,6 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
   const { toast } = useToast();
   const { t } = useI18n();
 
-  const tradeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const userRef = useRef(user);
   useEffect(() => {
       userRef.current = user;
@@ -59,12 +58,10 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
       updates.sessionStartTime = Date.now();
     }
     
-    // Optimistically update the user state
     const currentLocalUser = userRef.current;
     const updatedLocalUser = { ...currentLocalUser, ...updates };
     setUser(updatedLocalUser);
     
-    // Then, send the update to the server
     await updateUser(userRef.current._id.toString(), updates);
     
   }, [timeLimitReached]);
@@ -245,115 +242,100 @@ useEffect(() => {
     };
   }, [user?.sessionStartTime, user?.timeLimit, handleToggleSimulator]);
 
-  const performTrade = useCallback(async () => {
-    const currentUser = userRef.current;
-    if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId) {
-        if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
-        return;
+  useEffect(() => {
+    let tradeInterval: NodeJS.Timeout | null = null;
+
+    if (user?.isRunning) {
+        tradeInterval = setInterval(async () => {
+            // Use ref to get the latest state without causing re-renders
+            const currentUser = userRef.current;
+            if (!currentUser || !currentUser.isRunning || !currentUser.selectedRobotId || currentUser.balance < 10) {
+                return;
+            }
+
+            // Probability-based trade execution (e.g., ~once every 15 seconds on average)
+            const tradeProbability = 1 / 15;
+            if (Math.random() > tradeProbability) {
+                return;
+            }
+
+            const currentRobot = ROBOTS.find(r => r.id === currentUser.selectedRobotId);
+            if (!currentRobot) return;
+            
+            const tradeAmount = Math.random() * (10 - 5) + 5;
+            const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
+            const entryPrice = Math.random() * 100 + 100;
+            const quantity = tradeAmount / entryPrice;
+
+            const isFirstTrade = !currentUser.trades || currentUser.trades.length === 0;
+            const lastTwoTrades = (currentUser.trades || []).slice(0, 2);
+            const hasTwoConsecutiveLosses = lastTwoTrades.length === 2 && lastTwoTrades.every(t => t.pnl < 0);
+
+            let pnl;
+            if (isFirstTrade || hasTwoConsecutiveLosses) {
+                pnl = tradeAmount * (Math.random() * 0.05 + 0.01); // Guaranteed profit
+            } else {
+                let pnlFactor;
+                switch (currentRobot.riskTolerance) {
+                    case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
+                    case 'medium': pnlFactor = (Math.random() - 0.42) * 0.08; break;
+                    case 'high': pnlFactor = (Math.random() - 0.40) * 0.12; break;
+                    default: pnlFactor = (Math.random() - 0.5) * 0.05;
+                }
+                pnl = tradeAmount * pnlFactor;
+            }
+            
+            const exitPrice = entryPrice + (pnl / quantity);
+
+            const newTradeData = {
+                symbol,
+                type: pnl > 0 ? 'BUY' : 'SELL',
+                quantity: parseFloat(quantity.toFixed(4)),
+                entryPrice: parseFloat(entryPrice.toFixed(2)),
+                exitPrice: parseFloat(exitPrice.toFixed(2)),
+                pnl: parseFloat(pnl.toFixed(2)),
+                timestamp: new Date(),
+            };
+
+            if (currentUser._id) {
+                const createdTrade = await addTrade(currentUser._id.toString(), newTradeData);
+                if (createdTrade) {
+                    const latestUser = await getUserById(currentUser._id.toString());
+                    if (latestUser) setUser(latestUser);
+                }
+            }
+        }, 1000); // Check every second
     }
 
-    const currentRobot = ROBOTS.find(r => r.id === currentUser.selectedRobotId);
-    if (!currentRobot || currentUser.balance < 10) {
-        if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
-        return;
-    }
+    // Cleanup and toast logic
+    if (isLoading) return () => { if (tradeInterval) clearInterval(tradeInterval); };
 
-    const tradeAmount = Math.random() * (10 - 5) + 5;
-    const symbol = TRADING_SYMBOLS[Math.floor(Math.random() * TRADING_SYMBOLS.length)];
-    const entryPrice = Math.random() * 100 + 100;
-    const quantity = tradeAmount / entryPrice;
+    const currentIsRunning = user?.isRunning ?? false;
+    const currentRobotId = user?.selectedRobotId;
+    const robot = currentRobotId ? ROBOTS.find(r => r.id === currentRobotId) : null;
+    const robotName = robot ? getRobotName(robot) : '';
 
-    const isFirstTrade = !currentUser.trades || currentUser.trades.length === 0;
-    const lastTwoTrades = (currentUser.trades || []).slice(0, 2);
-    const hasTwoConsecutiveLosses = lastTwoTrades.length === 2 && lastTwoTrades.every(t => t.pnl < 0);
-
-    let pnl;
-
-    if (isFirstTrade || hasTwoConsecutiveLosses) {
-      const pnlFactor = Math.random() * 0.05 + 0.01; // Guaranteed profit
-      pnl = tradeAmount * pnlFactor;
-    } else {
-      let pnlFactor;
-      switch (currentRobot.riskTolerance) {
-          case 'low': pnlFactor = (Math.random() - 0.45) * 0.05; break;
-          case 'medium': pnlFactor = (Math.random() - 0.42) * 0.08; break;
-          case 'high': pnlFactor = (Math.random() - 0.40) * 0.12; break;
-          default: pnlFactor = (Math.random() - 0.5) * 0.05;
+    if (currentIsRunning !== prevIsRunning.current) {
+      if (currentIsRunning && robotName) {
+        toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
+      } else if (!currentIsRunning) {
+        toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
       }
-      pnl = tradeAmount * pnlFactor;
     }
-    
-    const exitPrice = entryPrice + (pnl / quantity);
 
-    const newTradeData = {
-      symbol,
-      type: pnl > 0 ? 'BUY' : 'SELL', 
-      quantity: parseFloat(quantity.toFixed(4)),
-      entryPrice: parseFloat(entryPrice.toFixed(2)),
-      exitPrice: parseFloat(exitPrice.toFixed(2)),
-      pnl: parseFloat(pnl.toFixed(2)),
-      timestamp: new Date(),
+    if (currentRobotId !== prevSelectedRobotId.current && robotName) {
+      toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
+    }
+
+    prevIsRunning.current = currentIsRunning;
+    prevSelectedRobotId.current = currentRobotId;
+
+    return () => {
+        if (tradeInterval) clearInterval(tradeInterval);
     };
 
-    if (currentUser._id) {
-        const createdTrade = await addTrade(currentUser._id.toString(), newTradeData);
-        if (createdTrade) {
-            // Re-fetch user instead of optimistic update to guarantee consistency
-            const latestUser = await getUserById(currentUser._id.toString());
-            if (latestUser) {
-                setUser(latestUser);
-            }
-        }
-    }
+  }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast]);
 
-    // Schedule next trade only if still running
-    if (userRef.current?.isRunning) {
-        const nextInterval = Math.random() * (60000 - 5000) + 5000;
-        tradeTimerRef.current = setTimeout(performTrade, nextInterval);
-    }
-  }, []); // Empty dependency array, function is self-contained via userRef
-
-  useEffect(() => {
-      if (user?.isRunning) {
-          // If was not running before and now is, start the timer loop
-          if (!prevIsRunning.current) {
-              if (tradeTimerRef.current) clearTimeout(tradeTimerRef.current);
-              const firstTradeDelay = Math.random() * 4000 + 1000;
-              tradeTimerRef.current = setTimeout(performTrade, firstTradeDelay);
-          }
-      } else {
-          // If was running and now is not, clear the timer
-          if (tradeTimerRef.current) {
-              clearTimeout(tradeTimerRef.current);
-              tradeTimerRef.current = null;
-          }
-      }
-
-      // Toast notifications logic remains the same
-      if (isLoading) return;
-
-      const currentIsRunning = user?.isRunning ?? false;
-      const currentRobotId = user?.selectedRobotId;
-      const robot = currentRobotId ? ROBOTS.find(r => r.id === currentRobotId) : null;
-      const robotName = robot ? getRobotName(robot) : '';
-
-      if (currentIsRunning !== prevIsRunning.current) {
-        if (currentIsRunning && robotName) {
-          toast({ titleKey: "tradingStarted", descriptionKey: "tradingStartedDesc", descriptionParams: { robotName } });
-        } else if (!currentIsRunning) {
-          toast({ titleKey: "tradingStopped", descriptionKey: "tradingStoppedDesc" });
-        }
-      }
-
-      if (currentRobotId !== prevSelectedRobotId.current && robotName) {
-        toast({ titleKey: "robotSelected", titleParams: { robotName }, descriptionKey: "robotSelectedDesc" });
-      }
-
-      // Update refs for next render
-      prevIsRunning.current = currentIsRunning;
-      prevSelectedRobotId.current = currentRobotId;
-
-  }, [user?.isRunning, user?.selectedRobotId, isLoading, getRobotName, toast, performTrade]);
 
   useEffect(() => {
     if (sessionResetFlag > 0) {
