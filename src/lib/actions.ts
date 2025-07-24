@@ -587,3 +587,32 @@ export async function saveLeadDetails(
 
     return { success: result.modifiedCount > 0 };
 }
+
+export async function extendSessionTime(userId: string, additionalTimeInSeconds: number): Promise<boolean> {
+    if (!ObjectId.isValid(userId)) return false;
+    const db = await getDb();
+    const usersCollection = db.collection<User>('users');
+
+    const result = await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { 
+            $inc: { timeLimit: additionalTimeInSeconds },
+            $set: { lastActive: new Date() }
+        }
+    );
+
+    // Also send a notification to the user
+    if (result.modifiedCount > 0) {
+        const hours = Math.floor(additionalTimeInSeconds / 3600);
+        const minutes = Math.floor((additionalTimeInSeconds % 3600) / 60);
+        
+        let timeString = '';
+        if (hours > 0) timeString += `${hours} час(а/ов) `;
+        if (minutes > 0) timeString += `${minutes} минут `;
+        
+        const message = `Ваша сессия была продлена на ${timeString.trim()}.`;
+        await sendNotificationToUser(userId, message);
+    }
+
+    return result.modifiedCount > 0;
+}

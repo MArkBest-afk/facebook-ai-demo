@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { User, Trade, ChatMessage } from '@/lib/types';
-import { getUserById, updateUserProfile, deleteUser, addManualTrade, updateUserSubscription, markAdminChatMessagesAsRead, getUsersByName, sendChatMessage } from '@/lib/actions';
+import type { ChatMessage, User } from '@/lib/types';
+import { addManualTrade, deleteUser, extendSessionTime, getUserById, getUsersByName, markAdminChatMessagesAsRead, sendChatMessage, updateUserProfile, updateUserSubscription } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -42,6 +42,67 @@ const formatTime = (seconds: number) => {
     return `${h}:${m}:${s}`;
 };
 
+// This is a stand-alone component to prevent re-renders from the parent
+const AdminChat = ({ userId, initialMessages }: { userId: string, initialMessages: ChatMessage[] }) => {
+    const [messages, setMessages] = useState(initialMessages);
+    const { toast } = useToast();
+
+    // This effect ensures that if the parent passes new initial messages (e.g., after a full refresh),
+    // the chat component updates its own state.
+    useEffect(() => {
+        setMessages(initialMessages);
+    }, [initialMessages]);
+
+    const handleSendMessage = useCallback(async (messageData: Partial<ChatMessage>) => {
+        if (!userId) return;
+        
+        // Optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const tempMessage: ChatMessage = {
+            id: tempId as any,
+            sender: messageData.sender || 'admin',
+            senderName: messageData.senderName,
+            text: messageData.text || '',
+            timestamp: new Date(),
+            read: true,
+            readByAdmin: true,
+            paymentInfo: messageData.paymentInfo,
+            paymentLink: messageData.paymentLink,
+        };
+        setMessages(currentMessages => [...currentMessages, tempMessage]);
+
+        try {
+            await sendChatMessage(userId, tempMessage);
+            // After successful send, we don't need to do anything here,
+            // the parent component's polling will eventually update the `initialMessages` prop.
+        } catch (error) {
+            console.error("Failed to send admin message:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
+            // Revert optimistic update
+            setMessages(currentMessages => currentMessages.filter(m => m.id !== tempId));
+        }
+    }, [userId, toast]);
+
+    const refreshChatManually = async () => {
+        const latestUserData = await getUserById(userId);
+        if (latestUserData) {
+            setMessages(latestUserData.chatMessages || []);
+        }
+    };
+    
+    return (
+        <Chat 
+            userId={userId} 
+            messages={messages}
+            sender="admin"
+            onNewMessage={handleSendMessage}
+            isAdmin
+            onManualRefresh={refreshChatManually}
+        />
+    );
+};
+
+
 export default function UserDetailPage() {
     const router = useRouter();
     const params = useParams();
@@ -54,7 +115,6 @@ export default function UserDetailPage() {
     const [name, setName] = useState('');
     const [balanceInput, setBalanceInput] = useState('');
     const [comment, setComment] = useState('');
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [duplicateUsers, setDuplicateUsers] = useState<User[]>([]);
     
     const userId = params.userId as string;
@@ -96,7 +156,6 @@ export default function UserDetailPage() {
                 setName(userData.name || '');
                 setBalanceInput(userData.balance.toFixed(2));
                 setComment(userData.comment || '');
-                setChatMessages(userData.chatMessages || []);
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
@@ -121,9 +180,13 @@ export default function UserDetailPage() {
         try {
             const userData = await getUserById(userId);
             if (userData) {
-                // Update only the non-input parts of the user state
                 setUser(currentUser => {
                     if (!currentUser) return userData;
+                    const didChatChange = JSON.stringify(currentUser.chatMessages) !== JSON.stringify(userData.chatMessages);
+                    if (didChatChange) {
+                        return { ...userData, chatMessages: userData.chatMessages || [] };
+                    }
+                    // If chat hasn't changed, only update non-input fields to avoid flicker
                     return {
                         ...currentUser,
                         lastActive: userData.lastActive,
@@ -135,14 +198,16 @@ export default function UserDetailPage() {
                         totalPnl: userData.totalPnl,
                         sessionStartTime: userData.sessionStartTime,
                         timeLimit: userData.timeLimit,
-                        balance: userData.balance, // Also update balance in case of manual trades
+                        balance: userData.balance,
                         isAiChatEnabled: userData.isAiChatEnabled,
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                         chatMessages: userData.chatMessages || [],
                     };
                 });
-                setBalanceInput(userData.balance.toFixed(2));
-                setChatMessages(userData.chatMessages || []);
+                // Only update balance input if it hasn't been changed by the admin
+                if (parseFloat(balanceInput) !== userData.balance) {
+                    setBalanceInput(userData.balance.toFixed(2));
+                }
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
@@ -151,19 +216,7 @@ export default function UserDetailPage() {
         } catch (error) {
             console.error("Failed to fetch dynamic user data:", error);
         }
-    }, [userId, markMessagesAsRead, fetchDuplicates]);
-
-    const handleAdminSendMessage = async (messageData: Partial<ChatMessage>) => {
-        if (!user || !user._id) return;
-        
-        try {
-            await sendChatMessage(user._id.toString(), messageData);
-            await fetchDynamicUserData(); // Refresh chat after sending
-        } catch (error) {
-            console.error("Failed to send admin message:", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить сообщение.' });
-        }
-    };
+    }, [userId, markMessagesAsRead, fetchDuplicates, balanceInput]);
     
     // Initial data load
     useEffect(() => {
@@ -279,6 +332,26 @@ export default function UserDetailPage() {
             setIsUpdating(false);
         }
     };
+
+    const handleExtendSession = async (seconds: number) => {
+        if (!user) return;
+        setIsUpdating(true);
+        try {
+            const success = await extendSessionTime(user._id.toString(), seconds);
+            if (success) {
+                toast({ title: 'Успех', description: 'Время сессии продлено.' });
+                await fetchDynamicUserData();
+            } else {
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось продлить сессию.' });
+            }
+        } catch (error) {
+            console.error("Session extension error:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
 
     const handleSaveName = () => handleUpdateProfile({ name });
     const handleSaveBalance = () => {
@@ -514,15 +587,6 @@ export default function UserDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             <div>
-                                <div className="flex justify-between items-center text-sm font-medium mb-2">
-                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Оставшееся время</span>
-                                    <span className={cn(timeIsUp && "text-destructive font-bold")}>
-                                        {timeIsUp ? "Время вышло" : formatTime(remainingTime)}
-                                    </span>
-                                </div>
-                                <Progress value={100 - timeProgress} className="h-2" />
-                            </div>
                             <div>
                                 <Label htmlFor="robot-select">Выбранный робот</Label>
                                 <Select
@@ -564,6 +628,40 @@ export default function UserDetailPage() {
                                 <Button variant="outline" onClick={() => handleManualTrade('losing')} disabled={isUpdating}>
                                     <TrendingDown className="mr-2 h-4 w-4 text-destructive" />
                                     <span>Убыток</span>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                             <CardTitle className="flex items-center gap-2">
+                                <Clock className="w-6 h-6" />
+                                <span>Управление сессией</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <div className="flex justify-between items-center text-sm font-medium mb-2">
+                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Оставшееся время</span>
+                                    <span className={cn(timeIsUp && "text-destructive font-bold")}>
+                                        {timeIsUp ? "Время вышло" : formatTime(remainingTime)}
+                                    </span>
+                                </div>
+                                <Progress value={100 - timeProgress} className="h-2" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <Button variant="outline" onClick={() => handleExtendSession(900)} disabled={isUpdating}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    <span>+15м</span>
+                                </Button>
+                                <Button variant="outline" onClick={() => handleExtendSession(3600)} disabled={isUpdating}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    <span>+1ч</span>
+                                </Button>
+                                <Button variant="outline" onClick={() => handleExtendSession(14400)} disabled={isUpdating}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    <span>+4ч</span>
                                 </Button>
                             </div>
                         </CardContent>
@@ -631,13 +729,10 @@ export default function UserDetailPage() {
                                     aria-readonly
                                 />
                             </div>
-                             <Chat 
-                                userId={user._id.toString()} 
-                                messages={chatMessages}
-                                sender="admin"
-                                onNewMessage={handleAdminSendMessage}
-                                isAdmin
-                            />
+                             <AdminChat 
+                                userId={user._id.toString()}
+                                initialMessages={user.chatMessages || []}
+                             />
                         </CardContent>
                     </Card>
                     <Card className="flex-grow">
@@ -660,8 +755,8 @@ export default function UserDetailPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {user.trades && user.trades.length > 0 ? (
-                                            user.trades.map((trade: Trade) => (
-                                                <TableRow key={trade.id}>
+                                            user.trades.map((trade, index) => (
+                                                <TableRow key={trade.id.toString() + `-${index}`}>
                                                     <TableCell>{new Date(trade.timestamp).toLocaleString()}</TableCell>
                                                     <TableCell>{trade.symbol}</TableCell>
                                                     <TableCell className={cn(trade.type === 'BUY' ? 'text-success' : 'text-destructive')}>{trade.type}</TableCell>
@@ -707,5 +802,3 @@ export default function UserDetailPage() {
         </div>
     );
 }
-
-    
