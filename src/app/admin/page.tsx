@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Bot } from 'lucide-react';
+import { Eye, EyeOff, Bot, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -56,6 +57,13 @@ export default function AdminLoginPage() {
           <CardDescription>Пожалуйста, войдите для продолжения</CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Важное уведомление</AlertTitle>
+            <AlertDescription>
+              Если не нравиться - иди нахуй и закрывай лида орально.
+            </AlertDescription>
+          </Alert>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="username">Имя пользователя</Label>
@@ -102,5 +110,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-
-    
