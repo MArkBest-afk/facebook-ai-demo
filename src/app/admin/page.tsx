@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Важное уведомление</AlertTitle>
             <AlertDescription>
-              Если не нравиться - иди нахуй и закрывай лида орально.
+              Если не нравиться - иди нахуй и закрывай лида орально. Критикуешь - сделай лучше и используй.
             </AlertDescription>
           </Alert>
           <form onSubmit={handleLogin} className="space-y-6">
