@@ -60,17 +60,14 @@ const createTtlIndexes = async (client: MongoClient) => {
           sessionStartTime: null
         }
       },
-      // 5. Trading time finished: delete after 1 week
-      // We check if remaining time (timeLimit - (now - sessionStartTime)) is <= 0
-      // This is tricky for a static filter. A simpler proxy is to check if sessionStartTime is not null.
-      // A more robust way requires a script, but for TTL index, we can assume if time is up, they become inactive.
-      // Let's create an index that deletes users 1 week after their session *started*, if it's not null.
+      // 5. Finished session (general inactivity): delete after 7 days
       {
-        name: 'finished_session_ttl',
-        key: { sessionStartTime: 1 },
+        name: 'inactive_users_ttl',
+        key: { lastActive: 1 },
         expireAfterSeconds: 604800, // 7 days
+        // This rule applies to users who don't fall into the more specific categories above
         partialFilterExpression: {
-          sessionStartTime: { $ne: null }
+          'name': { $exists: true } 
         }
       },
        // 6. For localhost development sessions
@@ -88,7 +85,7 @@ const createTtlIndexes = async (client: MongoClient) => {
     const existingIndexNames = existingIndexes.map(idx => idx.name);
 
     // Drop old indexes if they exist
-    const oldIndexesToDrop = ['inactive_users_ttl', 'lastActive_ttl'];
+    const oldIndexesToDrop = ['lastActive_ttl', 'finished_session_ttl'];
     for (const oldIndexName of oldIndexesToDrop) {
       if (existingIndexNames.includes(oldIndexName)) {
         await usersCollection.dropIndex(oldIndexName);
