@@ -304,12 +304,24 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
     return result ? toPlainObject(result) as unknown as User : null;
 }
 
-export async function getAllUsers(): Promise<WithId<User>[]> {
+export async function getAllUsers(page: number = 1, limit: number = 30): Promise<{ users: WithId<User>[], total: number }> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
-    const users = await usersCollection.find({}).sort({ createdAt: -1 }).toArray();
-    return users.map(user => toPlainObject(user)) as WithId<User>[];
+    const skip = (page - 1) * limit;
+
+    const total = await usersCollection.countDocuments({});
+    const users = await usersCollection.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+    return {
+        users: users.map(user => toPlainObject(user)) as WithId<User>[],
+        total,
+    };
 }
+
 
 export async function getUserById(userId: string): Promise<User | null> {
     const db = await getDb();

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const SESSION_TIMEOUT_MS = 60 * 1000; // 1 минута
+const USERS_PER_PAGE = 30;
 
 const formatTimeAgo = (date: Date | null): string => {
     if (!date) return 'Никогда';
@@ -147,7 +148,13 @@ export default function AdminDashboardPage() {
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalUsers, setTotalUsers] = useState(0);
+
     const usersRef = useRef<WithId<User>[]>([]);
+    const totalUsersRef = useRef(0);
+
+    const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
     const fetchUsers = useCallback(async (isInitialLoad = false) => {
         if (isInitialLoad) {
@@ -156,12 +163,14 @@ export default function AdminDashboardPage() {
             setIsPolling(true);
         }
         try {
-            const userList = await getAllUsers();
+            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE);
             
             // Only update state if data has actually changed, to prevent flickering
-            if (JSON.stringify(usersRef.current) !== JSON.stringify(userList)) {
+            if (JSON.stringify(usersRef.current) !== JSON.stringify(userList) || totalUsersRef.current !== total) {
                 setUsers(userList);
+                setTotalUsers(total);
                 usersRef.current = userList;
+                totalUsersRef.current = total;
             }
         } catch (error) {
             console.error("Failed to fetch users:", error);
@@ -175,7 +184,7 @@ export default function AdminDashboardPage() {
                 setIsPolling(false);
             }
         }
-    }, [toast]);
+    }, [toast, currentPage]);
 
     useEffect(() => {
         fetchUsers(true);
@@ -236,7 +245,6 @@ export default function AdminDashboardPage() {
     }, [searchQuery, users]);
 
     const onlineUsers = users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
-    const totalUsers = users.length;
     const totalPnl = users.reduce((acc, user) => acc + (user.totalPnl || 0), 0);
     const subscribedUsers = users.filter(u => u.isSubscribed).length;
 
@@ -410,6 +418,29 @@ export default function AdminDashboardPage() {
                             </Table>
                         </CardContent>
                     </Card>
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                disabled={currentPage === 1}
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Назад
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                Страница {currentPage} из {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                disabled={currentPage === totalPages}
+                            >
+                                Вперёд
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 </>
                 )}
@@ -417,7 +448,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    
-
-    
