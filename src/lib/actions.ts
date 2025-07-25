@@ -304,14 +304,30 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
     return result ? toPlainObject(result) as unknown as User : null;
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 30): Promise<{ users: WithId<User>[], total: number }> {
+export async function getAllUsers(page: number = 1, limit: number = 30, searchQuery: string = ''): Promise<{ users: WithId<User>[], total: number }> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
     const skip = (page - 1) * limit;
 
-    const total = await usersCollection.countDocuments({});
-    const users = await usersCollection.find({})
-        .sort({ createdAt: -1 })
+    const query: any = {};
+    if (searchQuery) {
+        const trimmedQuery = searchQuery.trim();
+        const isObjectId = ObjectId.isValid(trimmedQuery);
+        
+        const orConditions = [{ name: { $regex: trimmedQuery, $options: 'i' } }];
+        
+        if (isObjectId) {
+            orConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
+        } else {
+            orConditions.push({ _id: { $regex: trimmedQuery, $options: 'i' } } as any);
+        }
+
+        query.$or = orConditions;
+    }
+
+    const total = await usersCollection.countDocuments(query);
+    const users = await usersCollection.find(query)
+        .sort({ isHotLead: -1, hasUnreadAdminMessages: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .toArray();

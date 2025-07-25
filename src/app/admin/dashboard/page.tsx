@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen, ArrowLeft, ArrowRight } from "lucide-react";
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
@@ -138,6 +138,18 @@ const UserRow = memo(({ user }: { user: WithId<User> }) => {
 });
 UserRow.displayName = 'UserRow';
 
+function useDebounce(value: string, delay: number) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
 
 export default function AdminDashboardPage() {
     const router = useRouter();
@@ -151,27 +163,21 @@ export default function AdminDashboardPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
 
-    const usersRef = useRef<WithId<User>[]>([]);
-    const totalUsersRef = useRef(0);
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
-    const fetchUsers = useCallback(async (isInitialLoad = false) => {
+    const fetchUsers = useCallback(async (isInitialLoad = false, query = debouncedSearchQuery) => {
         if (isInitialLoad) {
             setIsLoading(true);
         } else {
             setIsPolling(true);
         }
         try {
-            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE);
+            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query);
             
-            // Only update state if data has actually changed, to prevent flickering
-            if (JSON.stringify(usersRef.current) !== JSON.stringify(userList) || totalUsersRef.current !== total) {
-                setUsers(userList);
-                setTotalUsers(total);
-                usersRef.current = userList;
-                totalUsersRef.current = total;
-            }
+            setUsers(userList);
+            setTotalUsers(total);
         } catch (error) {
             console.error("Failed to fetch users:", error);
             if (isInitialLoad) {
@@ -184,13 +190,35 @@ export default function AdminDashboardPage() {
                 setIsPolling(false);
             }
         }
-    }, [toast, currentPage]);
+    }, [toast, currentPage, debouncedSearchQuery]);
 
     useEffect(() => {
-        fetchUsers(true);
-        const interval = setInterval(() => fetchUsers(false), 5000);
+        fetchUsers(true, debouncedSearchQuery);
+    }, [fetchUsers, debouncedSearchQuery, currentPage]);
+
+    // Reset page to 1 when search query changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchQuery]);
+
+    // Regular polling for stats and background updates
+    useEffect(() => {
+        const poll = async () => {
+             if (searchQuery) return; // Don't poll when searching
+             setIsPolling(true);
+             try {
+                const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE);
+                setUsers(userList);
+                setTotalUsers(total);
+             } catch (e) {
+                console.error("Polling failed", e);
+             } finally {
+                setIsPolling(false);
+             }
+        };
+        const interval = setInterval(poll, 5000);
         return () => clearInterval(interval);
-    }, [fetchUsers]);
+    }, [currentPage, searchQuery]);
 
 
     const handleLogout = () => {
@@ -223,30 +251,10 @@ export default function AdminDashboardPage() {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось скопировать ссылку.' });
         });
     };
-
-    const filteredUsers = useMemo(() => {
-        const sortedUsers = [...users].sort((a, b) => {
-            if (a.isHotLead && !b.isHotLead) return -1;
-            if (!a.isHotLead && b.isHotLead) return 1;
-            if (a.hasUnreadAdminMessages && !b.hasUnreadAdminMessages) return -1;
-            if (!a.hasUnreadAdminMessages && b.hasUnreadAdminMessages) return 1;
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-
-        if (!searchQuery) {
-            return sortedUsers;
-        }
-        const lowercasedQuery = searchQuery.toLowerCase();
-        return sortedUsers.filter(user => {
-            const idMatch = user._id.toString().toLowerCase().includes(lowercasedQuery);
-            const nameMatch = user.name?.toLowerCase().includes(lowercasedQuery);
-            return idMatch || nameMatch;
-        });
-    }, [searchQuery, users]);
-
-    const onlineUsers = users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length;
-    const totalPnl = users.reduce((acc, user) => acc + (user.totalPnl || 0), 0);
-    const subscribedUsers = users.filter(u => u.isSubscribed).length;
+    
+    const onlineUsersCount = useMemo(() => users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length, [users]);
+    const totalPnlSum = useMemo(() => users.reduce((acc, user) => acc + (user.totalPnl || 0), 0), [users]);
+    const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -336,7 +344,7 @@ export default function AdminDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{totalUsers}</div>
-                                <p className="text-xs text-muted-foreground">все зарегистрированные сессии</p>
+                                <p className="text-xs text-muted-foreground">{searchQuery ? 'найдено по запросу' : 'всего сессий'}</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -345,7 +353,7 @@ export default function AdminDashboardPage() {
                                 <UserCheck className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{onlineUsers}</div>
+                                <div className="text-2xl font-bold">{onlineUsersCount}</div>
                                 <p className="text-xs text-muted-foreground">активны в данный момент</p>
                             </CardContent>
                         </Card>
@@ -355,7 +363,7 @@ export default function AdminDashboardPage() {
                                 <UserCheck className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{subscribedUsers}</div>
+                                <div className="text-2xl font-bold">{subscribedUsersCount}</div>
                                 <p className="text-xs text-muted-foreground">из сгенерированных ссылок</p>
                             </CardContent>
                         </Card>
@@ -365,8 +373,8 @@ export default function AdminDashboardPage() {
                                 <BarChart2 className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className={cn("text-2xl font-bold", totalPnl >= 0 ? "text-success" : "text-destructive")}>
-                                    {totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}
+                                <div className={cn("text-2xl font-bold", totalPnlSum >= 0 ? "text-success" : "text-destructive")}>
+                                    {totalPnlSum >= 0 ? '+' : ''}${totalPnlSum.toFixed(2)}
                                 </div>
                                 <p className="text-xs text-muted-foreground">по всем пользователям</p>
                             </CardContent>
@@ -403,14 +411,14 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredUsers.length === 0 ? (
+                                    {users.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                                                 Пользователи не найдены.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredUsers.map((user) => (
+                                        users.map((user) => (
                                             <UserRow key={user._id.toString()} user={user} />
                                         ))
                                     )}
@@ -422,7 +430,7 @@ export default function AdminDashboardPage() {
                         <div className="flex items-center justify-between mt-4">
                             <Button
                                 variant="outline"
-                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
                             >
                                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -433,7 +441,7 @@ export default function AdminDashboardPage() {
                             </span>
                             <Button
                                 variant="outline"
-                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
                             >
                                 Вперёд
