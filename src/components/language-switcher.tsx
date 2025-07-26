@@ -36,6 +36,9 @@ export function LanguageSwitcher() {
          <DropdownMenuItem onClick={() => setLocale('bg')}>
           Български
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setLocale('nl')}>
+          Nederlands
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

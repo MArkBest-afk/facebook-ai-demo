@@ -6,8 +6,9 @@ import ru from '@/locales/ru.json';
 import de from '@/locales/de.json';
 import es from '@/locales/es.json';
 import bg from '@/locales/bg.json';
+import nl from '@/locales/nl.json';
 
-const translations = { en, ru, de, es, bg };
+const translations = { en, ru, de, es, bg, nl };
 
 type Locale = keyof typeof translations;
 
