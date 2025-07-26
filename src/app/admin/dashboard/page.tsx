@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
@@ -161,8 +161,6 @@ export default function AdminDashboardPage() {
     // State for link generation dialog
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
-    const [shortenedLink, setShortenedLink] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
     
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -239,31 +237,14 @@ export default function AdminDashboardPage() {
         router.push('/');
     }
 
-    const handleGenerateLink = async () => {
+    const handleGenerateLink = () => {
         if (!leadSignature) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, введите имя для лида.' });
             return;
         }
-        setIsGenerating(true);
         const baseUrl = window.location.origin;
         const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
         setGeneratedLink(fullLink);
-
-        try {
-            const response = await fetch(`https://spoo.me/create.php?url=${encodeURIComponent(fullLink)}`);
-            if (response.ok) {
-                const shortUrl = await response.text();
-                setShortenedLink(shortUrl);
-            } else {
-                throw new Error('Failed to shorten URL');
-            }
-        } catch (error) {
-            console.error("URL shortening error:", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось создать короткую ссылку.' });
-            setShortenedLink('');
-        } finally {
-            setIsGenerating(false);
-        }
     };
 
     const handleCopyLink = (link: string) => {
@@ -281,8 +262,6 @@ export default function AdminDashboardPage() {
     const resetLinkGenerator = () => {
         setLeadSignature('');
         setGeneratedLink('');
-        setShortenedLink('');
-        setIsGenerating(false);
     };
 
     return (
@@ -302,7 +281,7 @@ export default function AdminDashboardPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Создание ссылки для лида</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Введите уникальное имя или ID для лида. Будет сгенерирована специальная и короткая ссылка для отслеживания.
+                                        Введите уникальное имя или ID для лида. Будет сгенерирована специальная ссылка для отслеживания.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="space-y-4">
@@ -314,14 +293,13 @@ export default function AdminDashboardPage() {
                                             onChange={(e) => {
                                                 setLeadSignature(e.target.value);
                                                 setGeneratedLink('');
-                                                setShortenedLink('');
                                             }}
                                             placeholder="например, Ivan_Ivanov_123"
                                         />
                                     </div>
                                     {generatedLink && (
                                         <div className="space-y-2">
-                                            <Label>Полная ссылка</Label>
+                                            <Label>Сгенерированная ссылка</Label>
                                             <div className="flex items-center gap-2">
                                                 <Input value={generatedLink} readOnly />
                                                 <Button size="icon" variant="outline" onClick={() => handleCopyLink(generatedLink)}>
@@ -330,22 +308,10 @@ export default function AdminDashboardPage() {
                                             </div>
                                         </div>
                                     )}
-                                     {shortenedLink && (
-                                        <div className="space-y-2">
-                                            <Label>Короткая ссылка</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input value={shortenedLink} readOnly />
-                                                <Button size="icon" variant="outline" onClick={() => handleCopyLink(shortenedLink)}>
-                                                    <Copy className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel onClick={resetLinkGenerator}>Закрыть</AlertDialogCancel>
-                                    <Button onClick={handleGenerateLink} disabled={isGenerating}>
-                                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Button onClick={handleGenerateLink}>
                                         Создать
                                     </Button>
                                 </AlertDialogFooter>
@@ -500,3 +466,5 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
+
+    
