@@ -30,6 +30,12 @@ export function LanguageSwitcher() {
         <DropdownMenuItem onClick={() => setLocale('de')}>
           Deutsch
         </DropdownMenuItem>
+         <DropdownMenuItem onClick={() => setLocale('es')}>
+          Español
+        </DropdownMenuItem>
+         <DropdownMenuItem onClick={() => setLocale('bg')}>
+          Български
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

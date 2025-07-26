@@ -4,8 +4,10 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import en from '@/locales/en.json';
 import ru from '@/locales/ru.json';
 import de from '@/locales/de.json';
+import es from '@/locales/es.json';
+import bg from '@/locales/bg.json';
 
-const translations = { en, ru, de };
+const translations = { en, ru, de, es, bg };
 
 type Locale = keyof typeof translations;
 
