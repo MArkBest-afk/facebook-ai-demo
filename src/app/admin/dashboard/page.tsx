@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen, ArrowLeft, ArrowRight } from "lucide-react";
-import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, FireExtinguisher, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from '@/lib/types';
 import { getAllUsers } from '@/lib/actions';
@@ -157,8 +157,13 @@ export default function AdminDashboardPage() {
     const [users, setUsers] = useState<WithId<User>[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPolling, setIsPolling] = useState(false);
+    
+    // State for link generation dialog
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
+    const [shortenedLink, setShortenedLink] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -234,18 +239,35 @@ export default function AdminDashboardPage() {
         router.push('/');
     }
 
-    const handleGenerateLink = () => {
+    const handleGenerateLink = async () => {
         if (!leadSignature) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, введите имя для лида.' });
             return;
         }
+        setIsGenerating(true);
         const baseUrl = window.location.origin;
-        const link = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
-        setGeneratedLink(link);
+        const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
+        setGeneratedLink(fullLink);
+
+        try {
+            const response = await fetch(`https://spoo.me/create.php?url=${encodeURIComponent(fullLink)}`);
+            if (response.ok) {
+                const shortUrl = await response.text();
+                setShortenedLink(shortUrl);
+            } else {
+                throw new Error('Failed to shorten URL');
+            }
+        } catch (error) {
+            console.error("URL shortening error:", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось создать короткую ссылку.' });
+            setShortenedLink('');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(generatedLink).then(() => {
+    const handleCopyLink = (link: string) => {
+        navigator.clipboard.writeText(link).then(() => {
             toast({ title: 'Успех', description: 'Ссылка скопирована в буфер обмена!' });
         }, () => {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось скопировать ссылку.' });
@@ -255,6 +277,13 @@ export default function AdminDashboardPage() {
     const onlineUsersCount = useMemo(() => users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length, [users]);
     const totalPnlSum = useMemo(() => users.reduce((acc, user) => acc + (user.totalPnl || 0), 0), [users]);
     const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
+    
+    const resetLinkGenerator = () => {
+        setLeadSignature('');
+        setGeneratedLink('');
+        setShortenedLink('');
+        setIsGenerating(false);
+    };
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -262,7 +291,7 @@ export default function AdminDashboardPage() {
                 <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-xl font-headline text-primary">Панель администратора</h1>
                     <div className="flex items-center gap-2">
-                        <AlertDialog>
+                        <AlertDialog onOpenChange={(isOpen) => !isOpen && resetLinkGenerator()}>
                             <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm">
                                     <Link2 className="mr-2 h-4 w-4" />
@@ -273,7 +302,7 @@ export default function AdminDashboardPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Создание ссылки для лида</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Введите уникальное имя или ID для лида. Будет сгенерирована специальная ссылка для отслеживания.
+                                        Введите уникальное имя или ID для лида. Будет сгенерирована специальная и короткая ссылка для отслеживания.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="space-y-4">
@@ -285,16 +314,28 @@ export default function AdminDashboardPage() {
                                             onChange={(e) => {
                                                 setLeadSignature(e.target.value);
                                                 setGeneratedLink('');
+                                                setShortenedLink('');
                                             }}
                                             placeholder="например, Ivan_Ivanov_123"
                                         />
                                     </div>
                                     {generatedLink && (
                                         <div className="space-y-2">
-                                            <Label>Сгенерированная ссылка</Label>
+                                            <Label>Полная ссылка</Label>
                                             <div className="flex items-center gap-2">
                                                 <Input value={generatedLink} readOnly />
-                                                <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                                                <Button size="icon" variant="outline" onClick={() => handleCopyLink(generatedLink)}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                     {shortenedLink && (
+                                        <div className="space-y-2">
+                                            <Label>Короткая ссылка</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input value={shortenedLink} readOnly />
+                                                <Button size="icon" variant="outline" onClick={() => handleCopyLink(shortenedLink)}>
                                                     <Copy className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -302,8 +343,11 @@ export default function AdminDashboardPage() {
                                     )}
                                 </div>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => { setLeadSignature(''); setGeneratedLink(''); }}>Закрыть</AlertDialogCancel>
-                                    <Button onClick={handleGenerateLink}>Создать</Button>
+                                    <AlertDialogCancel onClick={resetLinkGenerator}>Закрыть</AlertDialogCancel>
+                                    <Button onClick={handleGenerateLink} disabled={isGenerating}>
+                                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Создать
+                                    </Button>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
@@ -456,5 +500,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    
