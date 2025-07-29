@@ -1,7 +1,7 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { I18nProvider } from '@/hooks/use-i18n';
 import { ServiceWorkerRegistrar } from '@/components/service-worker-registrar';
 
 
@@ -25,10 +25,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <I18nProvider>
           {children}
           <Toaster />
-        </I18nProvider>
         <ServiceWorkerRegistrar />
       </body>
     </html>

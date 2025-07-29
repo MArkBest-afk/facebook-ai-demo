@@ -7,17 +7,17 @@ import { ROBOTS, TRADING_SYMBOLS } from '@/lib/constants';
 import { useToast } from './use-toast';
 import { useI18n } from './use-i18n';
 import { getOrCreateUser, updateUser, addTrade, resetUser, getUserById, markNotificationsAsRead, markChatMessagesAsRead, sendChatMessage } from '@/lib/actions';
+import { useSearchParams } from 'next/navigation';
 
 
 const ACCOUNT_ID_STORAGE_KEY = 'tradeSimulatorAccountId';
 const TUTORIAL_STORAGE_KEY = 'tradeSimulatorTutorialCompleted';
 
-function getLeadSignatureFromURL(): string | null {
+function getLeadSignatureFromURL(searchParams: URLSearchParams): string | null {
     if (typeof window === 'undefined') {
         return null;
     }
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('lead_sig');
+    return searchParams.get('lead_sig');
 }
 
 export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
@@ -33,6 +33,7 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
 
   const { toast } = useToast();
   const { t } = useI18n();
+  const searchParams = useSearchParams();
 
   const userRef = useRef(user);
   useEffect(() => {
@@ -71,7 +72,7 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
     setIsLoading(true);
     try {
         let savedAccountId: string | null = existingId;
-        const leadSignature = getLeadSignatureFromURL();
+        const leadSignature = getLeadSignatureFromURL(searchParams);
 
         if (!leadSignature && typeof window !== 'undefined') {
             savedAccountId = localStorage.getItem(ACCOUNT_ID_STORAGE_KEY);
@@ -93,7 +94,7 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
         if (leadSignature) {
             const url = new URL(window.location.href);
             url.searchParams.delete('lead_sig');
-            window.history.replaceState({}, document.title, url.toString());
+            window.history.replaceState({}, document.title, url.pathname); // Use pathname to avoid removing other params
         }
       }
 
@@ -112,7 +113,7 @@ export function useTradeSimulator({ isChatOpen }: { isChatOpen: boolean }) {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, searchParams]);
 
   useEffect(() => {
     initializeUser();
