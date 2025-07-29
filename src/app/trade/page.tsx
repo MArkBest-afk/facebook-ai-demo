@@ -40,7 +40,6 @@ import {
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Chat } from '@/components/chat';
-import { I18nProvider } from '@/hooks/use-i18n';
 
 
 const TradePageContent = () => {
@@ -363,9 +362,6 @@ const TradePageContent = () => {
 
 export default function TradePage() {
     return (
-        <I18nProvider>
-            <TradePageContent />
-        </I18nProvider>
+        <TradePageContent />
     )
 }
-
