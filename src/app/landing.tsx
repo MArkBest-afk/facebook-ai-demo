@@ -4,11 +4,12 @@
 import React from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Bot, BrainCircuit, CandlestickChart, CheckCircle, ShieldCheck, TrendingUp, Zap } from 'lucide-react';
+import { ArrowRight, Bot, BrainCircuit, CandlestickChart, CheckCircle, ShieldCheck, TrendingUp, Zap, Shield, GitCompareArrows, BarChart, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import './landing.css';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function LandingPage() {
     const router = useRouter();
@@ -120,6 +121,124 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
+
+                {/* Robots Section */}
+                <section className="py-16 md:py-24 bg-background">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-12">
+                            <h3 className="text-3xl md:text-4xl font-bold">Ознакомьтесь с нашими роботами</h3>
+                            <p className="text-md text-muted-foreground mt-2">Каждый робот использует уникальную стратегию для достижения ваших целей.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <Card className="flex flex-col">
+                                <CardHeader>
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-primary/10 p-3 rounded-full">
+                                            <Shield className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                            <CardTitle>Осторожный робот</CardTitle>
+                                            <CardDescription>Низкий риск</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <p className="text-muted-foreground">Идеально подходит для тех, кто ценит безопасность своих вложений. Фокусируется на сохранении капитала и обеспечивает стабильную, хотя и не самую высокую, доходность.</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="flex flex-col border-primary ring-2 ring-primary">
+                                <CardHeader>
+                                     <div className="flex items-center gap-4">
+                                        <div className="bg-primary/10 p-3 rounded-full">
+                                            <GitCompareArrows className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                            <CardTitle>Сбалансированный робот</CardTitle>
+                                            <CardDescription>Средний риск</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <p className="text-muted-foreground">Золотая середина. Этот робот стремится к балансу между ростом капитала и его сохранением, инвестируя в диверсифицированный портфель активов.</p>
+                                </CardContent>
+                            </Card>
+                             <Card className="flex flex-col">
+                                <CardHeader>
+                                     <div className="flex items-center gap-4">
+                                        <div className="bg-primary/10 p-3 rounded-full">
+                                            <BarChart className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                            <CardTitle>Робот высокого роста</CardTitle>
+                                            <CardDescription>Высокий риск</CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <p className="text-muted-foreground">Для тех, кто готов рисковать ради максимальной прибыли. Этот робот использует агрессивные стратегии и инвестирует в высоковолатильные активы.</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </section>
+                
+                {/* Testimonials Section */}
+                <section className="py-16 md:py-24 bg-card/50">
+                    <div className="container mx-auto px-6">
+                         <div className="text-center mb-12">
+                            <h3 className="text-3xl md:text-4xl font-bold">Отзывы наших пользователей</h3>
+                             <p className="text-md text-muted-foreground mt-2">Узнайте, что говорят о нас те, кто уже зарабатывает с Facebook AI.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <Card className="p-6">
+                                <CardContent className="p-0 flex flex-col h-full">
+                                    <p className="text-muted-foreground mb-4 flex-grow">"Я был настроен скептически, но демо-счет меня убедил. Запустил робота и просто наблюдал. Результаты говорят сами за себя. Уже перешел на реальный счет."</p>
+                                    <div className="flex items-center gap-4 mt-auto">
+                                        <Avatar>
+                                            <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="man portrait" />
+                                            <AvatarFallback>АИ</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold">Алексей И.</p>
+                                            <p className="text-sm text-muted-foreground">Инвестор</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                             <Card className="p-6">
+                                <CardContent className="p-0 flex flex-col h-full">
+                                    <p className="text-muted-foreground mb-4 flex-grow">"Лучшее решение для тех, у кого нет времени на анализ рынков. AI делает всю работу. Я просто проверяю баланс и радуюсь прибыли. Рекомендую!"</p>
+                                    <div className="flex items-center gap-4 mt-auto">
+                                        <Avatar>
+                                            <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="woman portrait" />
+                                            <AvatarFallback>ЕС</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold">Елена С.</p>
+                                            <p className="text-sm text-muted-foreground">Предприниматель</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                             <Card className="p-6">
+                                <CardContent className="p-0 flex flex-col h-full">
+                                    <p className="text-muted-foreground mb-4 flex-grow">"Платформа очень проста в использовании. Никаких сложных графиков и индикаторов, просто выбрал робота и нажал старт. Идеально для новичков."</p>
+                                    <div className="flex items-center gap-4 mt-auto">
+                                        <Avatar>
+                                            <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="man professional" />
+                                            <AvatarFallback>ДП</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-semibold">Дмитрий П.</p>
+                                            <p className="text-sm text-muted-foreground">IT-специалист</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </section>
+
 
                 {/* FAQ Section */}
                 <section className="py-16 md:py-24 bg-background">
