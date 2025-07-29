@@ -4,7 +4,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Bot, BrainCircuit, CandlestickChart, CheckCircle, ShieldCheck, TrendingUp, Zap, Shield, GitCompareArrows, BarChart, Users } from 'lucide-react';
+import { ArrowRight, Bot, BrainCircuit, CheckCircle, ShieldCheck, TrendingUp, Zap, Shield, GitCompareArrows, BarChart, Users, DollarSign, CreditCard, LifeBuoy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import './landing.css';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -24,7 +24,7 @@ export default function LandingPage() {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
                      <div className="flex items-center gap-3">
                         <Image src="/logo.svg" alt="logo" width={40} height={40} className="text-primary" />
-                        <h1 className="text-2xl font-bold text-primary">Facebook AI</h1>
+                        <h1 className="text-2xl font-bold text-primary">Facebook AI от Meta</h1>
                     </div>
                     <Button onClick={handleGetStarted}>
                         Начать торговлю <ArrowRight className="ml-2 h-4 w-4" />
@@ -121,9 +121,23 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
+                
+                {/* Meta Technology Section */}
+                <section className="py-16 md:py-24 bg-background">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-12">
+                            <h3 className="text-3xl md:text-4xl font-bold">Наша технология от Meta</h3>
+                            <p className="text-md text-muted-foreground mt-2">Используем мощь искусственного интеллекта для вашего финансового успеха.</p>
+                        </div>
+                        <div className="max-w-4xl mx-auto text-center text-lg text-foreground">
+                            <p>Платформа <span className="font-semibold text-primary">Facebook AI</span> — это флагманский проект, разработанный ведущими специалистами Meta в области финансовых технологий и искусственного интеллекта. Мы объединили многолетний опыт в анализе данных и машинном обучении для создания уникального инструмента, который делает профессиональный трейдинг доступным для каждого. Наши алгоритмы анализируют миллионы точек данных в секунду, прогнозируя движения рынка с высокой точностью, что позволяет вам получать стабильный доход.</p>
+                        </div>
+                    </div>
+                </section>
+
 
                 {/* Robots Section */}
-                <section className="py-16 md:py-24 bg-background">
+                <section className="py-16 md:py-24 bg-card/50">
                     <div className="container mx-auto px-6">
                         <div className="text-center mb-12">
                             <h3 className="text-3xl md:text-4xl font-bold">Ознакомьтесь с нашими роботами</h3>
@@ -182,6 +196,67 @@ export default function LandingPage() {
                     </div>
                 </section>
                 
+                {/* Real Account Section */}
+                <section className="py-16 md:py-24 bg-background">
+                    <div className="container mx-auto px-6">
+                        <div className="text-center mb-12">
+                            <h3 className="text-3xl md:text-4xl font-bold">Перейдите на реальный счет</h3>
+                            <p className="text-md text-muted-foreground mt-2">Начните зарабатывать реальные деньги уже сегодня.</p>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h4 className="text-2xl font-semibold mb-4">Активируйте свой потенциал</h4>
+                                <p className="text-muted-foreground mb-6">Демо-счет — это отличная возможность убедиться в эффективности наших технологий. Но настоящие возможности открываются с реальным счетом. Переведите свой трейдинг на новый уровень, чтобы выводить прибыль и получать полный доступ ко всем преимуществам платформы.</p>
+                                <ul className="space-y-4">
+                                    <li className="flex items-start gap-3">
+                                        <CheckCircle className="w-6 h-6 text-success mt-1 shrink-0" />
+                                        <div>
+                                            <h5 className="font-semibold">Вывод реальной прибыли</h5>
+                                            <p className="text-muted-foreground text-sm">Вся полученная прибыль доступна для вывода в любое удобное для вас время.</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <LifeBuoy className="w-6 h-6 text-success mt-1 shrink-0" />
+                                        <div>
+                                            <h5 className="font-semibold">Персональная поддержка</h5>
+                                            <p className="text-muted-foreground text-sm">Получите доступ к выделенному менеджеру, который поможет на всех этапах работы.</p>
+                                        </div>
+                                    </li>
+                                     <li className="flex items-start gap-3">
+                                        <ShieldCheck className="w-6 h-6 text-success mt-1 shrink-0" />
+                                        <div>
+                                            <h5 className="font-semibold">Полная безопасность</h5>
+                                            <p className="text-muted-foreground text-sm">Все ваши средства и данные защищены передовыми протоколами безопасности Meta.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <Card className="p-8 shadow-lg">
+                                <CardHeader className="p-0 text-center mb-6">
+                                    <CardTitle className="text-2xl">Начать просто</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 space-y-4">
+                                     <div className="text-center">
+                                        <p className="text-muted-foreground">Минимальный депозит для активации:</p>
+                                        <p className="text-4xl font-bold text-primary my-2">$150</p>
+                                    </div>
+                                    <div>
+                                        <h5 className="font-semibold mb-2 text-center">Удобные способы пополнения:</h5>
+                                        <div className="flex justify-center flex-wrap gap-4 text-muted-foreground">
+                                            <span>Visa/Mastercard</span>
+                                            <span>Apple/Google Pay</span>
+                                            <span>Криптовалюты</span>
+                                            <span>Банковский перевод</span>
+                                        </div>
+                                    </div>
+                                    <Button size="lg" className="w-full mt-4" onClick={() => router.push('/trade')}>Активировать реальный счет</Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </section>
+
+
                 {/* Testimonials Section */}
                 <section className="py-16 md:py-24 bg-card/50">
                     <div className="container mx-auto px-6">
@@ -253,22 +328,34 @@ export default function LandingPage() {
                                     Да, вы получаете полнофункциональный демо-счет с виртуальными $150 абсолютно бесплатно. Это позволяет вам оценить работу наших AI-роботов без каких-либо рисков.
                                 </AccordionContent>
                             </AccordionItem>
-                            <AccordionItem value="item-2">
+                             <AccordionItem value="item-2">
                                 <AccordionTrigger>Торговля ведется на реальном рынке?</AccordionTrigger>
                                 <AccordionContent>
                                     Да. Это ключевое преимущество. Наши роботы используют реальные рыночные данные в реальном времени. Прибыль и убыток на вашем демо-счете — это точные показатели того, как бы вы торговали с реальными деньгами.
                                 </AccordionContent>
                             </AccordionItem>
-                            <AccordionItem value="item-3">
+                             <AccordionItem value="item-3">
+                                <AccordionTrigger>Как перейти на реальный счет?</AccordionTrigger>
+                                <AccordionContent>
+                                    Чтобы начать получать реальную прибыль, необходимо активировать ваш торговый счет. Минимальный депозит для активации составляет $150. После пополнения ваш счет будет полностью готов к работе, и вся прибыль будет доступна для вывода.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-4">
+                                <AccordionTrigger>Безопасны ли мои средства?</AccordionTrigger>
+                                <AccordionContent>
+                                    Абсолютно. Мы используем передовые протоколы шифрования и безопасности, разработанные в Meta, для защиты всех транзакций и личных данных. Ваши средства хранятся на сегрегированных счетах в ведущих банках.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-5">
                                 <AccordionTrigger>Нужны ли мне специальные знания для трейдинга?</AccordionTrigger>
                                 <AccordionContent>
                                     Нет. Наша платформа создана как для новичков, так и для опытных трейдеров. Вам не нужно анализировать графики — всю сложную работу берет на себя AI. Ваша задача — выбрать стратегию и наблюдать за результатом.
                                 </AccordionContent>
                             </AccordionItem>
-                            <AccordionItem value="item-4">
+                            <AccordionItem value="item-6">
                                 <AccordionTrigger>Как я могу вывести прибыль?</AccordionTrigger>
                                 <AccordionContent>
-                                    Прибыль с демо-счета является виртуальной. Чтобы зарабатывать и выводить реальные деньги, вам необходимо активировать реальный счет, сделав депозит. Свяжитесь с вашим менеджером, чтобы узнать подробности.
+                                    Прибыль с демо-счета является виртуальной. Чтобы зарабатывать и выводить реальные деньги, вам необходимо активировать реальный счет, сделав депозит. После активации вы сможете выводить средства в любое время через личный кабинет.
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
@@ -291,7 +378,7 @@ export default function LandingPage() {
 
             <footer className="bg-card border-t">
                 <div className="container mx-auto px-6 py-4 text-center text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} Facebook AI. Все права защищены.</p>
+                    <p>&copy; {new Date().getFullYear()} Facebook AI от Meta. Все права защищены.</p>
                 </div>
             </footer>
         </div>
