@@ -5,7 +5,7 @@ import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
-import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff, MessageSquare, Home } from 'lucide-react';
+import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useI18n, I18nProvider } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -40,17 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Chat } from '@/components/chat';
-import { useRouter } from 'next/navigation';
 
-
-const HomeButton = () => {
-    const router = useRouter();
-    return (
-        <Button variant="outline" size="icon" aria-label="Home page" onClick={() => router.push('/')}>
-            <Home className="h-4 w-4" />
-        </Button>
-    );
-};
 
 const TradePageContent = () => {
   const { t } = useI18n();
@@ -290,7 +280,6 @@ const TradePageContent = () => {
               </p>
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
-              <HomeButton />
               <LanguageSwitcher />
               <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
                 <AlertDialogTrigger asChild>
