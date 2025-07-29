@@ -7,7 +7,7 @@ import { RobotSelection } from '@/components/robot-selection';
 import { TradeHistory } from '@/components/trade-history';
 import { Bot, RotateCcw, PartyPopper, CandlestickChart, BrainCircuit, PlayCircle, CheckCircle, Hourglass, Trophy, Repeat, LoaderCircle, WifiOff, MessageSquare, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useI18n } from '@/hooks/use-i18n';
+import { useI18n, I18nProvider } from '@/hooks/use-i18n';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
