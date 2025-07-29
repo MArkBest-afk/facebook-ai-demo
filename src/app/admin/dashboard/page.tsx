@@ -243,7 +243,7 @@ export default function AdminDashboardPage() {
             return;
         }
         const baseUrl = window.location.origin;
-        const fullLink = `${baseUrl}/trade?lead_sig=${encodeURIComponent(leadSignature)}`;
+        const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
         setGeneratedLink(fullLink);
     };
 
