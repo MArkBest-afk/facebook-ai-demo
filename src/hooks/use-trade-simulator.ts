@@ -186,7 +186,15 @@ useEffect(() => {
             if (latestUserData) {
                 if (currentUser.sessionStartTime && !latestUserData.sessionStartTime) {
                     toast({ titleKey: "sessionReset", descriptionKey: "sessionResetDesc" });
-                    initializeUser(currentUser._id.toString());
+                    // Do not re-initialize here, let the reset flow handle it.
+                    // Instead, update the local state to reflect the reset.
+                    const resetUser = {
+                        ...latestUserData,
+                        trades: [],
+                        notifications: [],
+                        chatMessages: [],
+                    };
+                    setUser(resetUser);
                     return; 
                 }
 
@@ -357,10 +365,12 @@ useEffect(() => {
     if (!user || !user._id) return;
     const updatedUser = await resetUser(user._id.toString(), mode);
     if (updatedUser) {
+        // Instead of reloading, just update the state
         setUser(updatedUser);
         setSelectedRobot(null);
         setTimeLimitReached(false);
         setTutorialCompleted(false);
+        setElapsedTime(0);
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem(TUTORIAL_STORAGE_KEY, 'false');
@@ -368,7 +378,7 @@ useEffect(() => {
         } catch (error) {
           console.error("Failed to clear tutorial state from localStorage", error);
         }
-        setSessionResetFlag(f => f + 1);
+        setSessionResetFlag(f => f + 1); // Still useful for triggering toast
     }
   }, [user]);
 
@@ -453,5 +463,3 @@ useEffect(() => {
     handleNewChatMessage,
   };
 }
-
-    

@@ -43,10 +43,18 @@ import { Chat } from '@/components/chat';
 import { useRouter } from 'next/navigation';
 
 
+const HomeButton = () => {
+    const router = useRouter();
+    return (
+        <Button variant="outline" size="icon" aria-label="Home page" onClick={() => router.push('/')}>
+            <Home className="h-4 w-4" />
+        </Button>
+    );
+};
+
 const TradePageContent = () => {
   const { t } = useI18n();
   const { toast } = useToast();
-  const router = useRouter();
   const [isChatVisible, setIsChatVisible] = useState(false);
 
   const { 
@@ -282,9 +290,7 @@ const TradePageContent = () => {
               </p>
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
-              <Button variant="outline" size="icon" aria-label="Home page" onClick={() => router.push('/')}>
-                  <Home className="h-4 w-4" />
-              </Button>
+              <HomeButton />
               <LanguageSwitcher />
               <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
                 <AlertDialogTrigger asChild>

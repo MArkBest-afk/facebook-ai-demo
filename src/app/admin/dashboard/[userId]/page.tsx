@@ -97,7 +97,6 @@ const AdminChat = ({ userId, initialMessages }: { userId: string, initialMessage
             sender="admin"
             onNewMessage={handleSendMessage}
             isAdmin
-            onManualRefresh={refreshChatManually}
         />
     );
 };
