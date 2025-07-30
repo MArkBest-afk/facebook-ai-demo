@@ -2,14 +2,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bot, CreditCard, ShieldCheck, LifeBuoy, Book, Building, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, LifeBuoy, Book, Building, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { I18nProvider, useI18n } from '@/hooks/use-i18n';
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const InfoContent = () => {
+// This is the component that will consume the context
+const InfoPageContent = () => {
     const router = useRouter();
     const { t } = useI18n();
 
@@ -161,10 +162,11 @@ const InfoContent = () => {
     );
 };
 
+// This is the main export. It wraps the page content with the provider.
 export default function InfoPage() {
     return (
         <I18nProvider>
-            <InfoContent />
+            <InfoPageContent />
         </I18nProvider>
     );
 }
