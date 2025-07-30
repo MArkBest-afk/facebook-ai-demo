@@ -269,66 +269,7 @@ const TradePageContent = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Info className="w-6 h-6 text-primary" />
-              {t('info.title')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('info.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary/80" />
-                {t('info.howDemoWorks.title')}
-              </h3>
-              <p className="text-muted-foreground">
-                {t('info.howDemoWorks.content')}
-              </p>
-            </div>
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-primary/80" />
-                {t('info.realAccount.title')}
-              </h3>
-              <p className="text-muted-foreground">
-                {t('info.realAccount.content', {amount: 150})}
-              </p>
-              <ul className="list-disc pl-5 text-muted-foreground space-y-1">
-                <li>{t('info.realAccount.method_card')}</li>
-                <li>{t('info.realAccount.method_digital')}</li>
-                <li>{t('info.realAccount.method_crypto')}</li>
-                <li>{t('info.realAccount.method_transfer')}</li>
-              </ul>
-            </div>
-             <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary/80" />
-                {t('info.advantages.title')}
-              </h3>
-               <p className="text-muted-foreground">
-                {t('info.advantages.content')}
-              </p>
-            </div>
-             <div className="space-y-3">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <LifeBuoy className="w-5 h-5 text-primary/80" />
-                {t('info.support.title')}
-              </h3>
-               <p className="text-muted-foreground">
-                {t('info.support.content')}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsInfoOpen(false)}>{t('info.close')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
       <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -343,11 +284,71 @@ const TradePageContent = () => {
             </div>
             <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
               <LanguageSwitcher />
-               <DialogTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={t('info.title')} onClick={() => setIsInfoOpen(true)}>
-                  <Info className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
+              <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label={t('info.title')}>
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Info className="w-6 h-6 text-primary" />
+                      {t('info.title')}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {t('info.description')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Bot className="w-5 h-5 text-primary/80" />
+                        {t('info.howDemoWorks.title')}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {t('info.howDemoWorks.content')}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-primary/80" />
+                        {t('info.realAccount.title')}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {t('info.realAccount.content', {amount: 150})}
+                      </p>
+                      <ul className="list-disc pl-5 text-muted-foreground space-y-1">
+                        <li>{t('info.realAccount.method_card')}</li>
+                        <li>{t('info.realAccount.method_digital')}</li>
+                        <li>{t('info.realAccount.method_crypto')}</li>
+                        <li>{t('info.realAccount.method_transfer')}</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-primary/80" />
+                        {t('info.advantages.title')}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {t('info.advantages.content')}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <LifeBuoy className="w-5 h-5 text-primary/80" />
+                        {t('info.support.title')}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {t('info.support.content')}
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => setIsInfoOpen(false)}>{t('info.close')}</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <AlertDialog onOpenChange={(isOpen) => !isOpen && setResetPassword('')}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="icon" aria-label={t('resetSession')}>
@@ -434,3 +435,5 @@ export default function HomePage() {
         </I18nProvider>
     )
 }
+
+    
