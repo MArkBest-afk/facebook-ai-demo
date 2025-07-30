@@ -9,7 +9,6 @@ import { useI18n } from '@/hooks/use-i18n';
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-// This is the component that will consume the context from the RootLayout
 export default function InfoPage() {
     const router = useRouter();
     const { t } = useI18n();
