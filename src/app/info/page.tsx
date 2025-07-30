@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bot, CreditCard, LifeBuoy, Book, Building, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { I18nProvider, useI18n } from '@/hooks/use-i18n';
+import { useI18n } from '@/hooks/use-i18n';
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-// This is the component that will consume the context
-const InfoPageContent = () => {
+// This is the component that will consume the context from the RootLayout
+export default function InfoPage() {
     const router = useRouter();
     const { t } = useI18n();
 
@@ -159,14 +159,5 @@ const InfoPageContent = () => {
                 </div>
             </footer>
         </div>
-    );
-};
-
-// This is the main export. It wraps the page content with the provider.
-export default function InfoPage() {
-    return (
-        <I18nProvider>
-            <InfoPageContent />
-        </I18nProvider>
     );
 }
