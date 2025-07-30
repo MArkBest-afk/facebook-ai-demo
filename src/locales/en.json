@@ -1,3 +1,4 @@
+
 {
   "appName": "Facebook AI",
   "appDescription": "Trade on real markets in real-time with demo funds.",
@@ -69,5 +70,20 @@
   "resetDialogPasswordPrompt": "To confirm, please enter the password.",
   "incorrectPassword": "Incorrect password",
   "finalResultTitle": "Final Result",
-  "chatWithSupport": "Chat with Support"
+  "chatWithSupport": "Chat with Support",
+  "info.title": "Platform Information",
+  "info.description": "Here you will find all the necessary information for working with our platform.",
+  "info.howDemoWorks.title": "How does the demo account work?",
+  "info.howDemoWorks.content": "You get a demo account with $150 in virtual funds. The trading is 100% real, using live market data. The profit or loss shown is exactly what you would have achieved with a real account. The demo session lasts for 4 hours.",
+  "info.realAccount.title": "Activating a real account",
+  "info.realAccount.content": "To start earning real money and withdraw profits, you need to activate a real account. This is done by making a minimum deposit of ${amount}. Contact your manager via chat to get help.",
+  "info.realAccount.method_card": "Visa/Mastercard",
+  "info.realAccount.method_digital": "Apple Pay / Google Pay",
+  "info.realAccount.method_crypto": "Cryptocurrencies (Bitcoin, Ethereum, USDT)",
+  "info.realAccount.method_transfer": "Bank transfer",
+  "info.advantages.title": "Advantages of a real account",
+  "info.advantages.content": "After activating a real account, you get the ability to withdraw all your profits, access to a personal manager, and exclusive trading strategies.",
+  "info.support.title": "Need help?",
+  "info.support.content": "Our support is available 24/7. Use the chat button in the bottom right corner to contact us with any questions. We are always ready to help!",
+  "info.close": "Close"
 }

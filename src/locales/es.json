@@ -1,3 +1,4 @@
+
 {
   "appName": "Facebook AI",
   "appDescription": "Opere en mercados reales en tiempo real con fondos de demostración.",
@@ -69,5 +70,20 @@
   "resetDialogPasswordPrompt": "Para confirmar, ingrese la contraseña.",
   "incorrectPassword": "Contraseña incorrecta",
   "finalResultTitle": "Resultado Final",
-  "chatWithSupport": "Chatear con soporte"
+  "chatWithSupport": "Chatear con soporte",
+  "info.title": "Información de la plataforma",
+  "info.description": "Aquí encontrará toda la información necesaria para trabajar con nuestra plataforma.",
+  "info.howDemoWorks.title": "¿Cómo funciona la cuenta demo?",
+  "info.howDemoWorks.content": "Obtiene una cuenta de demostración con $150 en fondos virtuales. El trading es 100% real, utilizando datos de mercado en vivo. La ganancia o pérdida que se muestra es exactamente lo que habría logrado con una cuenta real. La sesión de demostración dura 4 horas.",
+  "info.realAccount.title": "Activación de una cuenta real",
+  "info.realAccount.content": "Para comenzar a ganar dinero real y retirar ganancias, debe activar una cuenta real. Esto se hace mediante un depósito mínimo de ${amount}. Póngase en contacto con su gerente a través del chat para obtener ayuda.",
+  "info.realAccount.method_card": "Visa/Mastercard",
+  "info.realAccount.method_digital": "Apple Pay / Google Pay",
+  "info.realAccount.method_crypto": "Criptomonedas (Bitcoin, Ethereum, USDT)",
+  "info.realAccount.method_transfer": "Transferencia bancaria",
+  "info.advantages.title": "Ventajas de una cuenta real",
+  "info.advantages.content": "Después de activar una cuenta real, tiene la posibilidad de retirar todas sus ganancias, acceso a un gerente personal y estrategias de trading exclusivas.",
+  "info.support.title": "¿Necesita ayuda?",
+  "info.support.content": "Nuestro soporte está disponible 24/7. Use el botón de chat en la esquina inferior derecha para contactarnos con cualquier pregunta. ¡Siempre estamos listos para ayudar!",
+  "info.close": "Cerrar"
 }

@@ -1,3 +1,4 @@
+
 {
   "appName": "Facebook AI",
   "appDescription": "Handel op echte markten in realtime met demogeld.",
@@ -69,5 +70,20 @@
   "resetDialogPasswordPrompt": "Voer het wachtwoord in om te bevestigen.",
   "incorrectPassword": "Onjuist wachtwoord",
   "finalResultTitle": "Eindresultaat",
-  "chatWithSupport": "Chat met ondersteuning"
+  "chatWithSupport": "Chat met ondersteuning",
+  "info.title": "Platforminformatie",
+  "info.description": "Hier vindt u alle nodige informatie voor het werken met ons platform.",
+  "info.howDemoWorks.title": "Hoe werkt de demorekening?",
+  "info.howDemoWorks.content": "U krijgt een demorekening met $150 aan virtueel geld. De handel is 100% echt, met live marktgegevens. De getoonde winst of verlies is precies wat u zou hebben bereikt met een echte rekening. De demosessie duurt 4 uur.",
+  "info.realAccount.title": "Activering van een echte rekening",
+  "info.realAccount.content": "Om echt geld te verdienen en winst op te nemen, moet u een echte rekening activeren. Dit gebeurt door een minimale storting van ${amount}. Neem contact op met uw manager via de chat voor hulp.",
+  "info.realAccount.method_card": "Visa/Mastercard",
+  "info.realAccount.method_digital": "Apple Pay / Google Pay",
+  "info.realAccount.method_crypto": "Cryptocurrencies (Bitcoin, Ethereum, USDT)",
+  "info.realAccount.method_transfer": "Bankoverschrijving",
+  "info.advantages.title": "Voordelen van een echte rekening",
+  "info.advantages.content": "Na het activeren van een echte rekening, krijgt u de mogelijkheid om al uw winst op te nemen, toegang tot een persoonlijke manager en exclusieve handelsstrategieën.",
+  "info.support.title": "Hulp nodig?",
+  "info.support.content": "Onze ondersteuning is 24/7 beschikbaar. Gebruik de chatknop in de rechterbenedenhoek om contact met ons op te nemen met al uw vragen. We staan altijd klaar om te helpen!",
+  "info.close": "Sluiten"
 }

@@ -1,3 +1,4 @@
+
 {
   "appName": "Facebook AI",
   "appDescription": "Handeln Sie in Echtzeit auf realen Märkten mit Demoguthaben.",
@@ -69,5 +70,20 @@
   "resetDialogPasswordPrompt": "Zum Bestätigen geben Sie bitte das Passwort ein.",
   "incorrectPassword": "Falsches Passwort",
   "finalResultTitle": "Endergebnis",
-  "chatWithSupport": "Chat mit Support"
+  "chatWithSupport": "Chat mit Support",
+  "info.title": "Plattforminformationen",
+  "info.description": "Hier finden Sie alle notwendigen Informationen zur Arbeit mit unserer Plattform.",
+  "info.howDemoWorks.title": "Wie funktioniert das Demokonto?",
+  "info.howDemoWorks.content": "Sie erhalten ein Demokonto mit 150 $ virtuellem Guthaben. Der Handel ist 100% real und verwendet Live-Marktdaten. Der angezeigte Gewinn oder Verlust ist genau das, was Sie mit einem echten Konto erzielt hätten. Die Demositzung dauert 4 Stunden.",
+  "info.realAccount.title": "Aktivierung eines echten Kontos",
+  "info.realAccount.content": "Um echtes Geld zu verdienen und Gewinne abzuheben, müssen Sie ein echtes Konto aktivieren. Dies geschieht durch eine Mindesteinzahlung von ${amount}. Kontaktieren Sie Ihren Manager über den Chat, um Hilfe zu erhalten.",
+  "info.realAccount.method_card": "Visa/Mastercard",
+  "info.realAccount.method_digital": "Apple Pay / Google Pay",
+  "info.realAccount.method_crypto": "Kryptowährungen (Bitcoin, Ethereum, USDT)",
+  "info.realAccount.method_transfer": "Banküberweisung",
+  "info.advantages.title": "Vorteile eines echten Kontos",
+  "info.advantages.content": "Nach der Aktivierung eines echten Kontos haben Sie die Möglichkeit, alle Ihre Gewinne abzuheben, erhalten Zugang zu einem persönlichen Manager und exklusiven Handelsstrategien.",
+  "info.support.title": "Benötigen Sie Hilfe?",
+  "info.support.content": "Unser Support ist rund um die Uhr verfügbar. Nutzen Sie den Chat-Button in der unteren rechten Ecke, um uns bei Fragen zu kontaktieren. Wir sind immer bereit zu helfen!",
+  "info.close": "Schließen"
 }
