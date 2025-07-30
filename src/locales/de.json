@@ -95,5 +95,14 @@
   "info.support.title": "Benötigen Sie Hilfe?",
   "info.support.content": "Unser Support ist rund um die Uhr verfügbar. Nutzen Sie den Chat-Button in der unteren rechten Ecke, um uns bei Fragen zu kontaktieren. Wir sind immer bereit zu helfen!",
   "info.footer.rights": "Alle Rechte vorbehalten.",
-  "info.footer.warning": "Der Handel an den Finanzmärkten birgt ein hohes Risiko und ist möglicherweise nicht für alle Anleger geeignet."
+  "info.footer.warning": "Der Handel an den Finanzmärkten birgt ein hohes Risiko und ist möglicherweise nicht für alle Anleger geeignet.",
+  "info.faq.title": "Häufig gestellte Fragen",
+  "info.faq.q1.question": "Ist der Gewinn, den ich sehe, echt?",
+  "info.faq.q1.answer": "Ja, absolut. Obwohl Sie virtuelle Mittel verwenden, findet der Handel auf realen Märkten mit Echtzeitdaten statt. Der Gewinn und Verlust, den Sie sehen, ist genau das, was Sie auf einem echten Konto erzielen würden.",
+  "info.faq.q2.question": "Wie kann ich anfangen, echtes Geld zu verdienen?",
+  "info.faq.q2.answer": "Um zum echten Handel überzugehen und Ihre Gewinne abheben zu können, müssen Sie ein echtes Konto aktivieren. Dies erfordert eine Mindesteinzahlung von ${amount}. Nach der Einzahlung gehören alle Gewinne Ihnen und können abgehoben werden.",
+  "info.faq.q3.question": "Sind meine Gelder sicher?",
+  "info.faq.q3.answer": "Ja. Wir arbeiten unter der strengen Aufsicht mehrerer internationaler Finanzaufsichtsbehörden. Kundengelder werden auf getrennten Konten bei erstklassigen Banken aufbewahrt, was ihre Sicherheit gewährleistet.",
+  "info.faq.q4.question": "Muss ich etwas über den Handel wissen?",
+  "info.faq.q4.answer": "Nicht unbedingt. Unsere Plattform ist so konzipiert, dass der KI-Roboter die gesamte Analyse- und Handelsarbeit für Sie erledigt. Ihre Aufgabe ist es, einen Roboter auszuwählen, dessen Strategie zu Ihnen passt, und die Ergebnisse zu überwachen."
 }

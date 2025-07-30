@@ -95,5 +95,14 @@
   "info.support.title": "Hulp nodig?",
   "info.support.content": "Onze ondersteuning is 24/7 beschikbaar. Gebruik de chatknop in de rechterbenedenhoek om contact met ons op te nemen met al uw vragen. We staan altijd klaar om te helpen!",
   "info.footer.rights": "Alle rechten voorbehouden.",
-  "info.footer.warning": "Handelen op financiële markten brengt een hoog risico met zich mee en is mogelijk niet geschikt voor alle beleggers."
+  "info.footer.warning": "Handelen op financiële markten brengt een hoog risico met zich mee en is mogelijk niet geschikt voor alle beleggers.",
+  "info.faq.title": "Veelgestelde vragen",
+  "info.faq.q1.question": "Is de winst die ik zie echt?",
+  "info.faq.q1.answer": "Ja, absoluut. Hoewel u virtueel geld gebruikt, vindt de handel plaats op echte markten met realtime gegevens. De winst en het verlies die u ziet, zijn precies wat u op een echte rekening zou krijgen.",
+  "info.faq.q2.question": "Hoe kan ik echt geld gaan verdienen?",
+  "info.faq.q2.answer": "Om over te schakelen op echte handel en uw winst te kunnen opnemen, moet u een echte rekening activeren. Dit vereist een minimale storting van ${amount}. Na de storting is alle winst van u om op te nemen.",
+  "info.faq.q3.question": "Zijn mijn fondsen veilig?",
+  "info.faq.q3.answer": "Ja. We opereren onder streng toezicht van verschillende internationale financiële toezichthouders. Klantengelden worden op gescheiden rekeningen bij eersteklas banken aangehouden, wat hun veiligheid garandeert.",
+  "info.faq.q4.question": "Moet ik weten hoe ik moet handelen?",
+  "info.faq.q4.answer": "Niet noodzakelijk. Ons platform is zo ontworpen dat de AI-robot al het analytische en handelswerk voor u doet. Uw taak is om een robot te kiezen wiens strategie bij u past en de resultaten te monitoren."
 }

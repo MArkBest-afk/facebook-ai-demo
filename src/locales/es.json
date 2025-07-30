@@ -49,7 +49,7 @@
   "tutorial.step4.title": "Elija su estrategia",
   "tutorial.step4.content": "Seleccione un robot que coincida con su estilo. 'Adverso al riesgo' es para la seguridad, 'Equilibrado' ofrece un crecimiento constante y 'Alto crecimiento' busca los máximos rendimientos (y conlleva un mayor riesgo).",
   "tutorial.step5.title": "Active el robot",
-  "tutorial.step5.content": "Una vez que haya elegido a su socio de IA, presione el botón 'Comenzar a operar' para que comience a funcionar en el mercado en vivo.",
+  "tutorial.step5.content": "Once you've chosen your AI partner, press the 'Start Trading' button to let it begin working on the live market.",
   "tutorial.step6.title": "El tiempo corre",
   "tutorial.step6.content": "Su robot de IA puede operar por un total de 4 horas. Después de este tiempo, la sesión de demostración finalizará. ¡Use este tiempo sabiamente para ver todo su potencial!",
   "tutorial.step7.title": "Observe y retire",
@@ -95,5 +95,14 @@
   "info.support.title": "¿Necesita ayuda?",
   "info.support.content": "Nuestro soporte está disponible 24/7. Use el botón de chat en la esquina inferior derecha para contactarnos con cualquier pregunta. ¡Siempre estamos listos para ayudar!",
   "info.footer.rights": "Todos los derechos reservados.",
-  "info.footer.warning": "Operar en los mercados financieros implica un alto nivel de riesgo y puede no ser adecuado para todos los inversores."
+  "info.footer.warning": "Operar en los mercados financieros implica un alto nivel de riesgo y puede no ser adecuado para todos los inversores.",
+  "info.faq.title": "Preguntas frecuentes",
+  "info.faq.q1.question": "¿El beneficio que veo es real?",
+  "info.faq.q1.answer": "Sí, absolutamente. Aunque esté utilizando fondos virtuales, la negociación se realiza en mercados reales con datos en tiempo real. Las ganancias y pérdidas que ve son exactamente las que obtendría en una cuenta real.",
+  "info.faq.q2.question": "¿Cómo puedo empezar a ganar dinero real?",
+  "info.faq.q2.answer": "Para cambiar a la negociación real y poder retirar sus ganancias, debe activar una cuenta real. Esto requiere un depósito mínimo de ${amount}. Después del depósito, todas las ganancias serán suyas y podrá retirarlas.",
+  "info.faq.q3.question": "¿Están seguros mis fondos?",
+  "info.faq.q3.answer": "Sí. Operamos bajo la estricta supervisión de varios reguladores financieros internacionales. Los fondos de los clientes se mantienen en cuentas segregadas en bancos de primer nivel, lo que garantiza su seguridad.",
+  "info.faq.q4.question": "¿Necesito saber de trading?",
+  "info.faq.q4.answer": "No necesariamente. Nuestra plataforma está diseñada para que el robot de IA haga todo el trabajo analítico y de negociación por usted. Su tarea es elegir un robot cuya estrategia le convenga y supervisar los resultados."
 }

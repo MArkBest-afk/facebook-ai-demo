@@ -2,11 +2,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bot, CreditCard, ShieldCheck, LifeBuoy, Book, Building } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, ShieldCheck, LifeBuoy, Book, Building, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { I18nProvider, useI18n } from '@/hooks/use-i18n';
 import Image from 'next/image';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const InfoContent = () => {
     const router = useRouter();
@@ -41,6 +42,19 @@ const InfoContent = () => {
                         <CardContent className="space-y-4 text-muted-foreground">
                             <p>{t('info.aboutPlatform.p1')}</p>
                             <p>{t('info.aboutPlatform.p2')}</p>
+                        </CardContent>
+                    </Card>
+                    
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3">
+                                <Building className="w-6 h-6 text-primary" />
+                                <span>{t('info.aboutMeta.title')}</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-muted-foreground">
+                            <p>{t('info.aboutMeta.p1')}</p>
+                            <p>{t('info.aboutMeta.p2')}</p>
                         </CardContent>
                     </Card>
 
@@ -85,17 +99,41 @@ const InfoContent = () => {
                             </div>
                         </CardContent>
                     </Card>
-                    
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-3">
-                                <Building className="w-6 h-6 text-primary" />
-                                <span>{t('info.aboutMeta.title')}</span>
+                                <HelpCircle className="w-6 h-6 text-primary" />
+                                <span>{t('info.faq.title')}</span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 text-muted-foreground">
-                            <p>{t('info.aboutMeta.p1')}</p>
-                            <p>{t('info.aboutMeta.p2')}</p>
+                        <CardContent>
+                            <Accordion type="single" collapsible className="w-full">
+                                <AccordionItem value="item-1">
+                                    <AccordionTrigger>{t('info.faq.q1.question')}</AccordionTrigger>
+                                    <AccordionContent className="text-muted-foreground">
+                                        {t('info.faq.q1.answer')}
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-2">
+                                    <AccordionTrigger>{t('info.faq.q2.question')}</AccordionTrigger>
+                                    <AccordionContent className="text-muted-foreground">
+                                        {t('info.faq.q2.answer', {amount: 150})}
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-3">
+                                    <AccordionTrigger>{t('info.faq.q3.question')}</AccordionTrigger>
+                                    <AccordionContent className="text-muted-foreground">
+                                        {t('info.faq.q3.answer')}
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="item-4">
+                                    <AccordionTrigger>{t('info.faq.q4.question')}</AccordionTrigger>
+                                    <AccordionContent className="text-muted-foreground">
+                                        {t('info.faq.q4.answer')}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
                         </CardContent>
                     </Card>
 

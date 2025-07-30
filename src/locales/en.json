@@ -95,5 +95,14 @@
   "info.support.title": "Need help?",
   "info.support.content": "Our support is available 24/7. Use the chat button in the bottom right corner to contact us with any questions. We are always ready to help!",
   "info.footer.rights": "All rights reserved.",
-  "info.footer.warning": "Trading in financial markets involves a high level of risk and may not be suitable for all investors."
+  "info.footer.warning": "Trading in financial markets involves a high level of risk and may not be suitable for all investors.",
+  "info.faq.title": "Frequently Asked Questions",
+  "info.faq.q1.question": "Is the profit I see real?",
+  "info.faq.q1.answer": "Yes, absolutely. Although you are using virtual funds, the trading occurs on real markets with real-time data. The profit and loss you see are exactly what you would get on a real account.",
+  "info.faq.q2.question": "How can I start earning real money?",
+  "info.faq.q2.answer": "To switch to real trading and be able to withdraw your profits, you need to activate a real account. This requires a minimum deposit of ${amount}. After the deposit, all profits will be yours to withdraw.",
+  "info.faq.q3.question": "Are my funds safe?",
+  "info.faq.q3.answer": "Yes. We operate under the strict supervision of several international financial regulators. Client funds are kept in segregated accounts at top-tier banks, ensuring their safety.",
+  "info.faq.q4.question": "Do I need to know how to trade?",
+  "info.faq.q4.answer": "Not necessarily. Our platform is designed so that the AI robot does all the analytical and trading work for you. Your task is to choose a robot whose strategy suits you and monitor the results."
 }
