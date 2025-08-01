@@ -75,7 +75,7 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
     return { text: 'Вы ответили', variant: 'outline' };
 }
 
-const UserRow = memo(({ user }: { user: WithId<User> }) => {
+const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthInfo }) => {
     const router = useRouter();
     const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
     const timeLeftStr = formatRemainingTime(user);
@@ -102,6 +102,11 @@ const UserRow = memo(({ user }: { user: WithId<User> }) => {
                     <span>{user.name || 'N/A'}</span>
                 </div>
             </TableCell>
+            {authInfo?.role === 'admin' && (
+                <TableCell>
+                    {user.isSubscribed && user.name ? user.name : 'N/A'}
+                </TableCell>
+            )}
             <TableCell>
                  <Badge variant={user.isHotLead ? 'destructive' : 'outline'} className={cn(user.isHotLead && 'animate-pulse')}>
                     {user.isHotLead ? (
@@ -616,6 +621,9 @@ export default function AdminDashboardPage() {
                                     <TableRow>
                                         <TableHead>ID Пользователя</TableHead>
                                         <TableHead>Имя (lead_sig)</TableHead>
+                                        {authInfo?.role === 'admin' && (
+                                            <TableHead>Менеджер</TableHead>
+                                        )}
                                         <TableHead>Статус лида</TableHead>
                                         <TableHead>Статус</TableHead>
                                         <TableHead>Чат</TableHead>
@@ -629,13 +637,13 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={authInfo?.role === 'admin' ? 11 : 10} className="h-24 text-center text-muted-foreground">
                                                 Лиды не найдены.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         users.map((user) => (
-                                            <UserRow key={user._id.toString()} user={user} />
+                                            <UserRow key={user._id.toString()} user={user} authInfo={authInfo} />
                                         ))
                                     )}
                                 </TableBody>
