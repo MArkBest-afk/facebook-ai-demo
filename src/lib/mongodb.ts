@@ -60,17 +60,7 @@ const createTtlIndexes = async (client: MongoClient) => {
           sessionStartTime: null
         }
       },
-      // 5. Finished session (general inactivity): delete after 7 days
-      {
-        name: 'inactive_users_ttl',
-        key: { lastActive: 1 },
-        expireAfterSeconds: 604800, // 7 days
-        // This rule applies to users who don't fall into the more specific categories above
-        partialFilterExpression: {
-          'name': { $exists: true } 
-        }
-      },
-       // 6. For localhost development sessions
+       // 5. For localhost development sessions
       {
         name: 'localhost_sessions_ttl',
         key: { createdAt: 1 },
@@ -78,14 +68,23 @@ const createTtlIndexes = async (client: MongoClient) => {
         partialFilterExpression: {
             ipAddress: 'localhost'
         }
+      },
+      // 6. NEW: Delete any user after 31 days of inactivity.
+      // This is the main fallback rule.
+      {
+        name: 'general_inactivity_ttl_31_days',
+        key: { lastActive: 1 },
+        expireAfterSeconds: 2678400, // 31 days
+        // No partialFilterExpression means it applies to all documents
+        // that don't match a more specific TTL index.
       }
     ];
 
     const existingIndexes = await usersCollection.listIndexes().toArray();
     const existingIndexNames = existingIndexes.map(idx => idx.name);
 
-    // Drop old indexes if they exist
-    const oldIndexesToDrop = ['lastActive_ttl', 'finished_session_ttl'];
+    // Drop old indexes if they exist to avoid conflicts
+    const oldIndexesToDrop = ['lastActive_ttl', 'finished_session_ttl', 'inactive_users_ttl'];
     for (const oldIndexName of oldIndexesToDrop) {
       if (existingIndexNames.includes(oldIndexName)) {
         await usersCollection.dropIndex(oldIndexName);
@@ -99,7 +98,7 @@ const createTtlIndexes = async (client: MongoClient) => {
         await usersCollection.createIndex(rule.key, {
           name: rule.name,
           expireAfterSeconds: rule.expireAfterSeconds,
-          partialFilterExpression: rule.partialFilterExpression,
+          ...(rule.partialFilterExpression && { partialFilterExpression: rule.partialFilterExpression }),
         });
         console.log(`Successfully created TTL index: ${rule.name}`);
       }
