@@ -352,13 +352,12 @@ export default function AdminDashboardPage() {
     const [isPolling, setIsPolling] = useState(false);
     const [authInfo, setAuthInfo] = useState<AuthInfo>(null);
     
-    // State for link generation dialog
-    const [leadSignature, setLeadSignature] = useState('');
+    const [leadSignatureBase, setLeadSignatureBase] = useState('');
+    const [leadSignatureSuffix, setLeadSignatureSuffix] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
     
-    // Search and pagination state
-    const [searchInput, setSearchInput] = useState(''); // Value in the input box
-    const [submittedSearch, setSubmittedSearch] = useState(''); // Value submitted for search
+    const [searchInput, setSearchInput] = useState('');
+    const [submittedSearch, setSubmittedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -371,13 +370,11 @@ export default function AdminDashboardPage() {
         if (isInitialLoad) setIsLoading(true); else setIsPolling(true);
         
         try {
-            // Fetch users
             const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
             const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerId);
             setUsers(userList);
             setTotalUsers(total);
             
-            // Fetch managers if admin
             if (authInfo.role === 'admin') {
                 const managerList = await getAllManagers();
                 setManagers(managerList);
@@ -400,7 +397,7 @@ export default function AdminDashboardPage() {
                 const parsedAuth = JSON.parse(authData);
                 setAuthInfo(parsedAuth);
                 if (parsedAuth.role === 'manager') {
-                    setLeadSignature(parsedAuth.username);
+                    setLeadSignatureBase(parsedAuth.username);
                 }
             } else {
                  router.replace('/admin');
@@ -418,10 +415,9 @@ export default function AdminDashboardPage() {
     }, [fetchAllData, submittedSearch, currentPage, authInfo]);
 
 
-    // Regular polling for stats and background updates
     useEffect(() => {
         const poll = async () => {
-             if (submittedSearch || !authInfo) return; // Don't poll when searching or not authenticated
+             if (submittedSearch || !authInfo) return;
              setIsPolling(true);
              try {
                 const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
@@ -454,17 +450,21 @@ export default function AdminDashboardPage() {
     
     const handleSearchSubmit = (e?: React.FormEvent) => {
         e?.preventDefault();
-        setCurrentPage(1); // Reset to first page on new search
+        setCurrentPage(1);
         setSubmittedSearch(searchInput);
     };
 
     const handleGenerateLink = () => {
-        if (!leadSignature) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось определить имя для лида.' });
+        if (!leadSignatureBase) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Основное имя для лида не может быть пустым.' });
             return;
         }
+        const finalSignature = leadSignatureSuffix 
+            ? `${leadSignatureBase}-${leadSignatureSuffix}` 
+            : leadSignatureBase;
+
         const baseUrl = window.location.origin;
-        const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(leadSignature)}`;
+        const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(finalSignature)}`;
         setGeneratedLink(fullLink);
     };
 
@@ -502,10 +502,11 @@ export default function AdminDashboardPage() {
     
     const resetLinkGenerator = () => {
         if (authInfo?.role === 'manager') {
-            setLeadSignature(authInfo.username);
+            setLeadSignatureBase(authInfo.username);
         } else {
-            setLeadSignature('');
+            setLeadSignatureBase('');
         }
+        setLeadSignatureSuffix('');
         setGeneratedLink('');
     };
 
@@ -528,23 +529,36 @@ export default function AdminDashboardPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Создание ссылки для лида</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        {authInfo?.role === 'manager' 
-                                            ? 'Будет сгенерирована ваша персональная ссылка для отслеживания лидов.'
-                                            : 'Введите уникальное имя или ID для лида. Будет сгенерирована специальная ссылка для отслеживания.'
-                                        }
+                                        Создайте уникальную отслеживающую ссылку. Имя менеджера будет добавлено автоматически.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="lead-sig">Имя/ID лида (lead_sig)</Label>
+                                        <Label htmlFor="lead-sig-base">
+                                            {authInfo?.role === 'manager' ? 'ID Менеджера (нередактируемый)' : 'Имя/ID лида'}
+                                        </Label>
                                         <Input
-                                            id="lead-sig"
-                                            value={leadSignature}
+                                            id="lead-sig-base"
+                                            value={leadSignatureBase}
                                             onChange={(e) => {
-                                                setLeadSignature(e.target.value);
+                                                setLeadSignatureBase(e.target.value);
                                                 setGeneratedLink('');
                                             }}
-                                            placeholder="например, Ivan_Ivanov_123"
+                                            placeholder="например, Ivan_Ivanov"
+                                            readOnly={authInfo?.role === 'manager'}
+                                            disabled={authInfo?.role === 'manager'}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lead-sig-suffix">Уникальный суффикс (необязательно)</Label>
+                                        <Input
+                                            id="lead-sig-suffix"
+                                            value={leadSignatureSuffix}
+                                            onChange={(e) => {
+                                                setLeadSignatureSuffix(e.target.value);
+                                                setGeneratedLink('');
+                                            }}
+                                            placeholder="например, google_ads_1"
                                         />
                                     </div>
                                     {generatedLink && (
@@ -561,7 +575,7 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel onClick={resetLinkGenerator}>Закрыть</AlertDialogCancel>
-                                    <Button onClick={handleGenerateLink}>
+                                    <Button onClick={handleGenerateLink} disabled={!leadSignatureBase}>
                                         Создать
                                     </Button>
                                 </AlertDialogFooter>
