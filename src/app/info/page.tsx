@@ -2,16 +2,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bot, CreditCard, LifeBuoy, Book, Building, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Bot, CreditCard, LifeBuoy, Book, Building, HelpCircle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useI18n } from '@/hooks/use-i18n';
 import Image from 'next/image';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-export default function InfoPage() {
+function InfoPageContent() {
     const router = useRouter();
     const { t } = useI18n();
+
+    const handleOpenChat = () => {
+        router.push('/?openChat=true');
+    };
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -144,8 +148,12 @@ export default function InfoPage() {
                                 <span>{t('info.support.title')}</span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                             <p className="text-muted-foreground">{t('info.support.content')}</p>
+                            <Button onClick={handleOpenChat} className="w-full sm:w-auto">
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                {t('info.support.button')}
+                            </Button>
                         </CardContent>
                     </Card>
 
@@ -159,4 +167,9 @@ export default function InfoPage() {
             </footer>
         </div>
     );
+}
+
+
+export default function InfoPage() {
+    return <InfoPageContent />;
 }

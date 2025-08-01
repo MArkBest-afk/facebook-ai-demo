@@ -12,6 +12,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -46,7 +47,19 @@ import { Chat } from '@/components/chat';
 const TradePageContent = () => {
   const { t } = useI18n();
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [isChatVisible, setIsChatVisible] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('openChat') === 'true') {
+        setIsChatVisible(true);
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+    }
+  }, [searchParams]);
 
   const { 
     accountId,
