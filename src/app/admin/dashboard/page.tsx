@@ -26,7 +26,7 @@ type AuthInfo = {
     username: string;
 } | null;
 
-type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed' | 'hot';
+type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -88,8 +88,9 @@ type LeadStatus = { text: string; variant: 'destructive' | 'success' | 'default'
 const getLeadStatuses = (user: WithId<User>): LeadStatus[] => {
     const statuses: LeadStatus[] = [];
 
-    // This is now just a regular status, not the primary one.
-    // The "Hot Lead" status is handled separately.
+    if (user.isHotLead) {
+        statuses.push({ text: 'Горячий лид', variant: 'destructive', icon: Flame });
+    }
     
     if (isTimeUp(user)) {
         statuses.push({ text: 'Время вышло', variant: 'destructive', icon: Clock });
@@ -101,7 +102,6 @@ const getLeadStatuses = (user: WithId<User>): LeadStatus[] => {
         statuses.push({ text: 'Диалог', variant: 'default', icon: MessageSquare });
     }
     
-    // If no specific status, determine if 'New' or 'Viewing'
     if (statuses.length === 0) {
         if (user.sessionStartTime) {
              statuses.push({ text: 'Просмотр', variant: 'secondary', icon: Eye });
@@ -125,15 +125,12 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
         <TableRow 
             key={user._id.toString()} 
             onClick={() => router.push(`/admin/dashboard/${user._id.toString()}`)} 
-            className={cn(
-                "cursor-pointer",
-                user.isHotLead && "bg-amber-500/10 hover:bg-amber-500/20"
-            )}
+            className="cursor-pointer"
         >
             <TableCell className="font-mono text-xs">{user._id.toString()}</TableCell>
             <TableCell>
                 <div className="flex items-center gap-2">
-                    {user.hasUnreadAdminMessages && !user.isHotLead && (
+                    {user.hasUnreadAdminMessages && (
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
@@ -148,19 +145,9 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
                 </TableCell>
             )}
             <TableCell>
-                {user.isHotLead ? (
-                     <Badge variant="destructive" className="bg-amber-600 hover:bg-amber-700 animate-pulse text-white gap-1.5">
-                        <Flame className="h-3 w-3" />
-                        Требуется менеджер
-                    </Badge>
-                ) : (
-                    <span>-</span>
-                )}
-            </TableCell>
-            <TableCell>
                 <div className="flex flex-wrap gap-1">
                     {leadStatuses.map((status, index) => (
-                        <Badge key={index} variant={status.variant} className={cn('gap-1.5', status.variant === 'destructive' && 'animate-pulse')}>
+                        <Badge key={index} variant={status.variant} className={cn('gap-1.5', status.text === 'Горячий лид' && 'animate-pulse')}>
                             <status.icon className="h-3 w-3" />
                             {status.text}
                         </Badge>
@@ -492,16 +479,13 @@ export default function AdminDashboardPage() {
     const onlineUsersCount = useMemo(() => users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length, [users]);
     const totalPnlSum = useMemo(() => users.reduce((acc, user) => acc + (user.totalPnl || 0), 0), [users]);
     const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
-    const hotLeadsCount = useMemo(() => users.filter(u => u.isHotLead).length, [users]);
     
     const filteredUsers = useMemo(() => {
         switch (activeFilter) {
-            case 'hot':
-                return users.filter(u => u.isHotLead);
             case 'new':
                 return users.filter(u => !u.sessionStartTime);
             case 'dialogue':
-                return users.filter(u => u.hasUnreadAdminMessages);
+                return users.filter(u => u.chatMessages && u.chatMessages.length > 0);
             case 'trading':
                 return users.filter(u => u.isRunning);
             case 'timeup':
@@ -630,12 +614,12 @@ export default function AdminDashboardPage() {
                         </Card>
                          <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Горячие лиды</CardTitle>
-                                <Flame className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm font-medium">Подписанные лиды</CardTitle>
+                                <UserCheck className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{hotLeadsCount}</div>
-                                <p className="text-xs text-muted-foreground">готовы к пополнению</p>
+                                <div className="text-2xl font-bold">{subscribedUsersCount}</div>
+                                <p className="text-xs text-muted-foreground">сессии от менеджеров</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -678,8 +662,8 @@ export default function AdminDashboardPage() {
                         </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
-                            <Button variant={activeFilter === 'hot' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')} className="border-amber-500 text-amber-600 hover:bg-amber-500/10 data-[state=active]:bg-amber-500 data-[state=active]:text-white">Горячие</Button>
-                            <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>С ответом</Button>
+                            <Button variant={activeFilter === 'new' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('new')}>Новые</Button>
+                            <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>Диалог</Button>
                             <Button variant={activeFilter === 'trading' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('trading')}>Торгует</Button>
                             <Button variant={activeFilter === 'timeup' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('timeup')}>Время вышло</Button>
                             <Button variant={activeFilter === 'online' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('online')}>Онлайн</Button>
@@ -696,8 +680,7 @@ export default function AdminDashboardPage() {
                                         {authInfo?.role === 'admin' && (
                                             <TableHead>Менеджер</TableHead>
                                         )}
-                                        <TableHead>Статус лида</TableHead>
-                                        <TableHead>Текущие статусы</TableHead>
+                                        <TableHead>Статус</TableHead>
                                         <TableHead>Статус онлайн</TableHead>
                                         <TableHead>Чат</TableHead>
                                         <TableHead>Подписан</TableHead>
@@ -710,7 +693,7 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {filteredUsers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={authInfo?.role === 'admin' ? 12 : 11} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={authInfo?.role === 'admin' ? 11 : 10} className="h-24 text-center text-muted-foreground">
                                                 Лиды не найдены.
                                             </TableCell>
                                         </TableRow>
