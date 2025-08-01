@@ -57,6 +57,7 @@ export interface User {
   lastActive: Date;
   createdAt: Date;
   name?: string;
+  leadSignature?: string;
   isBlocked?: boolean;
   isSubscribed?: boolean;
   ipAddress?: string;

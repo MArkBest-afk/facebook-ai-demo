@@ -142,10 +142,11 @@ async function getGeoLocation(ip: string | null): Promise<{ ipAddress?: string; 
 export async function getOrCreateUser(accountId: string | null, leadSignature: string | null): Promise<User> {
     const db = await getDb();
     const usersCollection = db.collection<Omit<User, '_id'>>('users');
-    
-    // If a lead signature is provided, try to find the user by name first
+    const managersCollection = db.collection<Manager>('managers');
+
+    // If a lead signature is provided, try to find the user by leadSignature first
     if (leadSignature) {
-        const existingUser = await usersCollection.findOne({ name: leadSignature });
+        const existingUser = await usersCollection.findOne({ leadSignature });
         if (existingUser) {
             await usersCollection.updateOne({ _id: existingUser._id }, { $set: { lastActive: new Date() } });
             return toPlainObject(existingUser) as unknown as User;
@@ -165,8 +166,20 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : null;
     const geoLocation = await getGeoLocation(ip);
 
+    let assignedManagerName: string | undefined = undefined;
+    if (leadSignature) {
+        const signatureParts = leadSignature.split('-');
+        const managerUsername = signatureParts[0];
+        const manager = await managersCollection.findOne({ username: managerUsername });
+        if (manager) {
+            assignedManagerName = manager.username;
+        }
+    }
+
+
     const newUser: Omit<User, '_id' | 'duplicates'> = {
-        name: leadSignature || undefined,
+        name: assignedManagerName || undefined,
+        leadSignature: leadSignature || undefined,
         balance: INITIAL_BALANCE,
         trades: [],
         selectedRobotId: null,
@@ -320,6 +333,8 @@ export async function getAllUsers(page: number = 1, limit: number = 30, searchQu
         const trimmedQuery = searchQuery.trim();
         const orConditions = [
             { name: { $regex: trimmedQuery, $options: 'i' } },
+            // Also search in the leadSignature field
+            { leadSignature: { $regex: trimmedQuery, $options: 'i' } },
             // Search by part of the ObjectId string
             { $expr: { $regexMatch: { input: { $toString: "$_id" }, regex: trimmedQuery, options: "i" } } }
         ];
@@ -330,7 +345,11 @@ export async function getAllUsers(page: number = 1, limit: number = 30, searchQu
                 { name: query.name },
                 { $or: orConditions }
             ];
-            delete query.name; // Avoid redundant name check
+            // Since we are searching on name, let's remove it from orConditions to be clean
+            orConditions.shift();
+            // Let's also remove leadSignature search when a manager searches, as their `name` is their lead signature base
+             orConditions.shift();
+            query.$or = orConditions;
         } else {
             query.$or = orConditions;
         }
