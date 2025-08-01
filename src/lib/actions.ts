@@ -658,8 +658,8 @@ export async function extendSessionTime(userId: string, additionalTimeInSeconds:
 
 
 // Manager Actions
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'password1';
+const ADMIN_USERNAME = 'novaknamechanica1488@gmail.com';
+const ADMIN_PASSWORD = 'NovakOgromniyHuy1488';
 
 export async function getManager(username: string, password_raw: string): Promise<{ success: boolean; manager?: Manager; message?: string }> {
     if (username === ADMIN_USERNAME) {
