@@ -26,7 +26,7 @@ type AuthInfo = {
     username: string;
 } | null;
 
-type FilterType = 'all' | 'hot' | 'reply' | 'online' | 'subscribed';
+type FilterType = 'all' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -490,10 +490,12 @@ export default function AdminDashboardPage() {
     
     const filteredUsers = useMemo(() => {
         switch (activeFilter) {
-            case 'hot':
-                return users.filter(u => u.isHotLead);
-            case 'reply':
-                return users.filter(u => u.hasUnreadAdminMessages);
+            case 'dialogue':
+                return users.filter(u => u.chatMessages && u.chatMessages.length > 0);
+            case 'trading':
+                return users.filter(u => u.isRunning);
+            case 'timeup':
+                return users.filter(u => isTimeUp(u));
             case 'online':
                 return users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS);
             case 'subscribed':
@@ -666,8 +668,9 @@ export default function AdminDashboardPage() {
                         </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
-                            <Button variant={activeFilter === 'hot' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')}>Горячие</Button>
-                            <Button variant={activeFilter === 'reply' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('reply')}>С ответом</Button>
+                            <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>Диалог</Button>
+                            <Button variant={activeFilter === 'trading' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('trading')}>Торгует</Button>
+                            <Button variant={activeFilter === 'timeup' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('timeup')}>Время вышло</Button>
                             <Button variant={activeFilter === 'online' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('online')}>Онлайн</Button>
                             <Button variant={activeFilter === 'subscribed' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('subscribed')}>Подписанные</Button>
                         </div>
@@ -738,3 +741,5 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
+
+    
