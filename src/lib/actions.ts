@@ -672,7 +672,7 @@ export async function getManager(username: string, password_raw: string): Promis
             return {
                 success: true,
                 manager: {
-                    _id: new ObjectId(),
+                    _id: new ObjectId().toString(),
                     username: ADMIN_USERNAME,
                     role: 'admin',
                     password: '' // Do not send password to client
@@ -736,3 +736,4 @@ export async function deleteManager(managerId: string): Promise<boolean> {
     const result = await managersCollection.deleteOne({ _id: new ObjectId(managerId) });
     return result.deletedCount > 0;
 }
+
