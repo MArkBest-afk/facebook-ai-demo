@@ -26,7 +26,7 @@ type AuthInfo = {
     username: string;
 } | null;
 
-type FilterType = 'all' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
+type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -490,6 +490,8 @@ export default function AdminDashboardPage() {
     
     const filteredUsers = useMemo(() => {
         switch (activeFilter) {
+            case 'new':
+                return users.filter(u => !u.sessionStartTime);
             case 'dialogue':
                 return users.filter(u => u.chatMessages && u.chatMessages.length > 0);
             case 'trading':
@@ -668,6 +670,7 @@ export default function AdminDashboardPage() {
                         </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
+                            <Button variant={activeFilter === 'new' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('new')}>Новые</Button>
                             <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>Диалог</Button>
                             <Button variant={activeFilter === 'trading' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('trading')}>Торгует</Button>
                             <Button variant={activeFilter === 'timeup' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('timeup')}>Время вышло</Button>
