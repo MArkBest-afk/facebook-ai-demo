@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users, Flame, Lightbulb, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users, Flame, Lightbulb, ShieldAlert, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -44,9 +44,38 @@ const formatTime = (seconds: number) => {
     return `${h}:${m}:${s}`;
 };
 
-const RecommendationCard = ({ recommendation }: { recommendation: GenerateNextStepOutput | null }) => {
-    if (!recommendation) {
-        return (
+const RecommendationCard = ({ user, onGenerate }: { user: User | null, onGenerate: (userData: User) => Promise<void> }) => {
+    const [recommendation, setRecommendation] = useState<GenerateNextStepOutput | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const handleGenerate = async () => {
+        if (!user) return;
+        setIsLoading(true);
+        setRecommendation(null);
+        try {
+            const timeIsUp = (user.sessionStartTime && user.timeLimit) ? (Date.now() - user.sessionStartTime) / 1000 >= user.timeLimit : false;
+            const chatHistoryJson = JSON.stringify((user.chatMessages || []).map(m => ({ sender: m.sender, text: m.text })));
+            
+            const result = await generateNextStep({
+                balance: user.balance,
+                totalPnl: user.totalPnl,
+                isRunning: user.isRunning,
+                isHotLead: !!user.isHotLead,
+                chatHistory: chatHistoryJson,
+                timeLimitReached: timeIsUp,
+            });
+            setRecommendation(result);
+        } catch (error) {
+            console.error("Failed to fetch AI recommendation:", error);
+            toast({ variant: 'destructive', title: "Ошибка AI", description: "Не удалось получить рекомендацию." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    if (isLoading) {
+         return (
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -63,30 +92,55 @@ const RecommendationCard = ({ recommendation }: { recommendation: GenerateNextSt
             </Card>
         );
     }
-
-    const { recommendation: text, priority } = recommendation;
-    const priorityConfig = {
-        CRITICAL: { icon: Flame, color: 'text-destructive', badge: 'destructive' },
-        HIGH: { icon: ShieldAlert, color: 'text-amber-600', badge: 'default' },
-        MEDIUM: { icon: Lightbulb, color: 'text-primary', badge: 'secondary' },
-        LOW: { icon: Lightbulb, color: 'text-muted-foreground', badge: 'outline' },
-    };
     
-    const config = priorityConfig[priority] || priorityConfig.LOW;
+    if (recommendation) {
+         const { recommendation: text, priority } = recommendation;
+        const priorityConfig = {
+            CRITICAL: { icon: Flame, color: 'text-destructive', badge: 'destructive' },
+            HIGH: { icon: ShieldAlert, color: 'text-amber-600', badge: 'default' },
+            MEDIUM: { icon: Lightbulb, color: 'text-primary', badge: 'secondary' },
+            LOW: { icon: Lightbulb, color: 'text-muted-foreground', badge: 'outline' },
+        };
+        const config = priorityConfig[priority] || priorityConfig.LOW;
+
+        return (
+            <Card className={cn(priority === 'CRITICAL' && "border-destructive/50 bg-destructive/5")}>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span className={cn("flex items-center gap-2", config.color)}>
+                            <config.icon className="w-6 h-6" />
+                            <span>AI-рекомендация</span>
+                        </span>
+                        <Badge variant={config.badge as any}>{priority}</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-base font-medium">{text}</p>
+                    <Button onClick={handleGenerate} variant="outline" size="sm">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Обновить
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
-        <Card className={cn(priority === 'CRITICAL' && "border-destructive/50 bg-destructive/5")}>
-             <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span className={cn("flex items-center gap-2", config.color)}>
-                        <config.icon className="w-6 h-6" />
-                        <span>AI-рекомендация</span>
-                    </span>
-                    <Badge variant={config.badge as any}>{priority}</Badge>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Lightbulb className="w-6 h-6" />
+                    <span>AI-рекомендация</span>
                 </CardTitle>
+                 <CardDescription>
+                    Получите совет от AI по следующему действию с клиентом.
+                </CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-base font-medium">{text}</p>
+                <Button onClick={handleGenerate} className="w-full">
+                    <BrainCircuit className="mr-2 h-4 w-4" />
+                    Получить рекомендацию
+                </Button>
             </CardContent>
         </Card>
     );
@@ -172,8 +226,6 @@ export default function UserDetailPage() {
 
     const [authInfo, setAuthInfo] = useState<{ role: string, username: string } | null>(null);
     const [managers, setManagers] = useState<WithId<Manager>[]>([]);
-    const [recommendation, setRecommendation] = useState<GenerateNextStepOutput | null>(null);
-    const [isRecommendationLoading, setIsRecommendationLoading] = useState(false);
 
     useEffect(() => {
       try {
@@ -226,15 +278,13 @@ export default function UserDetailPage() {
     }, [userId]);
 
     const fetchAiRecommendation = useCallback(async (userData: User) => {
-        setIsRecommendationLoading(true);
+        // This function is now passed to the RecommendationCard and called on demand.
+        // The logic is moved inside the RecommendationCard component itself.
+        // We keep this here to avoid breaking other parts if it was called elsewhere.
+        // A better refactor would be to remove this and pass generateNextStep directly.
         try {
             const timeIsUp = (userData.sessionStartTime && userData.timeLimit) ? (Date.now() - userData.sessionStartTime) / 1000 >= userData.timeLimit : false;
-
-            const chatHistoryJson = JSON.stringify((userData.chatMessages || []).map(m => ({
-                sender: m.sender,
-                text: m.text,
-            })));
-
+            const chatHistoryJson = JSON.stringify((userData.chatMessages || []).map(m => ({ sender: m.sender, text: m.text })));
             const recommendationInput = {
                 balance: userData.balance,
                 totalPnl: userData.totalPnl,
@@ -243,17 +293,9 @@ export default function UserDetailPage() {
                 chatHistory: chatHistoryJson,
                 timeLimitReached: timeIsUp,
             };
-
-            const result = await generateNextStep(recommendationInput);
-            setRecommendation(result);
+            await generateNextStep(recommendationInput);
         } catch (error) {
-            console.error("Failed to fetch AI recommendation:", error);
-            setRecommendation({
-                recommendation: "Не удалось получить рекомендацию от AI.",
-                priority: "LOW"
-            });
-        } finally {
-            setIsRecommendationLoading(false);
+            console.error("AI recommendation error in parent:", error);
         }
     }, []);
 
@@ -273,10 +315,9 @@ export default function UserDetailPage() {
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
-                // Fetch duplicates and recommendation after getting user data
+                // Fetch duplicates and managers
                 fetchDuplicates(userData.name);
                 fetchManagers();
-                fetchAiRecommendation(userData);
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -287,7 +328,7 @@ export default function UserDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates, fetchManagers, fetchAiRecommendation]);
+    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates, fetchManagers]);
 
     // This function fetches only the data that changes frequently
     // to avoid resetting the whole page and losing input focus.
@@ -296,12 +337,8 @@ export default function UserDetailPage() {
         try {
             const userData = await getUserById(userId);
             if (userData) {
-                const didChatChange = JSON.stringify(user?.chatMessages) !== JSON.stringify(userData.chatMessages);
-                const didStatusChange = user?.isRunning !== userData.isRunning || user?.isHotLead !== userData.isHotLead;
-
                 setUser(currentUser => {
                     if (!currentUser) return userData;
-                    // If chat hasn't changed, only update non-input fields to avoid flicker
                     return {
                         ...currentUser,
                         lastActive: userData.lastActive,
@@ -322,7 +359,6 @@ export default function UserDetailPage() {
                     };
                 });
                 
-                // Only update balance input if it hasn't been changed by the admin
                 if (parseFloat(balanceInput) !== userData.balance) {
                     setBalanceInput(userData.balance.toFixed(2));
                 }
@@ -330,16 +366,12 @@ export default function UserDetailPage() {
                     markMessagesAsRead();
                 }
                 
-                if (didChatChange || didStatusChange) {
-                    fetchAiRecommendation(userData);
-                }
-
                 fetchDuplicates(userData.name);
             }
         } catch (error) {
             console.error("Failed to fetch dynamic user data:", error);
         }
-    }, [userId, markMessagesAsRead, fetchDuplicates, balanceInput, fetchAiRecommendation, user]);
+    }, [userId, markMessagesAsRead, fetchDuplicates, balanceInput]);
     
     // Initial data load
     useEffect(() => {
@@ -571,7 +603,7 @@ export default function UserDetailPage() {
             </header>
             <main className="container mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 flex flex-col gap-8">
-                    <RecommendationCard recommendation={recommendation} />
+                    <RecommendationCard user={user} onGenerate={fetchAiRecommendation} />
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
@@ -971,4 +1003,5 @@ export default function UserDetailPage() {
     );
 }
 
+    
     
