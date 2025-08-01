@@ -1,6 +1,6 @@
 
 'use client';
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useTradeSimulator } from '@/hooks/use-trade-simulator';
 import { BalanceCard } from '@/components/balance-card';
 import { RobotSelection } from '@/components/robot-selection';
@@ -380,8 +380,18 @@ const TradePageContent = () => {
 }
 
 
+function LoadingFallback() {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+}
+
 export default function HomePage() {
     return (
-        <TradePageContent />
+        <Suspense fallback={<LoadingFallback />}>
+            <TradePageContent />
+        </Suspense>
     )
 }
