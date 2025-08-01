@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User, Manager } from '@/lib/types';
@@ -25,6 +25,8 @@ type AuthInfo = {
     role: 'admin' | 'manager';
     username: string;
 } | null;
+
+type FilterType = 'all' | 'hot' | 'reply' | 'online' | 'subscribed';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -337,6 +339,7 @@ export default function AdminDashboardPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -455,6 +458,22 @@ export default function AdminDashboardPage() {
     const onlineUsersCount = useMemo(() => users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length, [users]);
     const totalPnlSum = useMemo(() => users.reduce((acc, user) => acc + (user.totalPnl || 0), 0), [users]);
     const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
+    
+    const filteredUsers = useMemo(() => {
+        switch (activeFilter) {
+            case 'hot':
+                return users.filter(u => u.isHotLead);
+            case 'reply':
+                return users.filter(u => u.hasUnreadAdminMessages);
+            case 'online':
+                return users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS);
+            case 'subscribed':
+                return users.filter(u => u.isSubscribed);
+            case 'all':
+            default:
+                return users;
+        }
+    }, [users, activeFilter]);
     
     const resetLinkGenerator = () => {
         if (authInfo?.role === 'manager') {
@@ -605,14 +624,23 @@ export default function AdminDashboardPage() {
 
                 <div>
                     <h2 className="text-2xl font-semibold mb-4">Данные лидов</h2>
-                     <div className="mb-4 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Поиск по ID или имени..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                        />
+                     <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Поиск по ID или имени..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                            <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
+                            <Button variant={activeFilter === 'hot' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')}>Горячие</Button>
+                            <Button variant={activeFilter === 'reply' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('reply')}>С ответом</Button>
+                            <Button variant={activeFilter === 'online' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('online')}>Онлайн</Button>
+                            <Button variant={activeFilter === 'subscribed' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('subscribed')}>Подписанные</Button>
+                        </div>
                     </div>
                     <Card>
                         <CardContent className="p-0">
@@ -635,14 +663,14 @@ export default function AdminDashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.length === 0 ? (
+                                    {filteredUsers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={authInfo?.role === 'admin' ? 11 : 10} className="h-24 text-center text-muted-foreground">
                                                 Лиды не найдены.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        users.map((user) => (
+                                        filteredUsers.map((user) => (
                                             <UserRow key={user._id.toString()} user={user} authInfo={authInfo} />
                                         ))
                                     )}
