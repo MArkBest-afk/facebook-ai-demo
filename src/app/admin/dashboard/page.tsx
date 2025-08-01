@@ -88,10 +88,8 @@ type LeadStatus = { text: string; variant: 'destructive' | 'success' | 'default'
 const getLeadStatuses = (user: WithId<User>): LeadStatus[] => {
     const statuses: LeadStatus[] = [];
 
-    if (user.isHotLead) {
-        statuses.push({ text: 'Требуется менеджер', variant: 'destructive', icon: UserCog });
-        return statuses; // Hot lead is the most important status
-    }
+    // This is now just a regular status, not the primary one.
+    // The "Hot Lead" status is handled separately.
     
     if (isTimeUp(user)) {
         statuses.push({ text: 'Время вышло', variant: 'destructive', icon: Clock });
@@ -150,13 +148,19 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
                 </TableCell>
             )}
             <TableCell>
+                {user.isHotLead ? (
+                     <Badge variant="destructive" className="bg-amber-600 hover:bg-amber-700 animate-pulse text-white gap-1.5">
+                        <Flame className="h-3 w-3" />
+                        Требуется менеджер
+                    </Badge>
+                ) : (
+                    <span>-</span>
+                )}
+            </TableCell>
+            <TableCell>
                 <div className="flex flex-wrap gap-1">
                     {leadStatuses.map((status, index) => (
-                        <Badge key={index} variant={status.variant} className={cn(
-                            'gap-1.5',
-                             status.variant === 'destructive' && user.isHotLead && 'bg-amber-600 hover:bg-amber-700 animate-pulse text-white',
-                             status.variant === 'destructive' && !user.isHotLead && 'animate-pulse'
-                        )}>
+                        <Badge key={index} variant={status.variant} className={cn('gap-1.5', status.variant === 'destructive' && 'animate-pulse')}>
                             <status.icon className="h-3 w-3" />
                             {status.text}
                         </Badge>
@@ -693,7 +697,8 @@ export default function AdminDashboardPage() {
                                             <TableHead>Менеджер</TableHead>
                                         )}
                                         <TableHead>Статус лида</TableHead>
-                                        <TableHead>Статус</TableHead>
+                                        <TableHead>Текущие статусы</TableHead>
+                                        <TableHead>Статус онлайн</TableHead>
                                         <TableHead>Чат</TableHead>
                                         <TableHead>Подписан</TableHead>
                                         <TableHead>Последняя активность</TableHead>
@@ -705,7 +710,7 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {filteredUsers.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={authInfo?.role === 'admin' ? 11 : 10} className="h-24 text-center text-muted-foreground">
+                                            <TableCell colSpan={authInfo?.role === 'admin' ? 12 : 11} className="h-24 text-center text-muted-foreground">
                                                 Лиды не найдены.
                                             </TableCell>
                                         </TableRow>

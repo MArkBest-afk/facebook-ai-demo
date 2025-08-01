@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -234,6 +234,7 @@ export default function UserDetailPage() {
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                         chatMessages: userData.chatMessages || [],
                         name: userData.name,
+                        isHotLead: userData.isHotLead,
                     };
                 });
                 // Only update balance input if it hasn't been changed by the admin
@@ -442,6 +443,12 @@ export default function UserDetailPage() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <h1 className="text-xl font-headline text-primary truncate">{user.name || `Пользователь ${user._id.toString().slice(-6)}`}</h1>
+                         {user.isHotLead && (
+                            <Badge variant="destructive" className="bg-amber-600 hover:bg-amber-700 animate-pulse text-white gap-1.5">
+                                <Flame className="h-4 w-4" />
+                                Горячий лид
+                            </Badge>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <AlertDialog>
