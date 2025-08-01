@@ -83,23 +83,36 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
     return { text: 'Вы ответили', variant: 'outline' };
 }
 
-const getLeadStatus = (user: WithId<User>): { text: string; variant: 'destructive' | 'success' | 'default' | 'secondary' | 'outline'; icon: React.ElementType } => {
+type LeadStatus = { text: string; variant: 'destructive' | 'success' | 'default' | 'secondary' | 'outline'; icon: React.ElementType };
+
+const getLeadStatuses = (user: WithId<User>): LeadStatus[] => {
+    const statuses: LeadStatus[] = [];
+
     if (user.isHotLead) {
-        return { text: 'Горячий лид', variant: 'destructive', icon: Flame };
+        statuses.push({ text: 'Горячий лид', variant: 'destructive', icon: Flame });
+        return statuses; // Hot lead is the most important status
     }
+    
     if (isTimeUp(user)) {
-        return { text: 'Время вышло', variant: 'destructive', icon: Clock };
+        statuses.push({ text: 'Время вышло', variant: 'destructive', icon: Clock });
+    } else if (user.isRunning) {
+        statuses.push({ text: 'Торгует', variant: 'success', icon: Bot });
     }
-    if (user.isRunning) {
-        return { text: 'Торгует', variant: 'success', icon: Bot };
-    }
+
     if (user.chatMessages && user.chatMessages.length > 0) {
-        return { text: 'Диалог', variant: 'default', icon: MessageSquare };
+        statuses.push({ text: 'Диалог', variant: 'default', icon: MessageSquare });
     }
-    if (user.sessionStartTime) {
-         return { text: 'Просмотр', variant: 'secondary', icon: Eye };
+    
+    // If no specific status, determine if 'New' or 'Viewing'
+    if (statuses.length === 0) {
+        if (user.sessionStartTime) {
+             statuses.push({ text: 'Просмотр', variant: 'secondary', icon: Eye });
+        } else {
+             statuses.push({ text: 'Новый', variant: 'outline', icon: UserPlus });
+        }
     }
-    return { text: 'Новый', variant: 'outline', icon: UserPlus };
+
+    return statuses;
 };
 
 
@@ -108,7 +121,7 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
     const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
     const timeLeftStr = formatRemainingTime(user);
     const chatStatus = getChatStatus(user);
-    const leadStatus = getLeadStatus(user);
+    const leadStatuses = getLeadStatuses(user);
 
     return (
         <TableRow 
@@ -137,13 +150,17 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
                 </TableCell>
             )}
             <TableCell>
-                 <Badge variant={leadStatus.variant} className={cn(
-                     'gap-1.5',
-                     leadStatus.variant === 'destructive' && 'animate-pulse'
-                 )}>
-                    <leadStatus.icon className="h-3 w-3" />
-                    {leadStatus.text}
-                </Badge>
+                <div className="flex flex-wrap gap-1">
+                    {leadStatuses.map((status, index) => (
+                        <Badge key={index} variant={status.variant} className={cn(
+                            'gap-1.5',
+                            status.variant === 'destructive' && 'animate-pulse'
+                        )}>
+                            <status.icon className="h-3 w-3" />
+                            {status.text}
+                        </Badge>
+                    ))}
+                </div>
             </TableCell>
             <TableCell>
                 <Badge variant={isOnline ? 'default' : 'secondary'} className={cn(isOnline ? 'bg-success/20 text-success-foreground border-success/30' : '')}>
