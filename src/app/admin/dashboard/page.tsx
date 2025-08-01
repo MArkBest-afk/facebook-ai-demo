@@ -177,20 +177,6 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
 });
 UserRow.displayName = 'UserRow';
 
-function useDebounce(value: string, delay: number) {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedValue(value);
-        }, delay);
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [value, delay]);
-    return debouncedValue;
-}
-
-
 function ManagerSection({ managers, onUpdate }: { managers: WithId<Manager>[], onUpdate: () => void }) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -361,17 +347,17 @@ export default function AdminDashboardPage() {
     const [leadSignature, setLeadSignature] = useState('');
     const [generatedLink, setGeneratedLink] = useState('');
     
-    const [searchQuery, setSearchQuery] = useState('');
+    // Search and pagination state
+    const [searchInput, setSearchInput] = useState(''); // Value in the input box
+    const [submittedSearch, setSubmittedSearch] = useState(''); // Value submitted for search
     const [currentPage, setCurrentPage] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-
-    const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
+    
     const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
-    const fetchAllData = useCallback(async (isInitialLoad = false, query = debouncedSearchQuery) => {
-        if (!authInfo) return; // Don't fetch if auth info is not loaded yet
+    const fetchAllData = useCallback(async (isInitialLoad = false, query = submittedSearch) => {
+        if (!authInfo) return;
 
         if (isInitialLoad) setIsLoading(true); else setIsPolling(true);
         
@@ -395,7 +381,7 @@ export default function AdminDashboardPage() {
         } finally {
             if (isInitialLoad) setIsLoading(false); else setIsPolling(false);
         }
-    }, [toast, currentPage, debouncedSearchQuery, authInfo]);
+    }, [toast, currentPage, submittedSearch, authInfo]);
 
 
     useEffect(() => {
@@ -417,21 +403,16 @@ export default function AdminDashboardPage() {
     }, [router]);
 
     useEffect(() => {
-        if (authInfo) { // Ensure authInfo is available before fetching
-            fetchAllData(true, debouncedSearchQuery);
+        if (authInfo) {
+            fetchAllData(true, submittedSearch);
         }
-    }, [fetchAllData, debouncedSearchQuery, currentPage, authInfo]);
+    }, [fetchAllData, submittedSearch, currentPage, authInfo]);
 
-
-    // Reset page to 1 when search query changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [debouncedSearchQuery]);
 
     // Regular polling for stats and background updates
     useEffect(() => {
         const poll = async () => {
-             if (searchQuery || !authInfo) return; // Don't poll when searching or not authenticated
+             if (submittedSearch || !authInfo) return; // Don't poll when searching or not authenticated
              setIsPolling(true);
              try {
                 const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
@@ -446,7 +427,7 @@ export default function AdminDashboardPage() {
         };
         const interval = setInterval(poll, 5000);
         return () => clearInterval(interval);
-    }, [currentPage, searchQuery, authInfo]);
+    }, [currentPage, submittedSearch, authInfo]);
 
 
     const handleLogout = () => {
@@ -461,6 +442,12 @@ export default function AdminDashboardPage() {
     const handleGoHome = () => {
         router.push('/');
     }
+    
+    const handleSearchSubmit = (e?: React.FormEvent) => {
+        e?.preventDefault();
+        setCurrentPage(1); // Reset to first page on new search
+        setSubmittedSearch(searchInput);
+    };
 
     const handleGenerateLink = () => {
         if (!leadSignature) {
@@ -609,7 +596,7 @@ export default function AdminDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{totalUsers}</div>
-                                <p className="text-xs text-muted-foreground">{searchQuery ? 'найдено по запросу' : (authInfo?.role === 'manager' ? 'ваших лидов' : 'всего сессий')}</p>
+                                <p className="text-xs text-muted-foreground">{submittedSearch ? 'найдено по запросу' : (authInfo?.role === 'manager' ? 'ваших лидов' : 'всего сессий')}</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -650,15 +637,16 @@ export default function AdminDashboardPage() {
                 <div>
                     <h2 className="text-2xl font-semibold mb-4">Данные лидов</h2>
                      <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                        <div className="relative flex-grow">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <form onSubmit={handleSearchSubmit} className="flex-grow flex gap-2">
                             <Input
                                 placeholder="Поиск по ID или имени..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
                             />
-                        </div>
+                            <Button type="submit" variant="outline" size="icon">
+                                <Search className="h-4 w-4" />
+                            </Button>
+                        </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
                             <Button variant={activeFilter === 'hot' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')}>Горячие</Button>
