@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter, Bot, Square, TrendingUp, Eye } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter, Bot, Square, TrendingUp, Eye, Clock } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User, Manager } from '@/lib/types';
@@ -40,6 +40,12 @@ const formatTimeAgo = (date: Date | null): string => {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}ч назад`;
     return `${Math.floor(seconds / 86400)}д назад`;
 }
+
+const isTimeUp = (user: WithId<User>): boolean => {
+    if (!user.sessionStartTime) return false;
+    const elapsedTime = Math.floor((Date.now() - user.sessionStartTime) / 1000);
+    return user.timeLimit - elapsedTime <= 0;
+};
 
 const formatRemainingTime = (user: WithId<User>): string => {
     if (!user.sessionStartTime) {
@@ -80,6 +86,9 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
 const getLeadStatus = (user: WithId<User>): { text: string; variant: 'destructive' | 'success' | 'default' | 'secondary' | 'outline'; icon: React.ElementType } => {
     if (user.isHotLead) {
         return { text: 'Горячий лид', variant: 'destructive', icon: Flame };
+    }
+    if (isTimeUp(user)) {
+        return { text: 'Время вышло', variant: 'destructive', icon: Clock };
     }
     if (user.isRunning) {
         return { text: 'Торгует', variant: 'success', icon: Bot };
