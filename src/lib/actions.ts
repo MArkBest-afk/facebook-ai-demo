@@ -3,10 +3,11 @@
 
 import { type WithId, ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
-import type { Robot, Trade, User, Notification, ChatMessage } from './types';
+import type { Robot, Trade, User, Notification, ChatMessage, Manager } from './types';
 import { INITIAL_BALANCE, TRADING_TIME_LIMIT_SECONDS, TRADING_SYMBOLS } from './constants';
 import { headers } from 'next/headers';
 import { assistChat } from '@/ai/flows/chat-assistant';
+import bcrypt from 'bcryptjs';
 
 
 // Helper function to get the database instance
@@ -658,6 +659,64 @@ export async function extendSessionTime(userId: string, additionalTimeInSeconds:
     }
 
     return result.modifiedCount > 0;
+}
+
+
+// Manager Actions
+
+export async function getManager(username: string, password_raw: string): Promise<{ success: boolean; manager?: Manager; message?: string }> {
+    const db = await getDb();
+    const managersCollection = db.collection<Manager>('managers');
+    
+    const manager = await managersCollection.findOne({ username });
+    if (!manager) {
+        return { success: false, message: 'Менеджер не найден.' };
+    }
+
+    const isPasswordValid = await bcrypt.compare(password_raw, manager.password);
+    if (!isPasswordValid) {
+        return { success: false, message: 'Неверный пароль.' };
+    }
+
+    const { password, ...managerData } = manager;
+    return { success: true, manager: toPlainObject(managerData as WithId<Manager>) as Manager };
+}
+
+export async function getAllManagers(): Promise<WithId<Manager>[]> {
+    const db = await getDb();
+    const managersCollection = db.collection<Manager>('managers');
+    const managers = await managersCollection.find({ role: 'manager' }).project({ password: 0 }).toArray();
+    return managers.map(m => toPlainObject(m as WithId<Manager>));
+}
+
+export async function createManager(username: string, password_raw: string): Promise<{ success: boolean; message?: string }> {
+    const db = await getDb();
+    const managersCollection = db.collection<Manager>('managers');
+
+    const existingManager = await managersCollection.findOne({ username });
+    if (existingManager) {
+        return { success: false, message: 'Менеджер с таким именем уже существует.' };
+    }
+
+    const hashedPassword = await bcrypt.hash(password_raw, 10);
+
+    const newManager: Omit<Manager, '_id'> = {
+        username,
+        password: hashedPassword,
+        role: 'manager',
+    };
+
+    await managersCollection.insertOne(newManager as any);
+    return { success: true };
+}
+
+export async function deleteManager(managerId: string): Promise<boolean> {
+    if (!ObjectId.isValid(managerId)) return false;
+    const db = await getDb();
+    const managersCollection = db.collection<Manager>('managers');
+    
+    const result = await managersCollection.deleteOne({ _id: new ObjectId(managerId) });
+    return result.deletedCount > 0;
 }
 
     

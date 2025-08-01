@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import type { User } from '@/lib/types';
-import { getAllUsers } from '@/lib/actions';
+import type { User, Manager } from '@/lib/types';
+import { getAllUsers, getAllManagers, createManager, deleteManager } from '@/lib/actions';
 import { WithId } from "mongodb";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -157,10 +158,169 @@ function useDebounce(value: string, delay: number) {
     return debouncedValue;
 }
 
+
+function ManagerSection({ managers, onUpdate }: { managers: WithId<Manager>[], onUpdate: () => void }) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAddManagerOpen, setIsAddManagerOpen] = useState(false);
+    const [newManagerUsername, setNewManagerUsername] = useState('');
+    const [newManagerPassword, setNewManagerPassword] = useState('');
+
+    const handleAddManager = async () => {
+        if (!newManagerUsername.trim() || !newManagerPassword.trim()) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Имя пользователя и пароль не могут быть пустыми.' });
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const result = await createManager(newManagerUsername, newManagerPassword);
+            if (result.success) {
+                toast({ title: 'Успех', description: `Менеджер ${newManagerUsername} успешно создан.` });
+                onUpdate();
+                setIsAddManagerOpen(false);
+                setNewManagerUsername('');
+                setNewManagerPassword('');
+            } else {
+                toast({ variant: 'destructive', title: 'Ошибка', description: result.message });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось создать менеджера.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteManager = async (managerId: string, username: string) => {
+        setIsSubmitting(true);
+        try {
+            const success = await deleteManager(managerId);
+            if (success) {
+                toast({ title: 'Успех', description: `Менеджер ${username} был удален.` });
+                onUpdate();
+            } else {
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось удалить менеджера.' });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Произошла непредвиденная ошибка.' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+
+    return (
+        <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-semibold">Управление менеджерами</h2>
+                <Dialog open={isAddManagerOpen} onOpenChange={setIsAddManagerOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Добавить менеджера
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Добавить нового менеджера</DialogTitle>
+                            <DialogDescription>
+                                Создайте новую учетную запись для менеджера.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                             <div className="space-y-2">
+                                <Label htmlFor="manager-username">Имя пользователя (логин)</Label>
+                                <Input 
+                                    id="manager-username" 
+                                    value={newManagerUsername}
+                                    onChange={(e) => setNewManagerUsername(e.target.value)}
+                                    placeholder="например, manager3" 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="manager-password">Пароль</Label>
+                                <Input 
+                                    id="manager-password"
+                                    type="password"
+                                    value={newManagerPassword}
+                                    onChange={(e) => setNewManagerPassword(e.target.value)}
+                                    placeholder="••••••••" 
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="secondary">
+                                    Отмена
+                                </Button>
+                            </DialogClose>
+                            <Button onClick={handleAddManager} disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Добавить'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+             <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>ID</TableHead>
+                                <TableHead>Имя пользователя</TableHead>
+                                <TableHead className="text-right">Действия</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {managers.length === 0 ? (
+                                 <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                        Менеджеры не найдены.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                managers.map((manager) => (
+                                     <TableRow key={manager._id.toString()}>
+                                        <TableCell className="font-mono text-xs">{manager._id.toString()}</TableCell>
+                                        <TableCell>{manager.username}</TableCell>
+                                        <TableCell className="text-right">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                     <Button variant="destructive" size="icon" disabled={isSubmitting}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Удалить менеджера?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                           Вы уверены, что хотите удалить менеджера "{manager.username}"? Это действие нельзя отменить.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteManager(manager._id.toString(), manager.username)}>
+                                                            Удалить
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 export default function AdminDashboardPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [users, setUsers] = useState<WithId<User>[]>([]);
+    const [managers, setManagers] = useState<WithId<Manager>[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPolling, setIsPolling] = useState(false);
     const [authInfo, setAuthInfo] = useState<AuthInfo>(null);
@@ -177,6 +337,34 @@ export default function AdminDashboardPage() {
 
     const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
+    const fetchAllData = useCallback(async (isInitialLoad = false, query = debouncedSearchQuery) => {
+        if (!authInfo) return; // Don't fetch if auth info is not loaded yet
+
+        if (isInitialLoad) setIsLoading(true); else setIsPolling(true);
+        
+        try {
+            // Fetch users
+            const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
+            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerId);
+            setUsers(userList);
+            setTotalUsers(total);
+            
+            // Fetch managers if admin
+            if (authInfo.role === 'admin') {
+                const managerList = await getAllManagers();
+                setManagers(managerList);
+            }
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+            if (isInitialLoad) {
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные.' });
+            }
+        } finally {
+            if (isInitialLoad) setIsLoading(false); else setIsPolling(false);
+        }
+    }, [toast, currentPage, debouncedSearchQuery, authInfo]);
+
+
     useEffect(() => {
         try {
             const authData = sessionStorage.getItem('authInfo');
@@ -186,45 +374,20 @@ export default function AdminDashboardPage() {
                 if (parsedAuth.role === 'manager') {
                     setLeadSignature(parsedAuth.username);
                 }
+            } else {
+                 router.replace('/admin');
             }
         } catch (error) {
             console.error("Failed to parse auth info from sessionStorage", error);
+            router.replace('/admin');
         }
-    }, []);
-
-    const fetchUsers = useCallback(async (isInitialLoad = false, query = debouncedSearchQuery) => {
-        if (!authInfo) return; // Don't fetch if auth info is not loaded yet
-
-        if (isInitialLoad) {
-            setIsLoading(true);
-        } else {
-            setIsPolling(true);
-        }
-        try {
-            const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
-            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerId);
-            
-            setUsers(userList);
-            setTotalUsers(total);
-        } catch (error) {
-            console.error("Failed to fetch users:", error);
-            if (isInitialLoad) {
-                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить список пользователей.' });
-            }
-        } finally {
-            if (isInitialLoad) {
-                setIsLoading(false);
-            } else {
-                setIsPolling(false);
-            }
-        }
-    }, [toast, currentPage, debouncedSearchQuery, authInfo]);
+    }, [router]);
 
     useEffect(() => {
         if (authInfo) { // Ensure authInfo is available before fetching
-            fetchUsers(true, debouncedSearchQuery);
+            fetchAllData(true, debouncedSearchQuery);
         }
-    }, [fetchUsers, debouncedSearchQuery, currentPage, authInfo]);
+    }, [fetchAllData, debouncedSearchQuery, currentPage, authInfo]);
 
 
     // Reset page to 1 when search query changes
@@ -364,7 +527,7 @@ export default function AdminDashboardPage() {
                             Документация
                         </Button>
 
-                        <Button variant="ghost" size="icon" onClick={() => fetchUsers(false)} disabled={isPolling}>
+                        <Button variant="ghost" size="icon" onClick={() => fetchAllData(false)} disabled={isPolling}>
                             <RefreshCw className={cn("h-4 w-4", isPolling && "animate-spin")} />
                         </Button>
                          <Button variant="outline" size="sm" onClick={handleGoHome}>
@@ -385,6 +548,8 @@ export default function AdminDashboardPage() {
                     </div>
                 ) : (
                 <>
+                {authInfo?.role === 'admin' && <ManagerSection managers={managers} onUpdate={() => fetchAllData(false)} />}
+                
                 <div className="mb-6">
                     <h2 className="text-2xl font-semibold mb-4">Статистика</h2>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

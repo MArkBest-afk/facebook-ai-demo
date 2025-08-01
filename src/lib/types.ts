@@ -1,3 +1,4 @@
+
 import type { ObjectId as MongoObjectId } from 'mongodb';
 
 export type ObjectId = MongoObjectId | string;
@@ -72,3 +73,13 @@ export interface User {
   email?: string;
   duplicates?: User[];
 }
+
+
+export interface Manager {
+  _id: ObjectId;
+  username: string;
+  password: string; // This will be the hashed password
+  role: 'admin' | 'manager';
+}
+
+    

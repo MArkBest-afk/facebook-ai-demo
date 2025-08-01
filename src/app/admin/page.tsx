@@ -8,15 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Bot, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Bot, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// In a real app, this would come from a database
-const MOCK_USERS = [
-    { username: 'admin', password: 'password1', role: 'admin' },
-    { username: 'manager1', password: 'password_m1', role: 'manager' },
-    { username: 'manager2', password: 'password_m2', role: 'manager' },
-];
+import { getManager } from '@/lib/actions';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -26,21 +20,18 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const foundUser = MOCK_USERS.find(
-        (user) => user.username === username && user.password === password
-      );
+    try {
+      const result = await getManager(username, password);
 
-      if (foundUser) {
+      if (result.success && result.manager) {
         try {
             const authInfo = {
-                role: foundUser.role,
-                username: foundUser.username,
+                role: result.manager.role,
+                username: result.manager.username,
             };
             sessionStorage.setItem('authInfo', JSON.stringify(authInfo));
             router.push('/admin/dashboard');
@@ -56,11 +47,18 @@ export default function AdminLoginPage() {
         toast({
           variant: 'destructive',
           title: 'Ошибка входа',
-          description: 'Неверное имя пользователя или пароль.',
+          description: result.message || 'Неверное имя пользователя или пароль.',
         });
       }
-      setIsLoading(false);
-    }, 500);
+    } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Ошибка сервера',
+          description: 'Произошла ошибка при попытке входа. Пожалуйста, попробуйте снова.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -114,7 +112,7 @@ export default function AdminLoginPage() {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-solid border-white border-t-transparent"></div>
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 'Войти'
               )}
