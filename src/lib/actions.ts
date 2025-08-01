@@ -318,26 +318,21 @@ export async function getAllUsers(page: number = 1, limit: number = 30, searchQu
 
     if (searchQuery) {
         const trimmedQuery = searchQuery.trim();
-        const isObjectId = ObjectId.isValid(trimmedQuery);
-        
-        const searchConditions = [];
-        // For managers, they can only search within their own leads
-        // For admins, they can search name OR ID
-        if (managerId) {
-            // Managers can only search by ID within their leads
-            if (isObjectId) {
-                searchConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
-            }
+        const orConditions = [
+            { name: { $regex: trimmedQuery, $options: 'i' } },
+            // Search by part of the ObjectId string
+            { $expr: { $regexMatch: { input: { $toString: "$_id" }, regex: trimmedQuery, options: "i" } } }
+        ];
+
+        // If manager is searching, the OR condition must be within their own leads
+        if (query.name) {
+            query.$and = [
+                { name: query.name },
+                { $or: orConditions }
+            ];
+            delete query.name; // Avoid redundant name check
         } else {
-             const orConditions = [{ name: { $regex: trimmedQuery, $options: 'i' } }];
-             if (isObjectId) {
-                orConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
-             }
-             searchConditions.push({ $or: orConditions });
-        }
-        
-        if (searchConditions.length > 0) {
-            query.$and = query.$and ? [...query.$and, ...searchConditions] : searchConditions;
+            query.$or = orConditions;
         }
     }
 
@@ -736,4 +731,3 @@ export async function deleteManager(managerId: string): Promise<boolean> {
     const result = await managersCollection.deleteOne({ _id: new ObjectId(managerId) });
     return result.deletedCount > 0;
 }
-
