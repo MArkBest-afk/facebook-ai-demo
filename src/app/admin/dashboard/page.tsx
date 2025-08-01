@@ -541,13 +541,10 @@ export default function AdminDashboardPage() {
                                             id="lead-sig"
                                             value={leadSignature}
                                             onChange={(e) => {
-                                                if (authInfo?.role !== 'manager') {
-                                                    setLeadSignature(e.target.value);
-                                                }
+                                                setLeadSignature(e.target.value);
                                                 setGeneratedLink('');
                                             }}
                                             placeholder="например, Ivan_Ivanov_123"
-                                            readOnly={authInfo?.role === 'manager'}
                                         />
                                     </div>
                                     {generatedLink && (
