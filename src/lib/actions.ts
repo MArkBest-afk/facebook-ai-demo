@@ -304,25 +304,40 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
     return result ? toPlainObject(result) as unknown as User : null;
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 30, searchQuery: string = ''): Promise<{ users: WithId<User>[], total: number }> {
+export async function getAllUsers(page: number = 1, limit: number = 30, searchQuery: string = '', managerId?: string): Promise<{ users: WithId<User>[], total: number }> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
     const skip = (page - 1) * limit;
 
     const query: any = {};
+
+    if (managerId) {
+        query.name = managerId;
+    }
+
     if (searchQuery) {
         const trimmedQuery = searchQuery.trim();
         const isObjectId = ObjectId.isValid(trimmedQuery);
         
-        const orConditions = [{ name: { $regex: trimmedQuery, $options: 'i' } }];
-        
-        if (isObjectId) {
-            orConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
+        const searchConditions = [];
+        // For managers, they can only search within their own leads
+        // For admins, they can search name OR ID
+        if (managerId) {
+            // Managers can only search by ID within their leads
+            if (isObjectId) {
+                searchConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
+            }
         } else {
-            orConditions.push({ _id: { $regex: trimmedQuery, $options: 'i' } } as any);
+             const orConditions = [{ name: { $regex: trimmedQuery, $options: 'i' } }];
+             if (isObjectId) {
+                orConditions.push({ _id: new ObjectId(trimmedQuery) } as any);
+             }
+             searchConditions.push({ $or: orConditions });
         }
-
-        query.$or = orConditions;
+        
+        if (searchConditions.length > 0) {
+            query.$and = query.$and ? [...query.$and, ...searchConditions] : searchConditions;
+        }
     }
 
     const total = await usersCollection.countDocuments(query);
@@ -644,3 +659,5 @@ export async function extendSessionTime(userId: string, additionalTimeInSeconds:
 
     return result.modifiedCount > 0;
 }
+
+    

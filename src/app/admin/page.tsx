@@ -11,6 +11,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Bot, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// In a real app, this would come from a database
+const MOCK_USERS = [
+    { username: 'admin', password: 'password1', role: 'admin' },
+    { username: 'manager1', password: 'password_m1', role: 'manager' },
+    { username: 'manager2', password: 'password_m2', role: 'manager' },
+];
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -25,9 +32,17 @@ export default function AdminLoginPage() {
 
     // Simulate network delay
     setTimeout(() => {
-      if (username === 'admin' && password === 'password1') {
+      const foundUser = MOCK_USERS.find(
+        (user) => user.username === username && user.password === password
+      );
+
+      if (foundUser) {
         try {
-            sessionStorage.setItem('isAdminAuthenticated', 'true');
+            const authInfo = {
+                role: foundUser.role,
+                username: foundUser.username,
+            };
+            sessionStorage.setItem('authInfo', JSON.stringify(authInfo));
             router.push('/admin/dashboard');
         } catch (error) {
             console.error("Could not set sessionStorage", error);
@@ -53,11 +68,11 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
           <Bot className="mx-auto h-12 w-12 text-primary" />
-          <CardTitle className="mt-4 text-2xl font-headline">Панель администратора</CardTitle>
+          <CardTitle className="mt-4 text-2xl font-headline">Панель управления</CardTitle>
           <CardDescription>Пожалуйста, войдите для продолжения</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert variant="destructive" className="mb-6">
+           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Важное уведомление</AlertTitle>
             <AlertDescription>
@@ -110,3 +125,5 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+
+    

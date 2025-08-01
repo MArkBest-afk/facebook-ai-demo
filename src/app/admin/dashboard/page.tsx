@@ -20,6 +20,12 @@ import { useToast } from "@/hooks/use-toast";
 const SESSION_TIMEOUT_MS = 60 * 1000; // 1 минута
 const USERS_PER_PAGE = 30;
 
+type AuthInfo = {
+    role: 'admin' | 'manager';
+    username: string;
+} | null;
+
+
 const formatTimeAgo = (date: Date | null): string => {
     if (!date) return 'Никогда';
     const now = Date.now();
@@ -157,6 +163,7 @@ export default function AdminDashboardPage() {
     const [users, setUsers] = useState<WithId<User>[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isPolling, setIsPolling] = useState(false);
+    const [authInfo, setAuthInfo] = useState<AuthInfo>(null);
     
     // State for link generation dialog
     const [leadSignature, setLeadSignature] = useState('');
@@ -170,14 +177,32 @@ export default function AdminDashboardPage() {
 
     const totalPages = Math.ceil(totalUsers / USERS_PER_PAGE);
 
+    useEffect(() => {
+        try {
+            const authData = sessionStorage.getItem('authInfo');
+            if (authData) {
+                const parsedAuth = JSON.parse(authData);
+                setAuthInfo(parsedAuth);
+                if (parsedAuth.role === 'manager') {
+                    setLeadSignature(parsedAuth.username);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to parse auth info from sessionStorage", error);
+        }
+    }, []);
+
     const fetchUsers = useCallback(async (isInitialLoad = false, query = debouncedSearchQuery) => {
+        if (!authInfo) return; // Don't fetch if auth info is not loaded yet
+
         if (isInitialLoad) {
             setIsLoading(true);
         } else {
             setIsPolling(true);
         }
         try {
-            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query);
+            const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
+            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerId);
             
             setUsers(userList);
             setTotalUsers(total);
@@ -193,11 +218,14 @@ export default function AdminDashboardPage() {
                 setIsPolling(false);
             }
         }
-    }, [toast, currentPage, debouncedSearchQuery]);
+    }, [toast, currentPage, debouncedSearchQuery, authInfo]);
 
     useEffect(() => {
-        fetchUsers(true, debouncedSearchQuery);
-    }, [fetchUsers, debouncedSearchQuery, currentPage]);
+        if (authInfo) { // Ensure authInfo is available before fetching
+            fetchUsers(true, debouncedSearchQuery);
+        }
+    }, [fetchUsers, debouncedSearchQuery, currentPage, authInfo]);
+
 
     // Reset page to 1 when search query changes
     useEffect(() => {
@@ -207,10 +235,11 @@ export default function AdminDashboardPage() {
     // Regular polling for stats and background updates
     useEffect(() => {
         const poll = async () => {
-             if (searchQuery) return; // Don't poll when searching
+             if (searchQuery || !authInfo) return; // Don't poll when searching or not authenticated
              setIsPolling(true);
              try {
-                const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE);
+                const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
+                const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, '', managerId);
                 setUsers(userList);
                 setTotalUsers(total);
              } catch (e) {
@@ -221,12 +250,12 @@ export default function AdminDashboardPage() {
         };
         const interval = setInterval(poll, 5000);
         return () => clearInterval(interval);
-    }, [currentPage, searchQuery]);
+    }, [currentPage, searchQuery, authInfo]);
 
 
     const handleLogout = () => {
         try {
-            sessionStorage.removeItem('isAdminAuthenticated');
+            sessionStorage.removeItem('authInfo');
         } catch (error) {
             console.error("Could not remove item from sessionStorage", error);
         }
@@ -239,7 +268,7 @@ export default function AdminDashboardPage() {
 
     const handleGenerateLink = () => {
         if (!leadSignature) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, введите имя для лида.' });
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось определить имя для лида.' });
             return;
         }
         const baseUrl = window.location.origin;
@@ -260,7 +289,11 @@ export default function AdminDashboardPage() {
     const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
     
     const resetLinkGenerator = () => {
-        setLeadSignature('');
+        if (authInfo?.role === 'manager') {
+            setLeadSignature(authInfo.username);
+        } else {
+            setLeadSignature('');
+        }
         setGeneratedLink('');
     };
 
@@ -268,7 +301,9 @@ export default function AdminDashboardPage() {
         <div className="min-h-screen bg-background text-foreground">
             <header className="bg-card border-b">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-xl font-headline text-primary">Панель администратора</h1>
+                    <h1 className="text-xl font-headline text-primary">
+                        {authInfo?.role === 'manager' ? `Кабинет менеджера: ${authInfo.username}` : 'Панель администратора'}
+                    </h1>
                     <div className="flex items-center gap-2">
                         <AlertDialog onOpenChange={(isOpen) => !isOpen && resetLinkGenerator()}>
                             <AlertDialogTrigger asChild>
@@ -281,20 +316,26 @@ export default function AdminDashboardPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Создание ссылки для лида</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Введите уникальное имя или ID для лида. Будет сгенерирована специальная ссылка для отслеживания.
+                                        {authInfo?.role === 'manager' 
+                                            ? 'Будет сгенерирована ваша персональная ссылка для отслеживания лидов.'
+                                            : 'Введите уникальное имя или ID для лида. Будет сгенерирована специальная ссылка для отслеживания.'
+                                        }
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="lead-sig">Имя/ID лида</Label>
+                                        <Label htmlFor="lead-sig">Имя/ID лида (lead_sig)</Label>
                                         <Input
                                             id="lead-sig"
                                             value={leadSignature}
                                             onChange={(e) => {
-                                                setLeadSignature(e.target.value);
+                                                if (authInfo?.role !== 'manager') {
+                                                    setLeadSignature(e.target.value);
+                                                }
                                                 setGeneratedLink('');
                                             }}
                                             placeholder="например, Ivan_Ivanov_123"
+                                            readOnly={authInfo?.role === 'manager'}
                                         />
                                     </div>
                                     {generatedLink && (
@@ -345,21 +386,21 @@ export default function AdminDashboardPage() {
                 ) : (
                 <>
                 <div className="mb-6">
-                    <h2 className="text-2xl font-semibold mb-4">Статистика пользователей</h2>
+                    <h2 className="text-2xl font-semibold mb-4">Статистика</h2>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Всего пользователей</CardTitle>
+                                <CardTitle className="text-sm font-medium">Всего лидов</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{totalUsers}</div>
-                                <p className="text-xs text-muted-foreground">{searchQuery ? 'найдено по запросу' : 'всего сессий'}</p>
+                                <p className="text-xs text-muted-foreground">{searchQuery ? 'найдено по запросу' : (authInfo?.role === 'manager' ? 'ваших лидов' : 'всего сессий')}</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Пользователи онлайн</CardTitle>
+                                <CardTitle className="text-sm font-medium">Лиды онлайн</CardTitle>
                                 <UserCheck className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -386,14 +427,14 @@ export default function AdminDashboardPage() {
                                 <div className={cn("text-2xl font-bold", totalPnlSum >= 0 ? "text-success" : "text-destructive")}>
                                     {totalPnlSum >= 0 ? '+' : ''}${totalPnlSum.toFixed(2)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">по всем пользователям</p>
+                                <p className="text-xs text-muted-foreground">по видимым лидам</p>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
 
                 <div>
-                    <h2 className="text-2xl font-semibold mb-4">Данные пользователей</h2>
+                    <h2 className="text-2xl font-semibold mb-4">Данные лидов</h2>
                      <div className="mb-4 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -409,7 +450,7 @@ export default function AdminDashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>ID Пользователя</TableHead>
-                                        <TableHead>Имя</TableHead>
+                                        <TableHead>Имя (lead_sig)</TableHead>
                                         <TableHead>Статус лида</TableHead>
                                         <TableHead>Статус</TableHead>
                                         <TableHead>Чат</TableHead>
@@ -424,7 +465,7 @@ export default function AdminDashboardPage() {
                                     {users.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                                                Пользователи не найдены.
+                                                Лиды не найдены.
                                             </TableCell>
                                         </TableRow>
                                     ) : (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -14,7 +15,9 @@ export default function AdminLayout({
 
   useEffect(() => {
     try {
-      const isAuthenticated = sessionStorage.getItem('isAdminAuthenticated') === 'true';
+      const authInfo = sessionStorage.getItem('authInfo');
+      const isAuthenticated = !!authInfo;
+      
       setIsAuth(isAuthenticated);
 
       if (!isAuthenticated && pathname !== '/admin') {
@@ -54,3 +57,5 @@ export default function AdminLayout({
   // This part should technically not be reached due to the redirect, but it's a good fallback
   return null;
 }
+
+    
