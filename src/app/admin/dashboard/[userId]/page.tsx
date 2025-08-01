@@ -3,17 +3,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users, Flame } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users, Flame, Lightbulb, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { ChatMessage, User, Manager } from '@/lib/types';
+import type { ChatMessage, User, Manager, GenerateNextStepOutput } from '@/lib/types';
 import { addManualTrade, deleteUser, extendSessionTime, getUserById, getUsersByName, markAdminChatMessagesAsRead, sendChatMessage, updateUserProfile, updateUserSubscription, getAllManagers } from '@/lib/actions';
+import { generateNextStep } from '@/ai/flows/generate-next-step';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -42,6 +43,55 @@ const formatTime = (seconds: number) => {
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 };
+
+const RecommendationCard = ({ recommendation }: { recommendation: GenerateNextStepOutput | null }) => {
+    if (!recommendation) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="w-6 h-6" />
+                        <span>AI-рекомендация</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-center text-muted-foreground">
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Генерация рекомендации...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const { recommendation: text, priority } = recommendation;
+    const priorityConfig = {
+        CRITICAL: { icon: Flame, color: 'text-destructive', badge: 'destructive' },
+        HIGH: { icon: ShieldAlert, color: 'text-amber-600', badge: 'default' },
+        MEDIUM: { icon: Lightbulb, color: 'text-primary', badge: 'secondary' },
+        LOW: { icon: Lightbulb, color: 'text-muted-foreground', badge: 'outline' },
+    };
+    
+    const config = priorityConfig[priority] || priorityConfig.LOW;
+
+    return (
+        <Card className={cn(priority === 'CRITICAL' && "border-destructive/50 bg-destructive/5")}>
+             <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                    <span className={cn("flex items-center gap-2", config.color)}>
+                        <config.icon className="w-6 h-6" />
+                        <span>AI-рекомендация</span>
+                    </span>
+                    <Badge variant={config.badge as any}>{priority}</Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-base font-medium">{text}</p>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 // This is a stand-alone component to prevent re-renders from the parent
 const AdminChat = ({ userId, initialMessages }: { userId: string, initialMessages: ChatMessage[] }) => {
@@ -122,6 +172,8 @@ export default function UserDetailPage() {
 
     const [authInfo, setAuthInfo] = useState<{ role: string, username: string } | null>(null);
     const [managers, setManagers] = useState<WithId<Manager>[]>([]);
+    const [recommendation, setRecommendation] = useState<GenerateNextStepOutput | null>(null);
+    const [isRecommendationLoading, setIsRecommendationLoading] = useState(false);
 
     useEffect(() => {
       try {
@@ -173,6 +225,38 @@ export default function UserDetailPage() {
         }
     }, [userId]);
 
+    const fetchAiRecommendation = useCallback(async (userData: User) => {
+        setIsRecommendationLoading(true);
+        try {
+            const timeIsUp = (userData.sessionStartTime && userData.timeLimit) ? (Date.now() - userData.sessionStartTime) / 1000 >= userData.timeLimit : false;
+
+            const chatHistoryJson = JSON.stringify((userData.chatMessages || []).map(m => ({
+                sender: m.sender,
+                text: m.text,
+            })));
+
+            const recommendationInput = {
+                balance: userData.balance,
+                totalPnl: userData.totalPnl,
+                isRunning: userData.isRunning,
+                isHotLead: !!userData.isHotLead,
+                chatHistory: chatHistoryJson,
+                timeLimitReached: timeIsUp,
+            };
+
+            const result = await generateNextStep(recommendationInput);
+            setRecommendation(result);
+        } catch (error) {
+            console.error("Failed to fetch AI recommendation:", error);
+            setRecommendation({
+                recommendation: "Не удалось получить рекомендацию от AI.",
+                priority: "LOW"
+            });
+        } finally {
+            setIsRecommendationLoading(false);
+        }
+    }, []);
+
     // This function fetches all user data and sets the state.
     // It's called once on load and after major updates.
     const fetchAndSetFullUserData = useCallback(async () => {
@@ -189,9 +273,10 @@ export default function UserDetailPage() {
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
-                // Fetch duplicates after getting user data
+                // Fetch duplicates and recommendation after getting user data
                 fetchDuplicates(userData.name);
                 fetchManagers();
+                fetchAiRecommendation(userData);
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -202,7 +287,7 @@ export default function UserDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates, fetchManagers]);
+    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates, fetchManagers, fetchAiRecommendation]);
 
     // This function fetches only the data that changes frequently
     // to avoid resetting the whole page and losing input focus.
@@ -211,12 +296,11 @@ export default function UserDetailPage() {
         try {
             const userData = await getUserById(userId);
             if (userData) {
+                const didChatChange = JSON.stringify(user?.chatMessages) !== JSON.stringify(userData.chatMessages);
+                const didStatusChange = user?.isRunning !== userData.isRunning || user?.isHotLead !== userData.isHotLead;
+
                 setUser(currentUser => {
                     if (!currentUser) return userData;
-                    const didChatChange = JSON.stringify(currentUser.chatMessages) !== JSON.stringify(userData.chatMessages);
-                    if (didChatChange) {
-                        return { ...userData, chatMessages: userData.chatMessages || [] };
-                    }
                     // If chat hasn't changed, only update non-input fields to avoid flicker
                     return {
                         ...currentUser,
@@ -237,6 +321,7 @@ export default function UserDetailPage() {
                         isHotLead: userData.isHotLead,
                     };
                 });
+                
                 // Only update balance input if it hasn't been changed by the admin
                 if (parseFloat(balanceInput) !== userData.balance) {
                     setBalanceInput(userData.balance.toFixed(2));
@@ -244,12 +329,17 @@ export default function UserDetailPage() {
                 if (userData.hasUnreadAdminMessages) {
                     markMessagesAsRead();
                 }
+                
+                if (didChatChange || didStatusChange) {
+                    fetchAiRecommendation(userData);
+                }
+
                 fetchDuplicates(userData.name);
             }
         } catch (error) {
             console.error("Failed to fetch dynamic user data:", error);
         }
-    }, [userId, markMessagesAsRead, fetchDuplicates, balanceInput]);
+    }, [userId, markMessagesAsRead, fetchDuplicates, balanceInput, fetchAiRecommendation, user]);
     
     // Initial data load
     useEffect(() => {
@@ -481,6 +571,7 @@ export default function UserDetailPage() {
             </header>
             <main className="container mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 flex flex-col gap-8">
+                    <RecommendationCard recommendation={recommendation} />
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">

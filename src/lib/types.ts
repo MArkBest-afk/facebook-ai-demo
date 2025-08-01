@@ -82,4 +82,18 @@ export interface Manager {
   role: 'admin' | 'manager';
 }
 
+export interface GenerateNextStepInput {
+  balance: number;
+  totalPnl: number;
+  isRunning: boolean;
+  isHotLead: boolean;
+  chatHistory: string;
+  timeLimitReached: boolean;
+}
+
+export interface GenerateNextStepOutput {
+  recommendation: string;
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
     
