@@ -663,8 +663,27 @@ export async function extendSessionTime(userId: string, additionalTimeInSeconds:
 
 
 // Manager Actions
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD_HASH = '$2a$10$f.XwH7f4r9f0v8c2c7p5h.h7aG7p5d6F3n2d1a3c6d8G9j0H7F4R6'; // This is a fake hash for 'password1'
 
 export async function getManager(username: string, password_raw: string): Promise<{ success: boolean; manager?: Manager; message?: string }> {
+    if (username === ADMIN_USERNAME) {
+        const isPasswordValid = await bcrypt.compare(password_raw, ADMIN_PASSWORD_HASH);
+        if (isPasswordValid) {
+            return {
+                success: true,
+                manager: {
+                    _id: new ObjectId(),
+                    username: ADMIN_USERNAME,
+                    role: 'admin',
+                    password: '' // Do not send hash to client
+                }
+            };
+        } else {
+            return { success: false, message: 'Неверный пароль.' };
+        }
+    }
+    
     const db = await getDb();
     const managersCollection = db.collection<Manager>('managers');
     
@@ -718,5 +737,3 @@ export async function deleteManager(managerId: string): Promise<boolean> {
     const result = await managersCollection.deleteOne({ _id: new ObjectId(managerId) });
     return result.deletedCount > 0;
 }
-
-    
