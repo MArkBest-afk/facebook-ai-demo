@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter, Bot, Square, TrendingUp, Eye, Clock } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter, Bot, Square, TrendingUp, Eye, Clock, UserCog } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User, Manager } from '@/lib/types';
@@ -26,7 +26,7 @@ type AuthInfo = {
     username: string;
 } | null;
 
-type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
+type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed' | 'hot';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -89,7 +89,7 @@ const getLeadStatuses = (user: WithId<User>): LeadStatus[] => {
     const statuses: LeadStatus[] = [];
 
     if (user.isHotLead) {
-        statuses.push({ text: 'Горячий лид', variant: 'destructive', icon: Flame });
+        statuses.push({ text: 'Требуется менеджер', variant: 'destructive', icon: UserCog });
         return statuses; // Hot lead is the most important status
     }
     
@@ -154,7 +154,8 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
                     {leadStatuses.map((status, index) => (
                         <Badge key={index} variant={status.variant} className={cn(
                             'gap-1.5',
-                            status.variant === 'destructive' && 'animate-pulse'
+                             status.variant === 'destructive' && user.isHotLead && 'bg-amber-600 hover:bg-amber-700 animate-pulse text-white',
+                             status.variant === 'destructive' && !user.isHotLead && 'animate-pulse'
                         )}>
                             <status.icon className="h-3 w-3" />
                             {status.text}
@@ -487,13 +488,16 @@ export default function AdminDashboardPage() {
     const onlineUsersCount = useMemo(() => users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS).length, [users]);
     const totalPnlSum = useMemo(() => users.reduce((acc, user) => acc + (user.totalPnl || 0), 0), [users]);
     const subscribedUsersCount = useMemo(() => users.filter(u => u.isSubscribed).length, [users]);
+    const hotLeadsCount = useMemo(() => users.filter(u => u.isHotLead).length, [users]);
     
     const filteredUsers = useMemo(() => {
         switch (activeFilter) {
+            case 'hot':
+                return users.filter(u => u.isHotLead);
             case 'new':
                 return users.filter(u => !u.sessionStartTime);
             case 'dialogue':
-                return users.filter(u => u.chatMessages && u.chatMessages.length > 0);
+                return users.filter(u => u.hasUnreadAdminMessages);
             case 'trading':
                 return users.filter(u => u.isRunning);
             case 'timeup':
@@ -620,6 +624,16 @@ export default function AdminDashboardPage() {
                                 <p className="text-xs text-muted-foreground">{submittedSearch ? 'найдено по запросу' : (authInfo?.role === 'manager' ? 'ваших лидов' : 'всего сессий')}</p>
                             </CardContent>
                         </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Горячие лиды</CardTitle>
+                                <Flame className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{hotLeadsCount}</div>
+                                <p className="text-xs text-muted-foreground">готовы к пополнению</p>
+                            </CardContent>
+                        </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Лиды онлайн</CardTitle>
@@ -628,16 +642,6 @@ export default function AdminDashboardPage() {
                             <CardContent>
                                 <div className="text-2xl font-bold">{onlineUsersCount}</div>
                                 <p className="text-xs text-muted-foreground">активны в данный момент</p>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Подписанные лиды</CardTitle>
-                                <UserCheck className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{subscribedUsersCount}</div>
-                                <p className="text-xs text-muted-foreground">из сгенерированных ссылок</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -670,8 +674,8 @@ export default function AdminDashboardPage() {
                         </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
-                            <Button variant={activeFilter === 'new' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('new')}>Новые</Button>
-                            <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>Диалог</Button>
+                            <Button variant={activeFilter === 'hot' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')} className="border-amber-500 text-amber-600 hover:bg-amber-500/10 data-[state=active]:bg-amber-500 data-[state=active]:text-white">Горячие</Button>
+                            <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>С ответом</Button>
                             <Button variant={activeFilter === 'trading' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('trading')}>Торгует</Button>
                             <Button variant={activeFilter === 'timeup' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('timeup')}>Время вышло</Button>
                             <Button variant={activeFilter === 'online' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('online')}>Онлайн</Button>
@@ -744,5 +748,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    
