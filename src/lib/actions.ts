@@ -664,7 +664,7 @@ export async function extendSessionTime(userId: string, additionalTimeInSeconds:
 
 // Manager Actions
 const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD_HASH = '$2a$10$w4r0M/HysF9mB.iVJo./GOoD5jK8wJz5sT0M1v.a5f8E6j7X8k9Yq'; // Correct hash for 'password1'
+const ADMIN_PASSWORD_HASH = '$2a$10$pL.3s5T32ImB5j2/V0/u/.y2JzV7MjkQoN8A6rNLL9qI51sL80pBq'; // Correct hash for 'password1'
 
 export async function getManager(username: string, password_raw: string): Promise<{ success: boolean; manager?: Manager; message?: string }> {
     if (username === ADMIN_USERNAME) {
