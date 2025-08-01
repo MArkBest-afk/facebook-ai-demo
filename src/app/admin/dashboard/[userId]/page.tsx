@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Wallet, BarChart2, History, CheckCircle, RefreshCw, Save, Bot, Play, Square, Trash2, UserX, UserCheck, TrendingUp, TrendingDown, MapPin, Globe, Clock, MessageSquare, Send, Sparkles, Copy, AlertTriangle, PlusCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { ChatMessage, User } from '@/lib/types';
-import { addManualTrade, deleteUser, extendSessionTime, getUserById, getUsersByName, markAdminChatMessagesAsRead, sendChatMessage, updateUserProfile, updateUserSubscription } from '@/lib/actions';
+import type { ChatMessage, User, Manager } from '@/lib/types';
+import { addManualTrade, deleteUser, extendSessionTime, getUserById, getUsersByName, markAdminChatMessagesAsRead, sendChatMessage, updateUserProfile, updateUserSubscription, getAllManagers } from '@/lib/actions';
 import { ROBOTS } from '@/lib/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Chat } from '@/components/chat';
+import { WithId } from 'mongodb';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -119,6 +120,36 @@ export default function UserDetailPage() {
     const userId = params.userId as string;
     const [remainingTime, setRemainingTime] = useState(0);
 
+    const [authInfo, setAuthInfo] = useState<{ role: string, username: string } | null>(null);
+    const [managers, setManagers] = useState<WithId<Manager>[]>([]);
+
+    useEffect(() => {
+      try {
+        const authData = sessionStorage.getItem('authInfo');
+        if (authData) {
+          const parsedAuth = JSON.parse(authData);
+          setAuthInfo(parsedAuth);
+        } else {
+          router.replace('/admin');
+        }
+      } catch (e) {
+        router.replace('/admin');
+      }
+    }, [router]);
+
+    const fetchManagers = useCallback(async () => {
+        if (authInfo?.role === 'admin') {
+            try {
+                const managerList = await getAllManagers();
+                setManagers(managerList);
+            } catch (error) {
+                console.error("Failed to fetch managers:", error);
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить список менеджеров.' });
+            }
+        }
+    }, [authInfo?.role, toast]);
+
+
     const markMessagesAsRead = useCallback(async () => {
         if (!userId) return;
         try {
@@ -160,6 +191,7 @@ export default function UserDetailPage() {
                 }
                 // Fetch duplicates after getting user data
                 fetchDuplicates(userData.name);
+                fetchManagers();
             } else {
                 toast({ variant: 'destructive', title: 'Ошибка', description: 'Пользователь не найден.' });
                 router.push('/admin/dashboard');
@@ -170,7 +202,7 @@ export default function UserDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates]);
+    }, [userId, router, toast, markMessagesAsRead, fetchDuplicates, fetchManagers]);
 
     // This function fetches only the data that changes frequently
     // to avoid resetting the whole page and losing input focus.
@@ -201,6 +233,7 @@ export default function UserDetailPage() {
                         isAiChatEnabled: userData.isAiChatEnabled,
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                         chatMessages: userData.chatMessages || [],
+                        name: userData.name,
                     };
                 });
                 // Only update balance input if it hasn't been changed by the admin
@@ -219,8 +252,10 @@ export default function UserDetailPage() {
     
     // Initial data load
     useEffect(() => {
-        fetchAndSetFullUserData();
-    }, [fetchAndSetFullUserData]);
+        if (authInfo) {
+            fetchAndSetFullUserData();
+        }
+    }, [authInfo, fetchAndSetFullUserData]);
 
     // Polling for dynamic data
     useEffect(() => {
@@ -372,9 +407,13 @@ export default function UserDetailPage() {
     }
     const handleToggleBlocked = (isBlocked: boolean) => handleUpdateProfile({ isBlocked });
     const handleToggleAiChat = (isEnabled: boolean) => handleUpdateProfile({ isAiChatEnabled: isEnabled });
+    const handleManagerSelect = (managerUsername: string) => {
+        const newName = managerUsername === 'none' ? '' : managerUsername;
+        handleUpdateProfile({ name: newName });
+    };
 
 
-    if (isLoading) {
+    if (isLoading || !authInfo) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
@@ -451,7 +490,7 @@ export default function UserDetailPage() {
                                 <Input id="userId" value={user._id.toString()} readOnly className="font-mono text-xs" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="userName">Имя</Label>
+                                <Label htmlFor="userName">Имя (lead_sig)</Label>
                                 <div className="flex gap-2">
                                     <Input id="userName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Введите имя пользователя" />
                                     <Button onClick={handleSaveName} disabled={isUpdating} size="icon">
@@ -475,6 +514,38 @@ export default function UserDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {authInfo.role === 'admin' && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="w-6 h-6" />
+                                    <span>Управление менеджером</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Label htmlFor="manager-select">Назначенный менеджер</Label>
+                                <Select
+                                    value={user.name || 'none'}
+                                    onValueChange={handleManagerSelect}
+                                    disabled={isUpdating}
+                                >
+                                    <SelectTrigger id="manager-select">
+                                        <SelectValue placeholder="Выберите менеджера" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Без менеджера (в пуле)</SelectItem>
+                                        {managers.map(manager => (
+                                            <SelectItem key={manager._id.toString()} value={manager.username}>
+                                                {manager.username}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </CardContent>
+                        </Card>
+                    )}
+
 
                     {duplicateUsers.length > 0 && (
                         <Card className="border-amber-500/50">
@@ -801,3 +872,5 @@ export default function UserDetailPage() {
         </div>
     );
 }
+
+    
