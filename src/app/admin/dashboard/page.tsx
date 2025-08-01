@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter } from "lucide-react";
+import { LogOut, Home, Users, UserCheck, BarChart2, RefreshCw, Link2, Copy, MessageSquare, Search, Flame, BookOpen, ArrowLeft, ArrowRight, Loader2, PlusCircle, Trash2, UserPlus, Filter, Bot, Square, TrendingUp, Eye } from "lucide-react";
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { User, Manager } from '@/lib/types';
@@ -77,11 +77,29 @@ const getChatStatus = (user: WithId<User>): { text: string; variant: 'default' |
     return { text: 'Вы ответили', variant: 'outline' };
 }
 
+const getLeadStatus = (user: WithId<User>): { text: string; variant: 'destructive' | 'success' | 'default' | 'secondary' | 'outline'; icon: React.ElementType } => {
+    if (user.isHotLead) {
+        return { text: 'Горячий лид', variant: 'destructive', icon: Flame };
+    }
+    if (user.isRunning) {
+        return { text: 'Торгует', variant: 'success', icon: Bot };
+    }
+    if (user.chatMessages && user.chatMessages.length > 0) {
+        return { text: 'Диалог', variant: 'default', icon: MessageSquare };
+    }
+    if (user.sessionStartTime) {
+         return { text: 'Просмотр', variant: 'secondary', icon: Eye };
+    }
+    return { text: 'Новый', variant: 'outline', icon: UserPlus };
+};
+
+
 const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthInfo }) => {
     const router = useRouter();
     const isOnline = user.lastActive && (Date.now() - new Date(user.lastActive).getTime()) < SESSION_TIMEOUT_MS;
     const timeLeftStr = formatRemainingTime(user);
     const chatStatus = getChatStatus(user);
+    const leadStatus = getLeadStatus(user);
 
     return (
         <TableRow 
@@ -110,14 +128,12 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
                 </TableCell>
             )}
             <TableCell>
-                 <Badge variant={user.isHotLead ? 'destructive' : 'outline'} className={cn(user.isHotLead && 'animate-pulse')}>
-                    {user.isHotLead ? (
-                        <>
-                            <Flame className="mr-2 h-4 w-4" /> Горячий лид
-                        </>
-                    ) : (
-                        'Обычный'
-                    )}
+                 <Badge variant={leadStatus.variant} className={cn(
+                     'gap-1.5',
+                     leadStatus.variant === 'destructive' && 'animate-pulse'
+                 )}>
+                    <leadStatus.icon className="h-3 w-3" />
+                    {leadStatus.text}
                 </Badge>
             </TableCell>
             <TableCell>
@@ -708,5 +724,3 @@ export default function AdminDashboardPage() {
         </div>
     )
 }
-
-    
