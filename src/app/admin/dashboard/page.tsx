@@ -550,7 +550,7 @@ export default function AdminDashboardPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="lead-sig-suffix">Уникальный суффикс (необязательно)</Label>
+                                        <Label htmlFor="lead-sig-suffix">Подпись лида</Label>
                                         <Input
                                             id="lead-sig-suffix"
                                             value={leadSignatureSuffix}
@@ -558,7 +558,7 @@ export default function AdminDashboardPage() {
                                                 setLeadSignatureSuffix(e.target.value);
                                                 setGeneratedLink('');
                                             }}
-                                            placeholder="например, google_ads_1"
+                                            placeholder="например, ivan_ivanov_googleads"
                                         />
                                     </div>
                                     {generatedLink && (
@@ -575,7 +575,7 @@ export default function AdminDashboardPage() {
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel onClick={resetLinkGenerator}>Закрыть</AlertDialogCancel>
-                                    <Button onClick={handleGenerateLink} disabled={!leadSignatureBase}>
+                                    <Button onClick={handleGenerateLink} disabled={!leadSignatureBase || !leadSignatureSuffix}>
                                         Создать
                                     </Button>
                                 </AlertDialogFooter>
