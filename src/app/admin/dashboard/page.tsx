@@ -26,7 +26,7 @@ type AuthInfo = {
     username: string;
 } | null;
 
-type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed';
+type FilterType = 'all' | 'new' | 'dialogue' | 'trading' | 'timeup' | 'online' | 'subscribed' | 'hot';
 
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -141,7 +141,7 @@ const UserRow = memo(({ user, authInfo }: { user: WithId<User>, authInfo: AuthIn
             </TableCell>
             {authInfo?.role === 'admin' && (
                 <TableCell>
-                    {user.isSubscribed && user.name ? user.name : 'N/A'}
+                    {user.managerName || 'N/A'}
                 </TableCell>
             )}
             <TableCell>
@@ -370,8 +370,8 @@ export default function AdminDashboardPage() {
         if (isInitialLoad) setIsLoading(true); else setIsPolling(true);
         
         try {
-            const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
-            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerId);
+            const managerUsername = authInfo.role === 'manager' ? authInfo.username : undefined;
+            const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, query, managerUsername);
             setUsers(userList);
             setTotalUsers(total);
             
@@ -420,8 +420,8 @@ export default function AdminDashboardPage() {
              if (submittedSearch || !authInfo) return;
              setIsPolling(true);
              try {
-                const managerId = authInfo.role === 'manager' ? authInfo.username : undefined;
-                const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, '', managerId);
+                const managerUsername = authInfo.role === 'manager' ? authInfo.username : undefined;
+                const { users: userList, total } = await getAllUsers(currentPage, USERS_PER_PAGE, '', managerUsername);
                 setUsers(userList);
                 setTotalUsers(total);
              } catch (e) {
@@ -455,13 +455,11 @@ export default function AdminDashboardPage() {
     };
 
     const handleGenerateLink = () => {
-        if (!leadSignatureBase) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Основное имя для лида не может быть пустым.' });
+        if (!leadSignatureBase || !leadSignatureSuffix) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Оба поля для создания ссылки должны быть заполнены.' });
             return;
         }
-        const finalSignature = leadSignatureSuffix 
-            ? `${leadSignatureBase}-${leadSignatureSuffix}` 
-            : leadSignatureBase;
+        const finalSignature = `${leadSignatureBase}-${leadSignatureSuffix}`;
 
         const baseUrl = window.location.origin;
         const fullLink = `${baseUrl}/?lead_sig=${encodeURIComponent(finalSignature)}`;
@@ -494,6 +492,8 @@ export default function AdminDashboardPage() {
                 return users.filter(u => u.lastActive && (Date.now() - new Date(u.lastActive).getTime()) < SESSION_TIMEOUT_MS);
             case 'subscribed':
                 return users.filter(u => u.isSubscribed);
+            case 'hot':
+                return users.filter(u => u.isHotLead);
             case 'all':
             default:
                 return users;
@@ -535,7 +535,7 @@ export default function AdminDashboardPage() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="lead-sig-base">
-                                            {authInfo?.role === 'manager' ? 'ID Менеджера (нередактируемый)' : 'Имя/ID лида'}
+                                            {authInfo?.role === 'manager' ? 'ID Менеджера' : 'Имя/ID менеджера (необязательно)'}
                                         </Label>
                                         <Input
                                             id="lead-sig-base"
@@ -544,7 +544,7 @@ export default function AdminDashboardPage() {
                                                 setLeadSignatureBase(e.target.value);
                                                 setGeneratedLink('');
                                             }}
-                                            placeholder="например, Ivan_Ivanov"
+                                            placeholder="например, manager1"
                                             readOnly={authInfo?.role === 'manager'}
                                             disabled={authInfo?.role === 'manager'}
                                         />
@@ -673,6 +673,7 @@ export default function AdminDashboardPage() {
                         </form>
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                             <Button variant={activeFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('all')}>Все</Button>
+                             <Button variant={activeFilter === 'hot' ? 'destructive' : 'outline'} size="sm" onClick={() => setActiveFilter('hot')} className="border-amber-500 text-amber-600 hover:bg-amber-500/10 data-[state=active]:bg-amber-600 data-[state=active]:text-white">Горячие</Button>
                             <Button variant={activeFilter === 'new' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('new')}>Новые</Button>
                             <Button variant={activeFilter === 'dialogue' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('dialogue')}>Диалог</Button>
                             <Button variant={activeFilter === 'trading' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter('trading')}>Торгует</Button>

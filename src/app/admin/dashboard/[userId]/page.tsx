@@ -355,6 +355,7 @@ export default function UserDetailPage() {
                         hasUnreadAdminMessages: userData.hasUnreadAdminMessages,
                         chatMessages: userData.chatMessages || [],
                         name: userData.name,
+                        managerName: userData.managerName,
                         isHotLead: userData.isHotLead,
                     };
                 });
@@ -531,8 +532,8 @@ export default function UserDetailPage() {
     const handleToggleBlocked = (isBlocked: boolean) => handleUpdateProfile({ isBlocked });
     const handleToggleAiChat = (isEnabled: boolean) => handleUpdateProfile({ isAiChatEnabled: isEnabled });
     const handleManagerSelect = (managerUsername: string) => {
-        const newName = managerUsername === 'none' ? '' : managerUsername;
-        handleUpdateProfile({ name: newName });
+        const newManagerName = managerUsername === 'none' ? undefined : managerUsername;
+        handleUpdateProfile({ managerName: newManagerName });
     };
 
 
@@ -656,7 +657,7 @@ export default function UserDetailPage() {
                             <CardContent>
                                 <Label htmlFor="manager-select">Назначенный менеджер</Label>
                                 <Select
-                                    value={user.name || 'none'}
+                                    value={user.managerName || 'none'}
                                     onValueChange={handleManagerSelect}
                                     disabled={isUpdating}
                                 >
