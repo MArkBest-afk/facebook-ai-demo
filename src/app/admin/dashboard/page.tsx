@@ -535,7 +535,7 @@ export default function AdminDashboardPage() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="lead-sig-base">
-                                            {authInfo?.role === 'manager' ? 'ID Менеджера' : 'Имя/ID менеджера (необязательно)'}
+                                            {authInfo?.role === 'manager' ? 'ID Менеджера' : 'Имя/ID менеджера'}
                                         </Label>
                                         <Input
                                             id="lead-sig-base"
@@ -546,7 +546,6 @@ export default function AdminDashboardPage() {
                                             }}
                                             placeholder="например, manager1"
                                             readOnly={authInfo?.role === 'manager'}
-                                            disabled={authInfo?.role === 'manager'}
                                         />
                                     </div>
                                     <div className="space-y-2">

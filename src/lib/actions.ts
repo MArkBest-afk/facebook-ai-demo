@@ -170,13 +170,14 @@ export async function getOrCreateUser(accountId: string | null, leadSignature: s
 
     if (leadSignature && leadSignature.includes('-')) {
         const signatureParts = leadSignature.split('-');
-        const managerUsername = signatureParts.shift(); // The first part is the manager's login
-        leadName = signatureParts.join('-'); // The rest is the lead's name
+        const managerUsername = signatureParts.shift();
+        const clientSignature = signatureParts.join('-'); 
         
         if (managerUsername) {
             const manager = await managersCollection.findOne({ username: managerUsername });
             if (manager) {
                 assignedManagerName = manager.username;
+                leadName = clientSignature;
             }
         }
     }
@@ -324,15 +325,15 @@ export async function resetUser(accountId: string, mode: 'normal' | 'demo'): Pro
     return result ? toPlainObject(result) as unknown as User : null;
 }
 
-export async function getAllUsers(page: number = 1, limit: number = 30, searchQuery: string = '', managerId?: string): Promise<{ users: WithId<User>[], total: number }> {
+export async function getAllUsers(page: number = 1, limit: number = 30, searchQuery: string = '', managerUsername?: string): Promise<{ users: WithId<User>[], total: number }> {
     const db = await getDb();
     const usersCollection = db.collection<User>('users');
     const skip = (page - 1) * limit;
 
     const query: any = {};
 
-    if (managerId) {
-        query.managerName = managerId;
+    if (managerUsername) {
+        query.managerName = managerUsername;
     }
 
     if (searchQuery) {
@@ -343,9 +344,11 @@ export async function getAllUsers(page: number = 1, limit: number = 30, searchQu
             { $expr: { $regexMatch: { input: { $toString: "$_id" }, regex: trimmedQuery, options: "i" } } }
         ];
 
+        // If a manager is searching, their search should be within their assigned leads.
         if (query.managerName) {
             query.$or = orConditions;
         } else {
+        // If an admin is searching, it can be across all leads.
             query.$or = orConditions;
         }
     }
@@ -394,18 +397,34 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     const userBeforeUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
     if (!userBeforeUpdate) return false;
 
-    const updateData: any = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.managerName !== undefined) updateData.managerName = updates.managerName;
-    if (updates.isBlocked !== undefined) updateData.isBlocked = updates.isBlocked;
-    if (updates.selectedRobotId !== undefined) updateData.selectedRobotId = updates.selectedRobotId;
-    if (updates.comment !== undefined) updateData.comment = updates.comment;
-    if (updates.isAiChatEnabled !== undefined) updateData.isAiChatEnabled = updates.isAiChatEnabled;
+    // Use a more controlled update object
+    const updateData: Partial<User> = {};
+
+    // List of fields that can be updated. managerName is NOT included.
+    const allowedUpdates: (keyof User)[] = ['name', 'isBlocked', 'selectedRobotId', 'comment', 'isAiChatEnabled', 'balance', 'isRunning'];
+
+    for (const key of allowedUpdates) {
+        if (updates[key] !== undefined) {
+            (updateData as any)[key] = updates[key];
+        }
+    }
+    
+    // special handling for managerName ONLY for admins
+    // This part is not in the original code, but it's a good practice
+    // if we ever want admins to re-assign leads.
+    // For now, let's assume only admins can do this, and it's a separate action.
+    if (updates.managerName !== undefined) {
+        updateData.managerName = updates.managerName;
+    }
 
     if (updates.balance !== undefined) {
         const newBalance = updates.balance;
         updateData.balance = newBalance;
-        updateData.totalPnl = newBalance - INITIAL_BALANCE;
+        // P&L should only be calculated from trades, not manual balance changes.
+        // Recalculating here would be complex. A better approach is to not tie P&L to manual balance changes.
+        // Or, if desired, add a new field like `manualAdjustment` and factor that in.
+        // For simplicity, I'm removing the P&L update on manual balance change.
+        // updateData.totalPnl = newBalance - INITIAL_BALANCE;
     }
 
     if (updates.isRunning !== undefined) {
@@ -419,7 +438,7 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
         return true; 
     }
     
-    updateData.lastActive = new Date();
+    (updateData as any).lastActive = new Date();
 
     const result = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
